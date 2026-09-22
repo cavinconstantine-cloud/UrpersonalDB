@@ -42,6 +42,8 @@ export async function getDashboardData() {
     marketNewsRes,
     fcfSnapshotsRes,
     budgetsRes,
+    recurringIncomeRes,
+    recurringExpenseRes,
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
@@ -83,6 +85,8 @@ export async function getDashboardData() {
       .gte("snapshot_month", monthsAgoFirstOfMonthIso(11))
       .order("snapshot_month"),
     supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
+    supabase.from("recurring_incomes").select("id, label, amount").eq("user_id", user.id).order("created_at"),
+    supabase.from("recurring_expenses").select("id, label, amount").eq("user_id", user.id).order("created_at"),
   ]);
 
   const profile = profileRes.data;
@@ -137,6 +141,8 @@ export async function getDashboardData() {
     })),
     fcfSnapshots: fcfSnapshotsRes.data || [],
     budgets: (budgetsRes.data || []).map((b) => ({ category: b.category, monthlyLimit: Number(b.monthly_limit) })),
+    recurringIncomes: (recurringIncomeRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) })),
+    recurringExpenses: (recurringExpenseRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) })),
   };
 }
 

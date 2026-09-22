@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app/(auth)/actions";
 import { SettingsForm } from "@/components/app/settings-form";
-import { RecurringCashflowSections } from "@/components/app/recurring-cashflow-sections";
 import { BudgetManager } from "@/components/app/budget-manager";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -18,15 +17,12 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, cashflowRes, recurringIncomeRes, recurringExpenseRes, budgetsRes, customExpCatRes] =
-    await Promise.all([
-      supabase.from("profiles").select("name").eq("id", user.id).single(),
-      supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("recurring_incomes").select("id, label, amount").eq("user_id", user.id).order("created_at"),
-      supabase.from("recurring_expenses").select("id, label, amount").eq("user_id", user.id).order("created_at"),
-      supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
-      supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
-    ]);
+  const [profileRes, cashflowRes, budgetsRes, customExpCatRes] = await Promise.all([
+    supabase.from("profiles").select("name").eq("id", user.id).single(),
+    supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
+    supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
+    supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
+  ]);
 
   const expenseCats = [...EXPENSE_CATS, ...(customExpCatRes.data || []).map((c) => c.name)];
   const budgetByCategory = new Map((budgetsRes.data || []).map((b) => [b.category, Number(b.monthly_limit)]));
@@ -52,10 +48,10 @@ export default async function SettingsPage() {
         }}
       />
 
-      <RecurringCashflowSections
-        incomeItems={(recurringIncomeRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) }))}
-        expenseItems={(recurringExpenseRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) }))}
-      />
+      <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)] text-xs text-text-dim leading-relaxed">
+        💳 Pemasukan & pengeluaran tetap (bulanan) sekarang diatur langsung dari Dashboard — cari bagian &quot;Arus
+        Kas Tetap&quot;.
+      </div>
 
       <BudgetManager rows={budgetRows} />
 
