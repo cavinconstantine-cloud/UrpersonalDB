@@ -9,6 +9,38 @@ function str(h: HoldingData, key: string): string {
   return typeof h[key] === "string" ? (h[key] as string) : "";
 }
 
+const CURRENCY_FIELD = {
+  key: "currency",
+  label: "Mata uang",
+  type: "select" as const,
+  options: CURRENCIES,
+  default: "IDR",
+};
+const RATE_FIELD = {
+  key: "rate",
+  label: "Kurs ke IDR (isi jika bukan Rupiah)",
+  type: "number" as const,
+  step: "any",
+  placeholder: "mis. 17745",
+};
+
+/** 1 for IDR holdings, else the manually-entered kurs-ke-IDR rate. */
+function fxRate(h: HoldingData): number {
+  const currency = str(h, "currency") || "IDR";
+  return currency === "IDR" ? 1 : num(h, "rate");
+}
+
+/** Kurs info line for non-IDR holdings — indicative BI reference rate alongside the rate the user entered. */
+function fxNote(h: HoldingData): string {
+  const currency = str(h, "currency") || "IDR";
+  if (currency === "IDR") return "";
+  const rate = num(h, "rate");
+  const ref = KURS_REF.rates[currency];
+  let line = `${currency}${rate ? " · kurs " + rate.toLocaleString("id-ID") : " (kurs belum diisi)"}`;
+  if (ref) line += ` · indikasi BI ${KURS_REF.asOf}: Rp${ref.toLocaleString("id-ID", { maximumFractionDigits: 2 })}`;
+  return line;
+}
+
 export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   Cash: {
     fields: [
@@ -76,34 +108,41 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   Obligasi: {
     fields: [
       { key: "label", label: "Nama obligasi", type: "text", placeholder: "mis. FR0100" },
-      { key: "nominal", label: "Nominal beli (Rp)", type: "number" },
+      CURRENCY_FIELD,
+      { key: "nominal", label: "Nominal beli (sesuai mata uang di atas)", type: "number" },
       { key: "buyPrice", label: "Harga beli (% dari nominal)", type: "number" },
       { key: "curPrice", label: "Harga sekarang (% dari nominal)", type: "number" },
       { key: "coupon", label: "Kupon (% p.a.)", type: "number", step: "any", placeholder: "mis. 6.25" },
       { key: "maturityDate", label: "Tanggal jatuh tempo", type: "date" },
+      RATE_FIELD,
     ],
-    value: (h) => (num(h, "nominal") * num(h, "curPrice")) / 100,
-    buyValue: (h) => (num(h, "nominal") * num(h, "buyPrice")) / 100,
+    value: (h) => ((num(h, "nominal") * num(h, "curPrice")) / 100) * fxRate(h),
+    buyValue: (h) => ((num(h, "nominal") * num(h, "buyPrice")) / 100) * fxRate(h),
     note: (h) => {
       const nominal = num(h, "nominal");
       const coupon = num(h, "coupon");
-      const annualCoupon = nominal * (coupon / 100);
+      const annualCoupon = nominal * (coupon / 100) * fxRate(h);
       const parts: string[] = [];
       if (coupon) parts.push(`Proyeksi kupon ${fmtRp(annualCoupon)}/tahun (${coupon}%)`);
       const maturityDate = str(h, "maturityDate");
       if (maturityDate) parts.push(`jatuh tempo ${maturityDate}`);
+      const fx = fxNote(h);
+      if (fx) parts.push(fx);
       return parts.join(" · ");
     },
   },
   Reksadana: {
     fields: [
       { key: "label", label: "Nama produk", type: "text", placeholder: "mis. Reksadana Pasar Uang X" },
+      CURRENCY_FIELD,
       { key: "qty", label: "Jumlah unit", type: "number" },
-      { key: "buyPrice", label: "NAB beli /unit (Rp)", type: "number" },
-      { key: "curPrice", label: "NAB sekarang /unit (Rp)", type: "number" },
+      { key: "buyPrice", label: "NAB beli /unit (sesuai mata uang di atas)", type: "number" },
+      { key: "curPrice", label: "NAB sekarang /unit (sesuai mata uang di atas)", type: "number" },
+      RATE_FIELD,
     ],
-    value: (h) => num(h, "qty") * num(h, "curPrice"),
-    buyValue: (h) => num(h, "qty") * num(h, "buyPrice"),
+    value: (h) => num(h, "qty") * num(h, "curPrice") * fxRate(h),
+    buyValue: (h) => num(h, "qty") * num(h, "buyPrice") * fxRate(h),
+    note: (h) => fxNote(h),
   },
   Properti: {
     fields: [
