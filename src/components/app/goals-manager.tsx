@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Chip } from "@/components/ui/chip";
+import { NumberInput } from "@/components/ui/number-field";
 import { GOAL_PRESETS } from "@/lib/finance/constants";
 import { goalMonthlyNeed } from "@/lib/finance/calculations";
 import { fmtRp } from "@/lib/finance/format";
@@ -99,22 +100,18 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
             <div className="grid grid-cols-2 gap-2.5 mb-2.5">
               <div>
                 <label className="text-[11px] text-text-dim">Target (Rp)</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={g.target === 0 ? "" : g.target}
-                  onChange={(e) => patchLocal(g.id, { target: Number(e.target.value) || 0 })}
+                <NumberInput
+                  value={g.target}
+                  onValueChange={(n) => patchLocal(g.id, { target: n })}
                   placeholder="0"
                   className="w-full px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
                 />
               </div>
               <div>
                 <label className="text-[11px] text-text-dim">Terkumpul (Rp)</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={g.current === 0 ? "" : g.current}
-                  onChange={(e) => patchLocal(g.id, { current: Number(e.target.value) || 0 })}
+                <NumberInput
+                  value={g.current}
+                  onValueChange={(n) => patchLocal(g.id, { current: n })}
                   placeholder="0"
                   className="w-full px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
                 />

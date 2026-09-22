@@ -58,7 +58,7 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
     fields: [
       { key: "label", label: "Nama rekening", type: "text", placeholder: "mis. BCA Tabungan" },
       CURRENCY_FIELD,
-      { key: "amount", label: "Saldo (dalam mata uang tsb)", type: "number" },
+      { key: "amount", label: "Saldo (dalam mata uang tsb)", type: "number", grouped: true },
       RATE_FIELD,
     ],
     value: (h) => num(h, "amount") * fxRate(h),
@@ -68,7 +68,7 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
     fields: [
       { key: "label", label: "Bank / nama deposito", type: "text", placeholder: "mis. Deposito BCA" },
       CURRENCY_FIELD,
-      { key: "amount", label: "Nominal (sesuai mata uang di atas)", type: "number" },
+      { key: "amount", label: "Nominal (sesuai mata uang di atas)", type: "number", grouped: true },
       { key: "rate", label: "Bunga (% p.a.)", type: "number", step: "any", placeholder: "mis. 4.75" },
       { key: "tenor", label: "Tenor (bulan)", type: "number" },
       { key: "startDate", label: "Tanggal mulai", type: "date" },
@@ -97,8 +97,8 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
     fields: [
       { key: "label", label: "Nama saham", type: "text", placeholder: "mis. BBCA" },
       { key: "qty", label: "Jumlah lot (1 lot = 100 lembar)", type: "number" },
-      { key: "buyPrice", label: "Harga beli /lembar (Rp)", type: "number" },
-      { key: "curPrice", label: "Harga sekarang /lembar (Rp)", type: "number" },
+      { key: "buyPrice", label: "Harga beli /lembar (Rp)", type: "number", grouped: true },
+      { key: "curPrice", label: "Harga sekarang /lembar (Rp)", type: "number", grouped: true },
     ],
     value: (h) => num(h, "qty") * STOCK_LOT_SIZE * num(h, "curPrice"),
     buyValue: (h) => num(h, "qty") * STOCK_LOT_SIZE * num(h, "buyPrice"),
@@ -112,7 +112,7 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
     fields: [
       { key: "label", label: "Nama obligasi", type: "text", placeholder: "mis. FR0100" },
       CURRENCY_FIELD,
-      { key: "nominal", label: "Nominal beli (sesuai mata uang di atas)", type: "number" },
+      { key: "nominal", label: "Nominal beli (sesuai mata uang di atas)", type: "number", grouped: true },
       { key: "buyPrice", label: "Harga beli (% dari nominal)", type: "number" },
       { key: "curPrice", label: "Harga sekarang (% dari nominal)", type: "number" },
       { key: "coupon", label: "Kupon (% p.a.)", type: "number", step: "any", placeholder: "mis. 6.25" },
@@ -150,8 +150,8 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   Properti: {
     fields: [
       { key: "label", label: "Nama / alamat", type: "text", placeholder: "mis. Rumah PIK" },
-      { key: "buyPrice", label: "Nilai perolehan (Rp)", type: "number" },
-      { key: "curPrice", label: "Estimasi nilai sekarang (Rp)", type: "number" },
+      { key: "buyPrice", label: "Nilai perolehan (Rp)", type: "number", grouped: true },
+      { key: "curPrice", label: "Estimasi nilai sekarang (Rp)", type: "number", grouped: true },
     ],
     value: (h) => num(h, "curPrice"),
     buyValue: (h) => num(h, "buyPrice"),
@@ -159,8 +159,8 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   Kendaraan: {
     fields: [
       { key: "label", label: "Nama kendaraan", type: "text", placeholder: "mis. Toyota Alphard 2022" },
-      { key: "buyPrice", label: "Nilai perolehan (Rp)", type: "number" },
-      { key: "curPrice", label: "Estimasi nilai sekarang (Rp)", type: "number" },
+      { key: "buyPrice", label: "Nilai perolehan (Rp)", type: "number", grouped: true },
+      { key: "curPrice", label: "Estimasi nilai sekarang (Rp)", type: "number", grouped: true },
     ],
     value: (h) => num(h, "curPrice"),
     buyValue: (h) => num(h, "buyPrice"),
@@ -169,8 +169,8 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
     fields: [
       { key: "label", label: "Jenis", type: "text", placeholder: "mis. Antam 10gr" },
       { key: "qty", label: "Berat (gram)", type: "number" },
-      { key: "buyPrice", label: "Harga beli /gram (Rp)", type: "number" },
-      { key: "curPrice", label: "Harga sekarang /gram (Rp)", type: "number" },
+      { key: "buyPrice", label: "Harga beli /gram (Rp)", type: "number", grouped: true },
+      { key: "curPrice", label: "Harga sekarang /gram (Rp)", type: "number", grouped: true },
     ],
     value: (h) => num(h, "qty") * num(h, "curPrice"),
     buyValue: (h) => num(h, "qty") * num(h, "buyPrice"),
@@ -178,8 +178,8 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   "Bisnis / Investasi Pribadi": {
     fields: [
       { key: "label", label: "Nama bisnis / investasi", type: "text" },
-      { key: "buyPrice", label: "Nilai investasi awal (Rp)", type: "number" },
-      { key: "curPrice", label: "Estimasi nilai sekarang (Rp)", type: "number" },
+      { key: "buyPrice", label: "Nilai investasi awal (Rp)", type: "number", grouped: true },
+      { key: "curPrice", label: "Estimasi nilai sekarang (Rp)", type: "number", grouped: true },
     ],
     value: (h) => num(h, "curPrice"),
     buyValue: (h) => num(h, "buyPrice"),
@@ -214,7 +214,7 @@ export const LIAB_SCHEMAS: Record<string, LiabilitySchema> = {
   KPR: {
     fields: [
       { key: "label", label: "Nama / bank KPR", type: "text", placeholder: "mis. KPR BCA" },
-      { key: "amount", label: "Sisa outstanding / OS (Rp)", type: "number" },
+      { key: "amount", label: "Sisa outstanding / OS (Rp)", type: "number", grouped: true },
       { key: "rate", label: "Suku bunga (% p.a.)", type: "number", step: "any", placeholder: "mis. 8.5" },
       { key: "tenorRemaining", label: "Sisa tenor (bulan)", type: "number" },
       BILLING_DAY_FIELD,
@@ -238,9 +238,9 @@ export const LIAB_SCHEMAS: Record<string, LiabilitySchema> = {
   "Kartu Kredit": {
     fields: [
       { key: "label", label: "Nama kartu", type: "text", placeholder: "mis. BCA Everyday Card" },
-      { key: "amount", label: "OS sekarang (Rp)", type: "number" },
-      { key: "limit", label: "Limit kartu (Rp)", type: "number" },
-      { key: "installment", label: "Pembayaran bulanan (perkiraan, Rp)", type: "number" },
+      { key: "amount", label: "OS sekarang (Rp)", type: "number", grouped: true },
+      { key: "limit", label: "Limit kartu (Rp)", type: "number", grouped: true },
+      { key: "installment", label: "Pembayaran bulanan (perkiraan, Rp)", type: "number", grouped: true },
       BILLING_DAY_FIELD,
     ],
     monthlyPayment: (h) => num(h, "installment"),
@@ -258,8 +258,8 @@ export const LIAB_SCHEMAS: Record<string, LiabilitySchema> = {
   "Pinjaman Lainnya": {
     fields: [
       { key: "label", label: "Nama pinjaman", type: "text", placeholder: "mis. Pinjaman KTA Bank X" },
-      { key: "amount", label: "Sisa pokok (Rp)", type: "number" },
-      { key: "installment", label: "Cicilan bulanan (Rp)", type: "number" },
+      { key: "amount", label: "Sisa pokok (Rp)", type: "number", grouped: true },
+      { key: "installment", label: "Cicilan bulanan (Rp)", type: "number", grouped: true },
       BILLING_DAY_FIELD,
     ],
     monthlyPayment: (h) => num(h, "installment"),

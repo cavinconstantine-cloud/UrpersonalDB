@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { TextField } from "@/components/ui/field";
+import { NumberField } from "@/components/ui/number-field";
 import { expenseCatIcon, incomeCatIcon } from "@/lib/finance/constants";
 import { updateExpense, deleteExpense } from "@/app/app/expenses/actions";
 import { updateIncome, deleteIncome } from "@/app/app/incomes/actions";
@@ -25,12 +26,12 @@ export function TransactionEditModal({ open, onClose, type, categories, transact
   const [isPending, startTransition] = useTransition();
   const [date, setDate] = useState(transaction.date);
   const [category, setCategory] = useState(transaction.category);
-  const [amount, setAmount] = useState(String(transaction.amount));
+  const [amount, setAmount] = useState(transaction.amount);
   const [description, setDescription] = useState(transaction.description);
 
   function save() {
     startTransition(async () => {
-      const payload = { date, category, amount: Number(amount) || 0, description };
+      const payload = { date, category, amount, description };
       if (isExpense) await updateExpense(transaction.id, payload);
       else await updateIncome(transaction.id, payload);
       router.refresh();
@@ -57,13 +58,7 @@ export function TransactionEditModal({ open, onClose, type, categories, transact
         ))}
       </div>
       <TextField label="Tanggal" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      <TextField
-        label="Jumlah (Rp)"
-        type="number"
-        inputMode="numeric"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-      />
+      <NumberField label="Jumlah (Rp)" value={amount} onValueChange={setAmount} />
       <TextField label="Detail / catatan" type="text" value={description} onChange={(e) => setDescription(e.target.value)} />
       <Button fullWidth onClick={save} disabled={isPending}>
         {isPending ? "Menyimpan…" : "Simpan perubahan"}

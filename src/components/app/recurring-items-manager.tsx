@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { NumberInput } from "@/components/ui/number-field";
 import { fmtRp } from "@/lib/finance/format";
 
 export interface RecurringItem {
@@ -31,7 +32,7 @@ export function RecurringItemsManager({ title, addPlaceholder, items, onAdd, onU
   }
 
   const [newLabel, setNewLabel] = useState("");
-  const [newAmount, setNewAmount] = useState("");
+  const [newAmount, setNewAmount] = useState(0);
 
   const total = local.reduce((s, i) => s + i.amount, 0);
 
@@ -56,14 +57,13 @@ export function RecurringItemsManager({ title, addPlaceholder, items, onAdd, onU
 
   function add() {
     const label = newLabel.trim();
-    const amount = Number(newAmount) || 0;
-    if (!label || amount <= 0) return;
+    if (!label || newAmount <= 0) return;
     startTransition(async () => {
-      await onAdd(label, amount);
+      await onAdd(label, newAmount);
       router.refresh();
     });
     setNewLabel("");
-    setNewAmount("");
+    setNewAmount(0);
   }
 
   return (
@@ -86,11 +86,9 @@ export function RecurringItemsManager({ title, addPlaceholder, items, onAdd, onU
                 onBlur={() => commit(local.find((i) => i.id === item.id)!)}
                 className="flex-1 min-w-0 text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text"
               />
-              <input
-                type="number"
-                inputMode="numeric"
-                value={item.amount === 0 ? "" : item.amount}
-                onChange={(e) => patchLocal(item.id, { amount: Number(e.target.value) || 0 })}
+              <NumberInput
+                value={item.amount}
+                onValueChange={(n) => patchLocal(item.id, { amount: n })}
                 onBlur={() => commit(local.find((i) => i.id === item.id)!)}
                 placeholder="0"
                 className="w-[130px] text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text"
@@ -115,11 +113,9 @@ export function RecurringItemsManager({ title, addPlaceholder, items, onAdd, onU
           placeholder={addPlaceholder}
           className="flex-1 min-w-0 text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text"
         />
-        <input
-          type="number"
-          inputMode="numeric"
+        <NumberInput
           value={newAmount}
-          onChange={(e) => setNewAmount(e.target.value)}
+          onValueChange={setNewAmount}
           placeholder="Rp"
           className="w-[130px] text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text"
         />

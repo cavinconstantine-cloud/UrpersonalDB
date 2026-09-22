@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { TextField } from "@/components/ui/field";
+import { NumberField } from "@/components/ui/number-field";
 import type { OnboardingDraft } from "@/lib/onboarding/draft";
 
 export function CashflowStep({
@@ -11,8 +11,8 @@ export function CashflowStep({
   draft: OnboardingDraft;
   update: (patch: Partial<OnboardingDraft>) => void;
 }) {
-  function set(key: keyof OnboardingDraft["cashflow"], value: string) {
-    update({ cashflow: { ...draft.cashflow, [key]: value } });
+  function set(key: keyof OnboardingDraft["cashflow"], value: number) {
+    update({ cashflow: { ...draft.cashflow, [key]: value ? String(value) : "" } });
   }
 
   function back() {
@@ -27,37 +27,29 @@ export function CashflowStep({
     <div>
       <h1 className="serif text-[26px] font-medium mb-2">Arus kas bulanan</h1>
       <p className="text-text-dim text-sm mb-7 leading-relaxed">Angka rata-rata per bulan cukup. Kamu bisa perbarui kapan saja.</p>
-      <TextField
+      <NumberField
         label="Income (Rp/bulan)"
-        type="number"
-        inputMode="numeric"
         placeholder="0"
-        value={draft.cashflow.income}
-        onChange={(e) => set("income", e.target.value)}
+        value={Number(draft.cashflow.income) || 0}
+        onValueChange={(n) => set("income", n)}
       />
-      <TextField
+      <NumberField
         label="Fixed expense — cicilan, sewa, sekolah (Rp/bulan)"
-        type="number"
-        inputMode="numeric"
         placeholder="0"
-        value={draft.cashflow.fixedExpense}
-        onChange={(e) => set("fixedExpense", e.target.value)}
+        value={Number(draft.cashflow.fixedExpense) || 0}
+        onValueChange={(n) => set("fixedExpense", n)}
       />
-      <TextField
+      <NumberField
         label="Lifestyle expense — belanja, hiburan (Rp/bulan)"
-        type="number"
-        inputMode="numeric"
         placeholder="0"
-        value={draft.cashflow.lifestyleExpense}
-        onChange={(e) => set("lifestyleExpense", e.target.value)}
+        value={Number(draft.cashflow.lifestyleExpense) || 0}
+        onValueChange={(n) => set("lifestyleExpense", n)}
       />
-      <TextField
+      <NumberField
         label="Investasi rutin (Rp/bulan)"
-        type="number"
-        inputMode="numeric"
         placeholder="0"
-        value={draft.cashflow.invest}
-        onChange={(e) => set("invest", e.target.value)}
+        value={Number(draft.cashflow.invest) || 0}
+        onValueChange={(n) => set("invest", n)}
       />
       <div className="flex gap-2.5 mt-2">
         <Button variant="ghost" onClick={back} className="w-[90px] flex-none">

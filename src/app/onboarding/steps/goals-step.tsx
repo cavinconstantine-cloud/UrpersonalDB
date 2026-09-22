@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
+import { NumberInput } from "@/components/ui/number-field";
 import { GOAL_PRESETS } from "@/lib/finance/constants";
 import type { OnboardingDraft } from "@/lib/onboarding/draft";
 import type { Goal } from "@/lib/finance/types";
@@ -61,20 +62,16 @@ export function GoalsStep({
             </button>
           </div>
           <label className="text-[11px] text-text-dim">Target (Rp)</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={g.target === 0 ? "" : g.target}
-            onChange={(e) => updateGoal(g.id, { target: Number(e.target.value) || 0 })}
+          <NumberInput
+            value={g.target}
+            onValueChange={(n) => updateGoal(g.id, { target: n })}
             placeholder="0"
             className="w-full mb-2 px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
           />
           <label className="text-[11px] text-text-dim">Sudah terkumpul (Rp)</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={g.current === 0 ? "" : g.current}
-            onChange={(e) => updateGoal(g.id, { current: Number(e.target.value) || 0 })}
+          <NumberInput
+            value={g.current}
+            onValueChange={(n) => updateGoal(g.id, { current: n })}
             placeholder="0"
             className="w-full mb-2 px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
           />

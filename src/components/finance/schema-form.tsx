@@ -1,6 +1,7 @@
 "use client";
 
 import { TextField, SelectField } from "@/components/ui/field";
+import { NumberField } from "@/components/ui/number-field";
 import { KURS_REF } from "@/lib/finance/constants";
 import type { HoldingData, SchemaField } from "@/lib/finance/types";
 
@@ -29,6 +30,18 @@ export function SchemaForm({ fields, values, onChange, noteText }: SchemaFormPro
               options={f.options || []}
               onChange={(e) => onChange(f.key, e.target.value)}
             />
+          );
+        }
+        if (f.type === "number" && f.grouped) {
+          return (
+            <div key={f.key}>
+              <NumberField
+                label={f.label}
+                placeholder={f.placeholder}
+                value={Number(val) || 0}
+                onValueChange={(n) => onChange(f.key, String(n))}
+              />
+            </div>
           );
         }
         return (

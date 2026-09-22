@@ -13,6 +13,8 @@ export interface SchemaField {
   step?: string;
   default?: string;
   options?: FieldOption[];
+  /** Whole-Rupiah `number` fields only — shows "." thousands separators while typing (1000000 -> 1.000.000). */
+  grouped?: boolean;
 }
 
 /** Free-form key/value bag for one holding or one liability — shape depends on category. */

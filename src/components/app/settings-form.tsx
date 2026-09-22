@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TextField } from "@/components/ui/field";
+import { NumberField } from "@/components/ui/number-field";
 import { Button } from "@/components/ui/button";
 import { updateProfileName, updateCashflow } from "@/app/app/settings/actions";
 
@@ -48,20 +49,16 @@ export function SettingsForm({ initialName, initialOtherCashflow }: SettingsForm
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
         <div className="serif text-[15px] mb-3">Arus kas lainnya</div>
-        <TextField
+        <NumberField
           label="Lifestyle expense (Rp/bulan)"
-          type="number"
-          inputMode="numeric"
-          value={cf.lifestyleExpense === 0 ? "" : cf.lifestyleExpense}
-          onChange={(e) => setCf((v) => ({ ...v, lifestyleExpense: Number(e.target.value) || 0 }))}
+          value={cf.lifestyleExpense}
+          onValueChange={(n) => setCf((v) => ({ ...v, lifestyleExpense: n }))}
           placeholder="0"
         />
-        <TextField
+        <NumberField
           label="Investasi rutin (Rp/bulan)"
-          type="number"
-          inputMode="numeric"
-          value={cf.invest === 0 ? "" : cf.invest}
-          onChange={(e) => setCf((v) => ({ ...v, invest: Number(e.target.value) || 0 }))}
+          value={cf.invest}
+          onValueChange={(n) => setCf((v) => ({ ...v, invest: n }))}
           placeholder="0"
         />
         <Button size="sm" onClick={saveCashflow} disabled={isPending}>

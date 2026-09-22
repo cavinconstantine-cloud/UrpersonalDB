@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { TextField } from "@/components/ui/field";
+import { NumberField } from "@/components/ui/number-field";
 import { cn } from "@/lib/utils";
 import { EXPENSE_CATS, INCOME_CATS, expenseCatIcon, incomeCatIcon } from "@/lib/finance/constants";
 import { todayIso } from "@/lib/finance/format";
@@ -33,7 +34,7 @@ export function TransactionModal({
   const [isPending, startTransition] = useTransition();
   const [type, setType] = useState<TransactionType>(defaultType);
   const [category, setCategory] = useState<string>("");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState("");
   const [addingCat, setAddingCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
@@ -50,7 +51,7 @@ export function TransactionModal({
 
   function reset() {
     setCategory("");
-    setAmount("");
+    setAmount(0);
     setDescription("");
     setAddingCat(false);
     setNewCatName("");
@@ -91,15 +92,15 @@ export function TransactionModal({
       setError("Pilih kategori dulu");
       return;
     }
-    if (!amount || Number(amount) <= 0) {
+    if (!amount || amount <= 0) {
       setError("Isi jumlah yang valid");
       return;
     }
     startTransition(async () => {
       if (isExpense) {
-        await addExpense({ date: todayIso(), category, amount: Number(amount), description });
+        await addExpense({ date: todayIso(), category, amount, description });
       } else {
-        await addIncome({ date: todayIso(), category, amount: Number(amount), description });
+        await addIncome({ date: todayIso(), category, amount, description });
       }
       router.refresh();
       handleClose();
@@ -155,14 +156,7 @@ export function TransactionModal({
         </div>
       )}
       {error && <div className="mb-3 text-xs text-critical">{error}</div>}
-      <TextField
-        label="Jumlah (Rp)"
-        type="number"
-        inputMode="numeric"
-        placeholder="0"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-      />
+      <NumberField label="Jumlah (Rp)" placeholder="0" value={amount} onValueChange={setAmount} />
       <TextField
         label="Detail / catatan (opsional)"
         type="text"
