@@ -48,11 +48,6 @@ export default async function SettingsPage() {
         }}
       />
 
-      <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)] text-xs text-text-dim leading-relaxed">
-        💳 Pemasukan & pengeluaran tetap (bulanan) sekarang diatur langsung dari Dashboard — cari bagian &quot;Arus
-        Kas Tetap&quot;.
-      </div>
-
       <BudgetManager rows={budgetRows} />
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
