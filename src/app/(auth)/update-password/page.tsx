@@ -5,7 +5,7 @@ export const metadata: Metadata = { title: "Password Baru" };
 
 export default function UpdatePasswordPage() {
   return (
-    <div>
+    <div className="max-w-[420px] mx-auto">
       <h1 className="serif text-[26px] font-medium mb-2">Buat password baru</h1>
       <p className="text-text-dim text-sm mb-7 leading-relaxed">
         Password ini akan menggantikan password lamamu.

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Lupa Password" };
 
 export default function ForgotPasswordPage() {
   return (
-    <div>
+    <div className="max-w-[420px] mx-auto">
       <h1 className="serif text-[26px] font-medium mb-2">Reset password</h1>
       <p className="text-text-dim text-sm mb-7 leading-relaxed">
         Masukkan email akunmu — kami kirim link untuk membuat password baru.
