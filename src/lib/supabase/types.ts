@@ -234,6 +234,24 @@ export interface Database {
           created_at: string;
         }> & { user_id: string }
       >;
+      market_news: Table<
+        {
+          id: string;
+          headline: string;
+          summary: string;
+          sources: Json;
+          published_at: string;
+          created_at: string;
+        },
+        Partial<{
+          id: string;
+          headline: string;
+          summary: string;
+          sources: Json;
+          published_at: string;
+          created_at: string;
+        }> & { headline: string; summary: string }
+      >;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

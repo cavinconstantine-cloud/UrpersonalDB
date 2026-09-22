@@ -2,6 +2,10 @@ import { ASSET_SCHEMAS, LIAB_SCHEMAS, liabValue } from "./schemas";
 import { currentYm, todayIso } from "./format";
 import type { CashflowInputs, Expense, Goal, HoldingData, Income } from "./types";
 
+export interface LiabilityHoldingRow extends HoldingRow {
+  id: string;
+}
+
 export interface HoldingRow {
   category: string;
   data: HoldingData;
@@ -126,6 +130,50 @@ export interface DbrResult {
   tone: DbrTone;
   monthlyDebt: number;
   income: number;
+}
+
+export interface UpcomingInstallment {
+  id: string;
+  category: string;
+  label: string;
+  billingDay: number;
+  daysUntil: number;
+  dueDate: string;
+  amount: number;
+  monthlyPayment: number;
+}
+
+/** Days from `today` to the next occurrence of `billingDay` (0 = today, wraps to next month). */
+export function daysUntilBilling(billingDay: number, today: Date = new Date()): { daysUntil: number; dueDate: string } {
+  const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  let candidate = new Date(base.getFullYear(), base.getMonth(), billingDay);
+  if (candidate < base) {
+    candidate = new Date(base.getFullYear(), base.getMonth() + 1, billingDay);
+  }
+  const daysUntil = Math.round((candidate.getTime() - base.getTime()) / 86400000);
+  return { daysUntil, dueDate: candidate.toISOString().slice(0, 10) };
+}
+
+/** Liabilities with a billingDay set, sorted by nearest due date first. */
+export function upcomingInstallments(liabRows: LiabilityHoldingRow[], today: Date = new Date()): UpcomingInstallment[] {
+  const result: UpcomingInstallment[] = [];
+  for (const l of liabRows) {
+    const billingDay = Number(l.data.billingDay) || 0;
+    if (!billingDay || billingDay < 1 || billingDay > 31) continue;
+    const schema = LIAB_SCHEMAS[l.category];
+    const { daysUntil, dueDate } = daysUntilBilling(billingDay, today);
+    result.push({
+      id: l.id,
+      category: l.category,
+      label: typeof l.data.label === "string" && l.data.label ? l.data.label : l.category,
+      billingDay,
+      daysUntil,
+      dueDate,
+      amount: liabValue(l.data),
+      monthlyPayment: schema ? schema.monthlyPayment(l.data) : 0,
+    });
+  }
+  return result.sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
 export function computeDBR(cf: CashflowNums, liabRows: HoldingRow[]): DbrResult {

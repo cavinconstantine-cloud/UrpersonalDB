@@ -11,6 +11,7 @@ import {
   netWorth,
   totalAssets,
   totalLiabilities,
+  upcomingInstallments,
 } from "@/lib/finance/calculations";
 import { fmtRp } from "@/lib/finance/format";
 import { HeroCard } from "@/components/dashboard/hero-card";
@@ -24,6 +25,8 @@ import { AssetSection } from "@/components/dashboard/asset-section";
 import { LiabilitySection } from "@/components/dashboard/liability-section";
 import { GoalsPreview } from "@/components/dashboard/goals-preview";
 import { TransactionsPreview } from "@/components/dashboard/transactions-preview";
+import { UpcomingBillingCard } from "@/components/dashboard/upcoming-billing-card";
+import { MarketNewsCard } from "@/components/dashboard/market-news-card";
 import type { TxRow } from "@/components/app/transaction-list";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -63,6 +66,7 @@ export default async function DashboardPage() {
   const netWorthVal = netWorth(data.profile.asset_categories, data.holdings, data.liabilities);
   const liquidAssetsVal = liquidAssets(data.holdings);
   const dailyRecap = computeDailyRecap(monthExpensesMapped, monthIncomesMapped);
+  const installments = upcomingInstallments(data.liabilities);
 
   await recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal);
 
@@ -116,7 +120,9 @@ export default async function DashboardPage() {
         </div>
       </div>
       <DbrCard dbr={dbr} hasFixedExpense={cf.fixedExpense > 0} />
+      <UpcomingBillingCard installments={installments} />
       <AiInsightCard available={aiAvailable} />
+      <MarketNewsCard news={data.marketNews} />
       <AssetSection assetCats={data.profile.asset_categories} holdings={data.holdings} />
       <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
       <GoalsPreview goals={data.goals} fcf={cf.fcf} />
