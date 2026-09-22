@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, Receipt, Target, Settings } from "lucide-react";
+import { LayoutGrid, Receipt, Wallet, Settings } from "lucide-react";
 
 const ITEMS = [
   { href: "/app", label: "Home", icon: LayoutGrid },
   { href: "/app/expenses", label: "Transaksi", icon: Receipt },
-  { href: "/app/goals", label: "Goals", icon: Target },
+  { href: "/app/cashflow", label: "Arus Kas", icon: Wallet },
   { href: "/app/settings", label: "Pengaturan", icon: Settings },
 ];
 

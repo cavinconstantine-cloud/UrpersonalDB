@@ -32,7 +32,7 @@ import { FcfTrend } from "@/components/dashboard/fcf-trend";
 import { MarketNewsCard } from "@/components/dashboard/market-news-card";
 import { ExpenseSplitCard } from "@/components/dashboard/expense-split-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
-import { RecurringCashflowSections } from "@/components/app/recurring-cashflow-sections";
+import { RecurringCashflowPreview } from "@/components/dashboard/recurring-cashflow-preview";
 import type { TxRow } from "@/components/app/transaction-list";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -127,11 +127,7 @@ export default async function DashboardPage() {
       <DailyRecapCard recap={dailyRecap} />
       <InsightCard hasGoals={data.goals.length > 0} totalNeed={totalNeed} fcf={cf.fcf} />
 
-      <div className="px-5 mb-2.5">
-        <div className="serif text-[15px]">💳 Arus Kas Tetap (bulanan)</div>
-        <div className="text-xs text-text-dim mt-0.5">Pemasukan & pengeluaran rutin — dasar hitungan Free Cash Flow di bawah ini.</div>
-      </div>
-      <RecurringCashflowSections incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
+      <RecurringCashflowPreview incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
 
       <div className="grid grid-cols-2 gap-2.5 mx-5 mb-4">
         <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">
