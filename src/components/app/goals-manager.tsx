@@ -2,9 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Chip } from "@/components/ui/chip";
 import { NumberInput } from "@/components/ui/number-field";
-import { GOAL_PRESETS } from "@/lib/finance/constants";
+import { GOAL_PRESETS, goalPresetIcon } from "@/lib/finance/constants";
 import { goalMonthlyNeed } from "@/lib/finance/calculations";
 import { fmtRp } from "@/lib/finance/format";
 import { addGoal, updateGoal, deleteGoal } from "@/app/app/goals/actions";
@@ -21,12 +20,14 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
   const [isPending, startTransition] = useTransition();
   const [local, setLocal] = useState(goals);
   const [syncedGoals, setSyncedGoals] = useState(goals);
+  const [pickerOpen, setPickerOpen] = useState(false);
   if (goals !== syncedGoals) {
     setSyncedGoals(goals);
     setLocal(goals);
   }
 
   function create(name: string) {
+    setPickerOpen(false);
     startTransition(async () => {
       await addGoal(name, twoYearsFromNow());
       router.refresh();
@@ -55,7 +56,9 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
   return (
     <div className="px-5">
       {local.length === 0 && (
-        <div className="text-sm text-text-dim mb-6 py-4 text-center">Belum ada goals. Pilih salah satu di bawah untuk mulai.</div>
+        <div className="text-sm text-text-dim mb-6 py-4 text-center">
+          Belum ada goals. Klik &quot;+ Tambah Goal&quot; di bawah untuk mulai.
+        </div>
       )}
       {local.map((g) => {
         const synced = syncedGoals.find((s) => s.id === g.id) ?? g;
@@ -149,16 +152,46 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
         );
       })}
 
-      <div className="flex flex-wrap gap-2.5 mb-10">
-        {GOAL_PRESETS.map((p) => (
-          <Chip key={p} onClick={() => create(p)} disabled={isPending}>
-            {p}
-          </Chip>
-        ))}
-        <Chip onClick={() => create("Goal baru")} disabled={isPending}>
-          + Custom
-        </Chip>
-      </div>
+      {!pickerOpen && (
+        <button
+          onClick={() => setPickerOpen(true)}
+          disabled={isPending}
+          className="w-full flex items-center justify-center gap-2 rounded-2xl bg-brand text-brand-ink py-3.5 text-sm font-semibold mb-10 disabled:opacity-50"
+        >
+          <span className="text-base leading-none">+</span> Tambah Goal
+        </button>
+      )}
+
+      {pickerOpen && (
+        <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-10 shadow-[var(--shadow-card)]">
+          <div className="flex justify-between items-baseline mb-3">
+            <div className="text-sm font-medium">Pilih kategori goal</div>
+            <button className="text-xs text-text-dim" onClick={() => setPickerOpen(false)} disabled={isPending}>
+              Batal
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {GOAL_PRESETS.map((p) => (
+              <button
+                key={p}
+                onClick={() => create(p)}
+                disabled={isPending}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-hairline bg-bg-input px-2 py-3.5 text-text disabled:opacity-50"
+              >
+                <span className="text-xl leading-none">{goalPresetIcon(p)}</span>
+                <span className="text-xs text-center leading-tight">{p}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => create("Goal baru")}
+              disabled={isPending}
+              className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-hairline text-text-dim text-sm py-3 disabled:opacity-50"
+            >
+              + Custom
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

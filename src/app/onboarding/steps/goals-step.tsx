@@ -1,9 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Chip } from "@/components/ui/chip";
 import { NumberInput } from "@/components/ui/number-field";
-import { GOAL_PRESETS } from "@/lib/finance/constants";
+import { GOAL_PRESETS, goalPresetIcon } from "@/lib/finance/constants";
 import type { OnboardingDraft } from "@/lib/onboarding/draft";
 import type { Goal } from "@/lib/finance/types";
 
@@ -24,9 +24,12 @@ export function GoalsStep({
   onFinish: () => void;
   finishing: boolean;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   function addGoal(name: string) {
     const goal: Goal = { id: crypto.randomUUID(), name, target: 0, current: 0, targetDate: twoYearsFromNow() };
     update({ goals: [...draft.goals, goal] });
+    setPickerOpen(false);
   }
   function updateGoal(id: string, patch: Partial<Goal>) {
     update({ goals: draft.goals.map((g) => (g.id === id ? { ...g, ...patch } : g)) });
@@ -85,14 +88,43 @@ export function GoalsStep({
         </div>
       ))}
 
-      <div className="flex flex-wrap gap-2.5 mb-8">
-        {GOAL_PRESETS.map((p) => (
-          <Chip key={p} onClick={() => addGoal(p)}>
-            {p}
-          </Chip>
-        ))}
-        <Chip onClick={() => addGoal("Goal baru")}>+ Custom</Chip>
-      </div>
+      {!pickerOpen && (
+        <button
+          onClick={() => setPickerOpen(true)}
+          className="w-full flex items-center justify-center gap-2 rounded-2xl bg-brand text-brand-ink py-3.5 text-sm font-semibold mb-8"
+        >
+          <span className="text-base leading-none">+</span> Tambah Goal
+        </button>
+      )}
+
+      {pickerOpen && (
+        <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-8">
+          <div className="flex justify-between items-baseline mb-3">
+            <div className="text-sm font-medium">Pilih kategori goal</div>
+            <button className="text-xs text-text-dim" onClick={() => setPickerOpen(false)}>
+              Batal
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {GOAL_PRESETS.map((p) => (
+              <button
+                key={p}
+                onClick={() => addGoal(p)}
+                className="flex flex-col items-center gap-1.5 rounded-xl border border-hairline bg-bg-input px-2 py-3.5 text-text"
+              >
+                <span className="text-xl leading-none">{goalPresetIcon(p)}</span>
+                <span className="text-xs text-center leading-tight">{p}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => addGoal("Goal baru")}
+              className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-hairline text-text-dim text-sm py-3"
+            >
+              + Custom
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2.5">
         <Button variant="ghost" onClick={back} className="w-[90px] flex-none">

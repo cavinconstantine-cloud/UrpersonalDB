@@ -162,3 +162,17 @@ export const GOAL_PRESETS = [
   "Liburan",
   "Kendaraan",
 ];
+
+export const GOAL_PRESET_ICONS: Record<string, string> = {
+  "Dana Darurat": "🛡️",
+  Pernikahan: "💍",
+  Rumah: "🏠",
+  "Pendidikan Anak": "🎓",
+  Pensiun: "🌅",
+  Liburan: "✈️",
+  Kendaraan: "🚗",
+};
+
+export function goalPresetIcon(name: string): string {
+  return GOAL_PRESET_ICONS[name] || "🎯";
+}
