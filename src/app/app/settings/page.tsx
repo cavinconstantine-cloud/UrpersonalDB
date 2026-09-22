@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app/(auth)/actions";
 import { SettingsForm } from "@/components/app/settings-form";
+import { RecurringCashflowSections } from "@/components/app/recurring-cashflow-sections";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Button } from "@/components/ui/button";
 
@@ -15,9 +16,11 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, cashflowRes] = await Promise.all([
+  const [profileRes, cashflowRes, recurringIncomeRes, recurringExpenseRes] = await Promise.all([
     supabase.from("profiles").select("name").eq("id", user.id).single(),
     supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
+    supabase.from("recurring_incomes").select("id, label, amount").eq("user_id", user.id).order("created_at"),
+    supabase.from("recurring_expenses").select("id, label, amount").eq("user_id", user.id).order("created_at"),
   ]);
 
   return (
@@ -31,12 +34,15 @@ export default async function SettingsPage() {
 
       <SettingsForm
         initialName={profileRes.data?.name || ""}
-        initialCashflow={{
-          income: Number(cashflowRes.data?.income || 0),
-          fixedExpense: Number(cashflowRes.data?.fixed_expense || 0),
+        initialOtherCashflow={{
           lifestyleExpense: Number(cashflowRes.data?.lifestyle_expense || 0),
           invest: Number(cashflowRes.data?.invest || 0),
         }}
+      />
+
+      <RecurringCashflowSections
+        incomeItems={(recurringIncomeRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) }))}
+        expenseItems={(recurringExpenseRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) }))}
       />
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">

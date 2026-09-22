@@ -19,17 +19,10 @@ export async function updateProfileName(name: string) {
   revalidatePath("/app/settings");
 }
 
-export async function updateCashflow(input: {
-  income: number;
-  fixedExpense: number;
-  lifestyleExpense: number;
-  invest: number;
-}) {
+export async function updateCashflow(input: { lifestyleExpense: number; invest: number }) {
   const { supabase, user } = await requireUser();
   await supabase.from("cashflow").upsert({
     user_id: user.id,
-    income: input.income,
-    fixed_expense: input.fixedExpense,
     lifestyle_expense: input.lifestyleExpense,
     invest: input.invest,
   });

@@ -8,14 +8,14 @@ import { updateProfileName, updateCashflow } from "@/app/app/settings/actions";
 
 interface SettingsFormProps {
   initialName: string;
-  initialCashflow: { income: number; fixedExpense: number; lifestyleExpense: number; invest: number };
+  initialOtherCashflow: { lifestyleExpense: number; invest: number };
 }
 
-export function SettingsForm({ initialName, initialCashflow }: SettingsFormProps) {
+export function SettingsForm({ initialName, initialOtherCashflow }: SettingsFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(initialName);
-  const [cf, setCf] = useState(initialCashflow);
+  const [cf, setCf] = useState(initialOtherCashflow);
   const [saved, setSaved] = useState<string | null>(null);
 
   function saveProfile() {
@@ -47,21 +47,7 @@ export function SettingsForm({ initialName, initialCashflow }: SettingsFormProps
       </div>
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
-        <div className="serif text-[15px] mb-3">Arus kas bulanan</div>
-        <TextField
-          label="Income (Rp/bulan)"
-          type="number"
-          inputMode="numeric"
-          value={cf.income}
-          onChange={(e) => setCf((v) => ({ ...v, income: Number(e.target.value) || 0 }))}
-        />
-        <TextField
-          label="Fixed expense (Rp/bulan)"
-          type="number"
-          inputMode="numeric"
-          value={cf.fixedExpense}
-          onChange={(e) => setCf((v) => ({ ...v, fixedExpense: Number(e.target.value) || 0 }))}
-        />
+        <div className="serif text-[15px] mb-3">Arus kas lainnya</div>
         <TextField
           label="Lifestyle expense (Rp/bulan)"
           type="number"
@@ -77,7 +63,7 @@ export function SettingsForm({ initialName, initialCashflow }: SettingsFormProps
           onChange={(e) => setCf((v) => ({ ...v, invest: Number(e.target.value) || 0 }))}
         />
         <Button size="sm" onClick={saveCashflow} disabled={isPending}>
-          {saved === "cashflow" ? "Tersimpan ✓" : "Simpan arus kas"}
+          {saved === "cashflow" ? "Tersimpan ✓" : "Simpan"}
         </Button>
       </div>
     </div>

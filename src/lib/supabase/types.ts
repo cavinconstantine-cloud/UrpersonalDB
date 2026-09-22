@@ -48,6 +48,42 @@ export interface Database {
           updated_at: string;
         }> & { user_id: string }
       >;
+      recurring_incomes: Table<
+        {
+          id: string;
+          user_id: string;
+          label: string;
+          amount: number;
+          created_at: string;
+          updated_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          label: string;
+          amount: number;
+          created_at: string;
+          updated_at: string;
+        }> & { user_id: string }
+      >;
+      recurring_expenses: Table<
+        {
+          id: string;
+          user_id: string;
+          label: string;
+          amount: number;
+          created_at: string;
+          updated_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          label: string;
+          amount: number;
+          created_at: string;
+          updated_at: string;
+        }> & { user_id: string }
+      >;
       asset_holdings: Table<
         {
           id: string;
