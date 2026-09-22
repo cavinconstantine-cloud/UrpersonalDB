@@ -1,0 +1,74 @@
+"use client";
+
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { emptyDraft, loadDraft, saveDraft, clearDraft, type OnboardingDraft, type OnboardingStep } from "@/lib/onboarding/draft";
+import { completeOnboarding } from "./actions";
+import { ProgressDots } from "@/components/ui/chip";
+import { AccountStep } from "./steps/account-step";
+import { AssetPickStep } from "./steps/asset-pick-step";
+import { AssetInputStep } from "./steps/asset-input-step";
+import { LiabPickStep } from "./steps/liab-pick-step";
+import { LiabInputStep } from "./steps/liab-input-step";
+import { CashflowStep } from "./steps/cashflow-step";
+import { GoalsStep } from "./steps/goals-step";
+
+const STEP_NUMBER: Record<OnboardingStep, number> = {
+  account: 1,
+  assetPick: 2,
+  assetInput: 2,
+  liabPick: 3,
+  liabInput: 3,
+  cashflow: 4,
+  goals: 5,
+};
+const TOTAL_STEPS = 5;
+
+export function OnboardingWizard({ userId, initialName }: { userId: string; initialName: string }) {
+  const router = useRouter();
+  const [draft, setDraft] = useState<OnboardingDraft>(() => {
+    if (typeof window === "undefined") return emptyDraft(initialName);
+    return loadDraft(userId) || emptyDraft(initialName);
+  });
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (hydrated) saveDraft(userId, draft);
+  }, [draft, hydrated, userId]);
+
+  function update(patch: Partial<OnboardingDraft>) {
+    setDraft((d) => ({ ...d, ...patch }));
+  }
+
+  function finish() {
+    startTransition(async () => {
+      await completeOnboarding(draft);
+      clearDraft(userId);
+      router.push("/app");
+    });
+  }
+
+  if (!hydrated) return null;
+
+  return (
+    <div className="max-w-[520px] mx-auto min-h-full px-5 py-7">
+      {draft.step !== "assetInput" && draft.step !== "liabInput" && (
+        <ProgressDots current={STEP_NUMBER[draft.step]} total={TOTAL_STEPS} />
+      )}
+      <div className="animate-fade-up" key={draft.step + draft.assetIdx + draft.liabIdx}>
+        {draft.step === "account" && <AccountStep draft={draft} update={update} />}
+        {draft.step === "assetPick" && <AssetPickStep draft={draft} update={update} />}
+        {draft.step === "assetInput" && <AssetInputStep draft={draft} update={update} />}
+        {draft.step === "liabPick" && <LiabPickStep draft={draft} update={update} />}
+        {draft.step === "liabInput" && <LiabInputStep draft={draft} update={update} />}
+        {draft.step === "cashflow" && <CashflowStep draft={draft} update={update} />}
+        {draft.step === "goals" && <GoalsStep draft={draft} update={update} onFinish={finish} finishing={isPending} />}
+      </div>
+    </div>
+  );
+}
