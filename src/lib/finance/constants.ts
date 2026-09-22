@@ -117,6 +117,9 @@ export const KURS_REF = {
   >,
 };
 
+/** IDX (Bursa Efek Indonesia) standard lot size: 1 lot = 100 lembar saham. */
+export const STOCK_LOT_SIZE = 100;
+
 export const GOAL_PRESETS = [
   "Dana Darurat",
   "Pernikahan",

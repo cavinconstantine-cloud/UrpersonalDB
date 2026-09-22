@@ -1,4 +1,4 @@
-import { CURRENCIES, KURS_REF } from "./constants";
+import { CURRENCIES, KURS_REF, STOCK_LOT_SIZE } from "./constants";
 import { fmtRp } from "./format";
 import type { AssetSchema, HoldingData, LiabilitySchema } from "./types";
 
@@ -61,12 +61,17 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   Saham: {
     fields: [
       { key: "label", label: "Nama saham", type: "text", placeholder: "mis. BBCA" },
-      { key: "qty", label: "Jumlah lembar", type: "number" },
+      { key: "qty", label: "Jumlah lot (1 lot = 100 lembar)", type: "number" },
       { key: "buyPrice", label: "Harga beli /lembar (Rp)", type: "number" },
       { key: "curPrice", label: "Harga sekarang /lembar (Rp)", type: "number" },
     ],
-    value: (h) => num(h, "qty") * num(h, "curPrice"),
-    buyValue: (h) => num(h, "qty") * num(h, "buyPrice"),
+    value: (h) => num(h, "qty") * STOCK_LOT_SIZE * num(h, "curPrice"),
+    buyValue: (h) => num(h, "qty") * STOCK_LOT_SIZE * num(h, "buyPrice"),
+    note: (h) => {
+      const lots = num(h, "qty");
+      if (!lots) return "";
+      return `Setara ${(lots * STOCK_LOT_SIZE).toLocaleString("id-ID")} lembar`;
+    },
   },
   Obligasi: {
     fields: [
