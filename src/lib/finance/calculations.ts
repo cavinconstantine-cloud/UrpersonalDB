@@ -51,9 +51,12 @@ export function monthIncomeTotal(incomes: Income[], ym: string = currentYm()): n
   return incomes.filter((i) => i.date.slice(0, 7) === ym).reduce((s, i) => s + Number(i.amount || 0), 0);
 }
 
-/** Cash + Deposito — the portion of net worth that can be spent right away. */
+/** Categories treated as liquid — accessible within a short time if needed. */
+export const LIQUID_ASSET_CATS = ["Cash", "Deposito", "Reksadana", "Obligasi"] as const;
+
+/** Sum of Cash, Deposito, Reksadana & Obligasi — the portion of net worth that can be tapped quickly. */
 export function liquidAssets(holdings: HoldingRow[]): number {
-  return catValue("Cash", holdings) + catValue("Deposito", holdings);
+  return LIQUID_ASSET_CATS.reduce((s, cat) => s + catValue(cat, holdings), 0);
 }
 
 export interface DailyRecap {

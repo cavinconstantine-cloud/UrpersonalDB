@@ -40,7 +40,7 @@ export function buildFinancialSnapshot(input: {
   return `Net worth: ${fmtRp(input.netWorth)}
 Total aset: ${fmtRp(input.totalAssets)}
 Total utang: ${fmtRp(input.totalLiabilities)}
-Liquid assets (Cash + Deposito): ${fmtRp(input.liquidAssets)}
+Liquid assets (Cash, Deposito, Reksadana, Obligasi): ${fmtRp(input.liquidAssets)}
 Rincian aset:
 ${assetLines}
 Rincian utang:
