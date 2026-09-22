@@ -17,7 +17,7 @@ export default async function LiabilityCategoryPage({ params }: { params: Promis
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("liabilities")
     .select("id, data")
     .eq("user_id", user.id)
@@ -37,6 +37,11 @@ export default async function LiabilityCategoryPage({ params }: { params: Promis
       <p className="text-text-dim text-sm mb-6 leading-relaxed">
         Kamu bisa menambahkan lebih dari satu, mis. beberapa kartu kredit sekaligus.
       </p>
+      {error && (
+        <div className="mb-4 rounded-lg border border-critical/40 bg-critical-wash px-3.5 py-3 text-[13px] text-critical leading-relaxed">
+          Gagal memuat data: {error.message} (kode: {error.code})
+        </div>
+      )}
       <LiabilityCategoryManager category={category} holdings={holdings} />
     </div>
   );
