@@ -24,19 +24,31 @@ const RATE_FIELD = {
   placeholder: "mis. 17745",
 };
 
-/** 1 for IDR holdings, else the manually-entered kurs-ke-IDR rate. */
-function fxRate(h: HoldingData): number {
+/** 1 for IDR holdings, else the manually-entered kurs-ke-IDR rate (from field `rateKey`, default "rate"). */
+function fxRate(h: HoldingData, rateKey = "rate"): number {
   const currency = str(h, "currency") || "IDR";
-  return currency === "IDR" ? 1 : num(h, "rate");
+  return currency === "IDR" ? 1 : num(h, rateKey);
 }
 
-/** Kurs info line for non-IDR holdings — indicative BI reference rate alongside the rate the user entered. */
-function fxNote(h: HoldingData): string {
+/** Deposito already uses the `rate` key for its bunga (%), so its kurs field lives at `fxRate` instead. */
+function depositoFxRate(h: HoldingData): number {
+  return fxRate(h, "fxRate");
+}
+
+/**
+ * For non-IDR holdings, shows the native-currency amount next to its Rupiah
+ * equivalent (using the manually-entered kurs) plus the indicative BI
+ * reference rate — e.g. "USD 1.000 ≈ Rp 17.745.000 · indikasi BI 22 Sep
+ * 2026: Rp17.745,00". `nativeTotal` is the holding's value in its own
+ * currency, before conversion. Returns "" for IDR holdings.
+ */
+function fxEquivNote(nativeTotal: number, h: HoldingData, rateKey = "rate"): string {
   const currency = str(h, "currency") || "IDR";
   if (currency === "IDR") return "";
-  const rate = num(h, "rate");
+  const rate = num(h, rateKey);
   const ref = KURS_REF.rates[currency];
-  let line = `${currency}${rate ? " · kurs " + rate.toLocaleString("id-ID") : " (kurs belum diisi)"}`;
+  let line = `${currency} ${nativeTotal.toLocaleString("id-ID")}`;
+  line += rate ? ` ≈ ${fmtRp(nativeTotal * rate)}` : " (kurs belum diisi)";
   if (ref) line += ` · indikasi BI ${KURS_REF.asOf}: Rp${ref.toLocaleString("id-ID", { maximumFractionDigits: 2 })}`;
   return line;
 }
@@ -45,41 +57,29 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   Cash: {
     fields: [
       { key: "label", label: "Nama rekening", type: "text", placeholder: "mis. BCA Tabungan" },
-      { key: "currency", label: "Mata uang", type: "select", options: CURRENCIES, default: "IDR" },
+      CURRENCY_FIELD,
       { key: "amount", label: "Saldo (dalam mata uang tsb)", type: "number" },
-      { key: "rate", label: "Kurs ke IDR (isi jika bukan Rupiah)", type: "number", placeholder: "mis. 15800", step: "any" },
+      RATE_FIELD,
     ],
-    value: (h) => {
-      const amt = num(h, "amount");
-      const currency = str(h, "currency") || "IDR";
-      if (currency === "IDR") return amt;
-      return amt * num(h, "rate");
-    },
-    note: (h) => {
-      const currency = str(h, "currency") || "IDR";
-      if (currency === "IDR") return "";
-      const amt = num(h, "amount");
-      const rate = num(h, "rate");
-      const ref = KURS_REF.rates[currency];
-      let line = `${currency} ${amt.toLocaleString("id-ID")}${rate ? " × kurs " + rate.toLocaleString("id-ID") : " (kurs belum diisi)"}`;
-      if (ref) line += ` · indikasi BI ${KURS_REF.asOf}: Rp${ref.toLocaleString("id-ID", { maximumFractionDigits: 2 })}`;
-      return line;
-    },
+    value: (h) => num(h, "amount") * fxRate(h),
+    note: (h) => fxEquivNote(num(h, "amount"), h),
   },
   Deposito: {
     fields: [
       { key: "label", label: "Bank / nama deposito", type: "text", placeholder: "mis. Deposito BCA" },
-      { key: "amount", label: "Nominal (Rp)", type: "number" },
+      CURRENCY_FIELD,
+      { key: "amount", label: "Nominal (sesuai mata uang di atas)", type: "number" },
       { key: "rate", label: "Bunga (% p.a.)", type: "number", step: "any", placeholder: "mis. 4.75" },
       { key: "tenor", label: "Tenor (bulan)", type: "number" },
       { key: "startDate", label: "Tanggal mulai", type: "date" },
+      { ...RATE_FIELD, key: "fxRate", label: "Kurs ke IDR (isi jika bukan Rupiah)" },
     ],
-    value: (h) => num(h, "amount"),
+    value: (h) => num(h, "amount") * depositoFxRate(h),
     note: (h) => {
       const amt = num(h, "amount");
-      const rate = num(h, "rate");
+      const bunga = num(h, "rate");
       const tenor = num(h, "tenor");
-      const interest = amt * (rate / 100) * (tenor / 12);
+      const interest = amt * (bunga / 100) * (tenor / 12) * depositoFxRate(h);
       let maturity = "";
       const startDate = str(h, "startDate");
       if (startDate && tenor) {
@@ -87,7 +87,10 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
         d.setMonth(d.getMonth() + tenor);
         maturity = d.toISOString().slice(0, 10);
       }
-      return `Estimasi bunga ${fmtRp(interest)}${maturity ? " · jatuh tempo " + maturity : ""}`;
+      const parts = [`Estimasi bunga ${fmtRp(interest)}${maturity ? " · jatuh tempo " + maturity : ""}`];
+      const fx = fxEquivNote(amt, h, "fxRate");
+      if (fx) parts.push(fx);
+      return parts.join(" · ");
     },
   },
   Saham: {
@@ -126,7 +129,7 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
       if (coupon) parts.push(`Proyeksi kupon ${fmtRp(annualCoupon)}/tahun (${coupon}%)`);
       const maturityDate = str(h, "maturityDate");
       if (maturityDate) parts.push(`jatuh tempo ${maturityDate}`);
-      const fx = fxNote(h);
+      const fx = fxEquivNote((nominal * num(h, "curPrice")) / 100, h);
       if (fx) parts.push(fx);
       return parts.join(" · ");
     },
@@ -142,7 +145,7 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
     ],
     value: (h) => num(h, "qty") * num(h, "curPrice") * fxRate(h),
     buyValue: (h) => num(h, "qty") * num(h, "buyPrice") * fxRate(h),
-    note: (h) => fxNote(h),
+    note: (h) => fxEquivNote(num(h, "qty") * num(h, "curPrice"), h),
   },
   Properti: {
     fields: [

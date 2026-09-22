@@ -42,7 +42,7 @@ export function SchemaForm({ fields, values, onChange, noteText }: SchemaFormPro
               value={String(val)}
               onChange={(e) => onChange(f.key, e.target.value)}
             />
-            {showKursHint && f.key === "rate" && currency !== "IDR" && kursRef ? (
+            {showKursHint && (f.key === "rate" || f.key === "fxRate") && currency !== "IDR" && kursRef ? (
               <div className="-mt-3 mb-4 text-xs text-text-dim leading-relaxed">
                 Kurs indikasi {KURS_REF.source} ({KURS_REF.asOf}):{" "}
                 <strong className="text-text">
@@ -52,7 +52,7 @@ export function SchemaForm({ fields, values, onChange, noteText }: SchemaFormPro
                 <button
                   type="button"
                   className="text-brand-strong hover:underline"
-                  onClick={() => onChange("rate", String(kursRef))}
+                  onClick={() => onChange(f.key, String(kursRef))}
                 >
                   gunakan kurs ini
                 </button>
