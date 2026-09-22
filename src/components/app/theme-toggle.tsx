@@ -3,17 +3,18 @@
 import { useEffect, useState } from "react";
 import { Sun, Moon, MonitorSmartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "./language-provider";
 
 type ThemePref = "system" | "light" | "dark";
 
-const OPTIONS: { value: ThemePref; label: string; icon: typeof Sun }[] = [
-  { value: "system", label: "Sistem", icon: MonitorSmartphone },
-  { value: "light", label: "Terang", icon: Sun },
-  { value: "dark", label: "Gelap", icon: Moon },
-];
-
 export function ThemeToggle() {
+  const { dict } = useLanguage();
   const [pref, setPref] = useState<ThemePref>("system");
+  const OPTIONS: { value: ThemePref; label: string; icon: typeof Sun }[] = [
+    { value: "system", label: dict.theme.system, icon: MonitorSmartphone },
+    { value: "light", label: dict.theme.light, icon: Sun },
+    { value: "dark", label: dict.theme.dark, icon: Moon },
+  ];
 
   useEffect(() => {
     // Read after mount (not in a lazy initializer) so the first client render

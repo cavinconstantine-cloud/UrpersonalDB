@@ -5,8 +5,11 @@ import { signOutAction } from "@/app/(auth)/actions";
 import { SettingsForm } from "@/components/app/settings-form";
 import { BudgetManager } from "@/components/app/budget-manager";
 import { ThemeToggle } from "@/components/app/theme-toggle";
+import { LanguageToggle } from "@/components/app/language-toggle";
 import { Button } from "@/components/ui/button";
 import { EXPENSE_CATS } from "@/lib/finance/constants";
+import { getLang } from "@/lib/i18n/lang";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export const metadata: Metadata = { title: "Pengaturan" };
 
@@ -31,13 +34,21 @@ export default async function SettingsPage() {
     monthlyLimit: budgetByCategory.get(category) || 0,
   }));
 
+  const lang = await getLang();
+  const dict = getDictionary(lang);
+
   return (
     <div className="px-5 pt-6">
-      <h1 className="serif text-[24px] font-medium mb-6">Pengaturan</h1>
+      <h1 className="serif text-[24px] font-medium mb-6">{dict.settings.title}</h1>
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
-        <div className="serif text-[15px] mb-3">Tampilan</div>
+        <div className="serif text-[15px] mb-3">{dict.theme.title}</div>
         <ThemeToggle />
+      </div>
+
+      <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
+        <div className="serif text-[15px] mb-3">{dict.language.title}</div>
+        <LanguageToggle />
       </div>
 
       <SettingsForm
@@ -51,18 +62,18 @@ export default async function SettingsPage() {
       <BudgetManager rows={budgetRows} />
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
-        <div className="serif text-[15px] mb-1">Akun</div>
-        <p className="text-xs text-text-dim mb-3">Masuk sebagai {user.email}</p>
+        <div className="serif text-[15px] mb-1">{dict.settings.account}</div>
+        <p className="text-xs text-text-dim mb-3">
+          {dict.settings.signedInAs} {user.email}
+        </p>
         <form action={signOutAction}>
           <Button variant="ghost" fullWidth type="submit">
-            Keluar
+            {dict.settings.signOut}
           </Button>
         </form>
       </div>
 
-      <p className="text-xs text-text-muted text-center pb-6 leading-relaxed">
-        Uangku · Draft testing — data disimpan aman di akunmu dan bisa diakses dari perangkat mana pun.
-      </p>
+      <p className="text-xs text-text-muted text-center pb-6 leading-relaxed">{dict.settings.footer}</p>
     </div>
   );
 }

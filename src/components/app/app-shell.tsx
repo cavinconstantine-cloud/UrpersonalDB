@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { Plus, ArrowDownLeft } from "lucide-react";
 import { BottomNav } from "./bottom-nav";
 import { TransactionModal, type TransactionType } from "./transaction-modal";
+import { useLanguage } from "./language-provider";
 
 interface AppShellProps {
   customExpenseCategories: string[];
@@ -12,6 +13,7 @@ interface AppShellProps {
 }
 
 export function AppShell({ customExpenseCategories, customIncomeCategories, children }: AppShellProps) {
+  const { dict } = useLanguage();
   const [modal, setModal] = useState<{ open: boolean; type: TransactionType }>({
     open: false,
     type: "expense",
@@ -25,18 +27,18 @@ export function AppShell({ customExpenseCategories, customIncomeCategories, chil
         <button
           onClick={() => setModal({ open: true, type: "income" })}
           className="flex items-center gap-1.5 rounded-full bg-bg-raised border border-hairline text-good pl-3.5 pr-4 py-2.5 text-[13px] font-medium shadow-[var(--shadow-pop)]"
-          aria-label="Catat pemasukan"
+          aria-label={dict.shell.addIncomeAria}
         >
           <ArrowDownLeft size={15} strokeWidth={2.5} />
-          Pemasukan
+          {dict.shell.addIncome}
         </button>
         <button
           onClick={() => setModal({ open: true, type: "expense" })}
           className="flex items-center gap-2 rounded-full bg-brand text-brand-ink pl-4 pr-5 py-3.5 text-sm font-medium shadow-[var(--shadow-pop)]"
-          aria-label="Catat pengeluaran"
+          aria-label={dict.shell.addExpenseAria}
         >
           <Plus size={18} strokeWidth={2.5} />
-          Catat
+          {dict.shell.addExpense}
         </button>
       </div>
 

@@ -6,6 +6,7 @@ import { NumberInput } from "@/components/ui/number-field";
 import { expenseCatIcon } from "@/lib/finance/constants";
 import { fmtRp } from "@/lib/finance/format";
 import { setBudget } from "@/app/app/settings/budget-actions";
+import { useLanguage } from "./language-provider";
 
 export interface CategoryBudgetRow {
   category: string;
@@ -13,6 +14,7 @@ export interface CategoryBudgetRow {
 }
 
 export function BudgetManager({ rows }: { rows: CategoryBudgetRow[] }) {
+  const { dict } = useLanguage();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [local, setLocal] = useState(rows);
@@ -38,12 +40,13 @@ export function BudgetManager({ rows }: { rows: CategoryBudgetRow[] }) {
   return (
     <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
       <div className="flex justify-between items-baseline mb-1">
-        <div className="serif text-[15px]">Budget bulanan per kategori</div>
-        <div className="text-sm text-text-dim">{fmtRp(totalBudget)}/bln</div>
+        <div className="serif text-[15px]">{dict.budget.title}</div>
+        <div className="text-sm text-text-dim">
+          {fmtRp(totalBudget)}
+          {dict.budget.perMonth}
+        </div>
       </div>
-      <p className="text-xs text-text-dim mb-3 leading-relaxed">
-        Kosongkan / isi 0 untuk kategori yang tidak mau dibudget-kan.
-      </p>
+      <p className="text-xs text-text-dim mb-3 leading-relaxed">{dict.budget.helper}</p>
       <div>
         {local.map((r) => (
           <div key={r.category} className="flex items-center gap-2.5 py-2 border-b border-hairline last:border-b-0">

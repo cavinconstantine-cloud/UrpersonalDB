@@ -34,11 +34,15 @@ import { ExpenseSplitCard } from "@/components/dashboard/expense-split-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import { RecurringCashflowPreview } from "@/components/dashboard/recurring-cashflow-preview";
 import type { TxRow } from "@/components/app/transaction-list";
+import { getLang } from "@/lib/i18n/lang";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const data = await getDashboardData();
+  const lang = await getLang();
+  const dict = getDictionary(lang);
 
   const monthExpensesMapped = data.monthExpenses.map((e) => ({
     id: e.id,
@@ -131,11 +135,11 @@ export default async function DashboardPage() {
 
       <div className="grid grid-cols-2 gap-2.5 mx-5 mb-4">
         <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">
-          <div className="text-xs text-text-dim mb-1">💰 Free Cash Flow /bln</div>
+          <div className="text-xs text-text-dim mb-1">{dict.dashboard.fcfMonthly}</div>
           <div className="serif text-[19px]">{fmtRp(cf.fcf)}</div>
         </div>
         <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">
-          <div className="text-xs text-text-dim mb-1">📊 Saving Rate</div>
+          <div className="text-xs text-text-dim mb-1">{dict.dashboard.savingRate}</div>
           <div className="serif text-[19px]">{Math.round(cf.savingRate * 100)}%</div>
         </div>
       </div>

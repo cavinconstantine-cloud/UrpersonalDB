@@ -4,16 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { LayoutGrid, Receipt, Wallet, Settings } from "lucide-react";
-
-const ITEMS = [
-  { href: "/app", label: "Home", icon: LayoutGrid },
-  { href: "/app/expenses", label: "Transaksi", icon: Receipt },
-  { href: "/app/cashflow", label: "Arus Kas", icon: Wallet },
-  { href: "/app/settings", label: "Pengaturan", icon: Settings },
-];
+import { useLanguage } from "./language-provider";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { dict } = useLanguage();
+
+  const ITEMS = [
+    { href: "/app", label: dict.nav.home, icon: LayoutGrid },
+    { href: "/app/expenses", label: dict.nav.transactions, icon: Receipt },
+    { href: "/app/cashflow", label: dict.nav.cashflow, icon: Wallet },
+    { href: "/app/settings", label: dict.nav.settings, icon: Settings },
+  ];
 
   return (
     <nav

@@ -6,6 +6,7 @@ import { TextField } from "@/components/ui/field";
 import { NumberField } from "@/components/ui/number-field";
 import { Button } from "@/components/ui/button";
 import { updateProfileName, updateCashflow } from "@/app/app/settings/actions";
+import { useLanguage } from "./language-provider";
 
 interface SettingsFormProps {
   initialName: string;
@@ -13,6 +14,7 @@ interface SettingsFormProps {
 }
 
 export function SettingsForm({ initialName, initialOtherCashflow }: SettingsFormProps) {
+  const { dict } = useLanguage();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(initialName);
@@ -40,29 +42,29 @@ export function SettingsForm({ initialName, initialOtherCashflow }: SettingsForm
   return (
     <div>
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
-        <div className="serif text-[15px] mb-3">Profil</div>
-        <TextField label="Nama" value={name} onChange={(e) => setName(e.target.value)} />
+        <div className="serif text-[15px] mb-3">{dict.settings.profile}</div>
+        <TextField label={dict.settings.nameLabel} value={name} onChange={(e) => setName(e.target.value)} />
         <Button size="sm" onClick={saveProfile} disabled={isPending}>
-          {saved === "profile" ? "Tersimpan ✓" : "Simpan nama"}
+          {saved === "profile" ? dict.settings.saved : dict.settings.saveName}
         </Button>
       </div>
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
-        <div className="serif text-[15px] mb-3">Arus kas lainnya</div>
+        <div className="serif text-[15px] mb-3">{dict.settings.otherCashflow}</div>
         <NumberField
-          label="Lifestyle expense (Rp/bulan)"
+          label={dict.settings.lifestyleLabel}
           value={cf.lifestyleExpense}
           onValueChange={(n) => setCf((v) => ({ ...v, lifestyleExpense: n }))}
           placeholder="0"
         />
         <NumberField
-          label="Investasi rutin (Rp/bulan)"
+          label={dict.settings.investLabel}
           value={cf.invest}
           onValueChange={(n) => setCf((v) => ({ ...v, invest: n }))}
           placeholder="0"
         />
         <Button size="sm" onClick={saveCashflow} disabled={isPending}>
-          {saved === "cashflow" ? "Tersimpan ✓" : "Simpan"}
+          {saved === "cashflow" ? dict.settings.saved : dict.settings.save}
         </Button>
       </div>
     </div>
