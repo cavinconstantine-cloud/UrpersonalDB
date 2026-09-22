@@ -21,28 +21,48 @@ export async function getDashboardData() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, cashflowRes, holdingsRes, liabRes, goalsRes, monthExpRes, recentExpRes, customCatRes, snapshotsRes] =
-    await Promise.all([
-      supabase.from("profiles").select("*").eq("id", user.id).single(),
-      supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase.from("asset_holdings").select("*").eq("user_id", user.id).order("created_at"),
-      supabase.from("liabilities").select("*").eq("user_id", user.id),
-      supabase.from("goals").select("*").eq("user_id", user.id).order("created_at"),
-      supabase
-        .from("expenses")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("expense_date", firstOfMonthIso())
-        .order("expense_date", { ascending: false }),
-      supabase.from("expenses").select("*").eq("user_id", user.id).order("expense_date", { ascending: false }).limit(6),
-      supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
-      supabase
-        .from("net_worth_snapshots")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("snapshot_date", daysAgoIso(90))
-        .order("snapshot_date"),
-    ]);
+  const [
+    profileRes,
+    cashflowRes,
+    holdingsRes,
+    liabRes,
+    goalsRes,
+    monthExpRes,
+    monthIncRes,
+    recentExpRes,
+    recentIncRes,
+    customExpCatRes,
+    customIncCatRes,
+    snapshotsRes,
+  ] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", user.id).single(),
+    supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
+    supabase.from("asset_holdings").select("*").eq("user_id", user.id).order("created_at"),
+    supabase.from("liabilities").select("*").eq("user_id", user.id),
+    supabase.from("goals").select("*").eq("user_id", user.id).order("created_at"),
+    supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("expense_date", firstOfMonthIso())
+      .order("expense_date", { ascending: false }),
+    supabase
+      .from("incomes")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("income_date", firstOfMonthIso())
+      .order("income_date", { ascending: false }),
+    supabase.from("expenses").select("*").eq("user_id", user.id).order("expense_date", { ascending: false }).limit(8),
+    supabase.from("incomes").select("*").eq("user_id", user.id).order("income_date", { ascending: false }).limit(8),
+    supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
+    supabase.from("custom_income_categories").select("name").eq("user_id", user.id),
+    supabase
+      .from("net_worth_snapshots")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("snapshot_date", daysAgoIso(90))
+      .order("snapshot_date"),
+  ]);
 
   const profile = profileRes.data;
   if (!profile || profile.onboarding_step !== "done") redirect("/onboarding");
@@ -76,8 +96,11 @@ export async function getDashboardData() {
       targetDate: g.target_date,
     })),
     monthExpenses: monthExpRes.data || [],
+    monthIncomes: monthIncRes.data || [],
     recentExpenses: recentExpRes.data || [],
-    customCategories: (customCatRes.data || []).map((c) => c.name),
+    recentIncomes: recentIncRes.data || [],
+    customExpenseCategories: (customExpCatRes.data || []).map((c) => c.name),
+    customIncomeCategories: (customIncCatRes.data || []).map((c) => c.name),
     snapshots: snapshotsRes.data || [],
   };
 }

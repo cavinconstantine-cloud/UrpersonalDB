@@ -6,27 +6,33 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { TextField } from "@/components/ui/field";
-import { expenseCatIcon } from "@/lib/finance/constants";
+import { expenseCatIcon, incomeCatIcon } from "@/lib/finance/constants";
 import { updateExpense, deleteExpense } from "@/app/app/expenses/actions";
+import { updateIncome, deleteIncome } from "@/app/app/incomes/actions";
+import type { TransactionType } from "./transaction-modal";
 
-interface ExpenseEditModalProps {
+interface TransactionEditModalProps {
   open: boolean;
   onClose: () => void;
+  type: TransactionType;
   categories: string[];
-  expense: { id: string; date: string; category: string; amount: number; description: string };
+  transaction: { id: string; date: string; category: string; amount: number; description: string };
 }
 
-export function ExpenseEditModal({ open, onClose, categories, expense }: ExpenseEditModalProps) {
+export function TransactionEditModal({ open, onClose, type, categories, transaction }: TransactionEditModalProps) {
   const router = useRouter();
+  const isExpense = type === "expense";
   const [isPending, startTransition] = useTransition();
-  const [date, setDate] = useState(expense.date);
-  const [category, setCategory] = useState(expense.category);
-  const [amount, setAmount] = useState(String(expense.amount));
-  const [description, setDescription] = useState(expense.description);
+  const [date, setDate] = useState(transaction.date);
+  const [category, setCategory] = useState(transaction.category);
+  const [amount, setAmount] = useState(String(transaction.amount));
+  const [description, setDescription] = useState(transaction.description);
 
   function save() {
     startTransition(async () => {
-      await updateExpense(expense.id, { date, category, amount: Number(amount) || 0, description });
+      const payload = { date, category, amount: Number(amount) || 0, description };
+      if (isExpense) await updateExpense(transaction.id, payload);
+      else await updateIncome(transaction.id, payload);
       router.refresh();
       onClose();
     });
@@ -34,18 +40,19 @@ export function ExpenseEditModal({ open, onClose, categories, expense }: Expense
 
   function remove() {
     startTransition(async () => {
-      await deleteExpense(expense.id);
+      if (isExpense) await deleteExpense(transaction.id);
+      else await deleteIncome(transaction.id);
       router.refresh();
       onClose();
     });
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Edit pengeluaran">
+    <Modal open={open} onClose={onClose} title={isExpense ? "Edit pengeluaran" : "Edit pemasukan"}>
       <div className="flex flex-wrap gap-2 mb-4">
         {categories.map((c) => (
           <Chip key={c} active={category === c} onClick={() => setCategory(c)}>
-            {expenseCatIcon(c)} {c}
+            {(isExpense ? expenseCatIcon : incomeCatIcon)(c)} {c}
           </Chip>
         ))}
       </div>

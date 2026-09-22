@@ -15,6 +15,8 @@ export function buildFinancialSnapshot(input: {
   cf: CashflowNums;
   dbr: DbrResult;
   goals: Goal[];
+  liquidAssets: number;
+  monthIncomeTracked: number;
 }): string {
   const assetLines =
     input.assetCats.map((c) => `- ${c}: ${fmtRp(catValue(c, input.holdings))}`).join("\n") || "(belum ada)";
@@ -33,11 +35,13 @@ export function buildFinancialSnapshot(input: {
   return `Net worth: ${fmtRp(input.netWorth)}
 Total aset: ${fmtRp(input.totalAssets)}
 Total utang: ${fmtRp(input.totalLiabilities)}
+Liquid assets (Cash + Deposito): ${fmtRp(input.liquidAssets)}
 Rincian aset:
 ${assetLines}
 Rincian utang:
 ${liabLines}
-Income bulanan: ${fmtRp(input.cf.income)}
+Pemasukan tambahan tercatat bulan ini (di luar income rutin, mis. transferan/side income): ${fmtRp(input.monthIncomeTracked)}
+Income bulanan (rutin): ${fmtRp(input.cf.income)}
 Fixed expense: ${fmtRp(input.cf.fixedExpense)}
 Lifestyle expense (termasuk pengeluaran tercatat bulan ini): ${fmtRp(input.cf.lifestyleTotal)}
 Investasi rutin bulanan: ${fmtRp(input.cf.invest)}

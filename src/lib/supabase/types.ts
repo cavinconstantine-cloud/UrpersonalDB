@@ -134,6 +134,38 @@ export interface Database {
           created_at: string;
         }> & { user_id: string; name: string }
       >;
+      incomes: Table<
+        {
+          id: string;
+          user_id: string;
+          income_date: string;
+          category: string;
+          amount: number;
+          description: string;
+          created_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          income_date: string;
+          category: string;
+          amount: number;
+          description: string;
+          created_at: string;
+        }> & { user_id: string }
+      >;
+      custom_income_categories: Table<
+        {
+          user_id: string;
+          name: string;
+          created_at: string;
+        },
+        Partial<{
+          user_id: string;
+          name: string;
+          created_at: string;
+        }> & { user_id: string; name: string }
+      >;
       net_worth_snapshots: Table<
         {
           user_id: string;

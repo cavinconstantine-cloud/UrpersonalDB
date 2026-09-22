@@ -52,6 +52,14 @@ export interface Expense {
   description: string;
 }
 
+export interface Income {
+  id: string;
+  date: string; // ISO date
+  category: string;
+  amount: number;
+  description: string;
+}
+
 export interface AssetHolding {
   id: string;
   category: string;

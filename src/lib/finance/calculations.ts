@@ -1,6 +1,6 @@
 import { ASSET_SCHEMAS, LIAB_SCHEMAS, liabValue } from "./schemas";
-import { currentYm } from "./format";
-import type { CashflowInputs, Expense, Goal, HoldingData } from "./types";
+import { currentYm, todayIso } from "./format";
+import type { CashflowInputs, Expense, Goal, HoldingData, Income } from "./types";
 
 export interface HoldingRow {
   category: string;
@@ -35,6 +35,45 @@ export function netWorth(assetCats: string[], holdings: HoldingRow[], liabRows: 
 
 export function monthExpenseTotal(expenses: Expense[], ym: string = currentYm()): number {
   return expenses.filter((e) => e.date.slice(0, 7) === ym).reduce((s, e) => s + Number(e.amount || 0), 0);
+}
+
+export function monthIncomeTotal(incomes: Income[], ym: string = currentYm()): number {
+  return incomes.filter((i) => i.date.slice(0, 7) === ym).reduce((s, i) => s + Number(i.amount || 0), 0);
+}
+
+/** Cash + Deposito — the portion of net worth that can be spent right away. */
+export function liquidAssets(holdings: HoldingRow[]): number {
+  return catValue("Cash", holdings) + catValue("Deposito", holdings);
+}
+
+export interface DailyRecap {
+  date: string;
+  incomeTotal: number;
+  expenseTotal: number;
+  net: number;
+  biggestExpense: { category: string; amount: number } | null;
+}
+
+export function computeDailyRecap(
+  expenses: Expense[],
+  incomes: Income[],
+  date: string = todayIso(),
+): DailyRecap {
+  const todaysExpenses = expenses.filter((e) => e.date === date);
+  const todaysIncomes = incomes.filter((i) => i.date === date);
+  const expenseTotal = todaysExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const incomeTotal = todaysIncomes.reduce((s, i) => s + Number(i.amount || 0), 0);
+
+  const byCategory = new Map<string, number>();
+  for (const e of todaysExpenses) {
+    byCategory.set(e.category, (byCategory.get(e.category) || 0) + Number(e.amount || 0));
+  }
+  let biggestExpense: DailyRecap["biggestExpense"] = null;
+  for (const [category, amount] of byCategory) {
+    if (!biggestExpense || amount > biggestExpense.amount) biggestExpense = { category, amount };
+  }
+
+  return { date, incomeTotal, expenseTotal, net: incomeTotal - expenseTotal, biggestExpense };
 }
 
 export interface CashflowNums extends CashflowInputs {

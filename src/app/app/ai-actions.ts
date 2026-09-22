@@ -2,7 +2,16 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { getDashboardData } from "@/lib/data/dashboard";
-import { cashflowNums, computeDBR, monthExpenseTotal, netWorth, totalAssets, totalLiabilities } from "@/lib/finance/calculations";
+import {
+  cashflowNums,
+  computeDBR,
+  liquidAssets,
+  monthExpenseTotal,
+  monthIncomeTotal,
+  netWorth,
+  totalAssets,
+  totalLiabilities,
+} from "@/lib/finance/calculations";
 import { buildFinancialSnapshot } from "@/lib/finance/snapshot";
 
 export interface AiInsightResult {
@@ -49,6 +58,10 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
     cf,
     dbr,
     goals: data.goals,
+    liquidAssets: liquidAssets(data.holdings),
+    monthIncomeTracked: monthIncomeTotal(
+      data.monthIncomes.map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),
+    ),
   });
 
   try {

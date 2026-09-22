@@ -9,7 +9,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: customCats } = await supabase.from("custom_expense_categories").select("name").eq("user_id", user.id);
+  const [expenseCatsRes, incomeCatsRes] = await Promise.all([
+    supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
+    supabase.from("custom_income_categories").select("name").eq("user_id", user.id),
+  ]);
 
-  return <AppShell customCategories={(customCats || []).map((c) => c.name)}>{children}</AppShell>;
+  return (
+    <AppShell
+      customExpenseCategories={(expenseCatsRes.data || []).map((c) => c.name)}
+      customIncomeCategories={(incomeCatsRes.data || []).map((c) => c.name)}
+    >
+      {children}
+    </AppShell>
+  );
 }

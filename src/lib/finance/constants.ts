@@ -24,6 +24,15 @@ export const EXPENSE_CATS = [
   "Lainnya",
 ] as const;
 
+export const INCOME_CATS = [
+  "Gaji",
+  "Transferan Teman",
+  "Side Income / Hustle",
+  "Bonus / THR",
+  "Hasil Investasi",
+  "Lainnya",
+] as const;
+
 export const CATEGORY_ICONS: Record<string, string> = {
   Cash: "💵",
   Deposito: "🏦",
@@ -46,6 +55,15 @@ export const EXPENSE_CAT_ICONS: Record<string, string> = {
   Hiburan: "🎬",
   Tagihan: "🧾",
   Kesehatan: "💊",
+  Lainnya: "✨",
+};
+
+export const INCOME_CAT_ICONS: Record<string, string> = {
+  Gaji: "💼",
+  "Transferan Teman": "🤝",
+  "Side Income / Hustle": "🚀",
+  "Bonus / THR": "🎁",
+  "Hasil Investasi": "📈",
   Lainnya: "✨",
 };
 
@@ -80,17 +98,32 @@ export const EXPENSE_CATEGORY_COLOR_VARS: Record<string, string> = {
   Lainnya: "var(--series-8)",
 };
 
+export const INCOME_CATEGORY_COLOR_VARS: Record<string, string> = {
+  Gaji: "var(--series-3)",
+  "Transferan Teman": "var(--series-1)",
+  "Side Income / Hustle": "var(--series-2)",
+  "Bonus / THR": "var(--series-4)",
+  "Hasil Investasi": "var(--series-6)",
+  Lainnya: "var(--series-8)",
+};
+
 export function catIcon(cat: string): string {
   return CATEGORY_ICONS[cat] || "•";
 }
 export function expenseCatIcon(cat: string): string {
   return EXPENSE_CAT_ICONS[cat] || "💸";
 }
+export function incomeCatIcon(cat: string): string {
+  return INCOME_CAT_ICONS[cat] || "💰";
+}
 export function catColorVar(cat: string): string {
   return CATEGORY_COLOR_VARS[cat] || "var(--text-muted)";
 }
 export function expenseCatColorVar(cat: string): string {
   return EXPENSE_CATEGORY_COLOR_VARS[cat] || "var(--text-muted)";
+}
+export function incomeCatColorVar(cat: string): string {
+  return INCOME_CATEGORY_COLOR_VARS[cat] || "var(--text-muted)";
 }
 
 export const CURRENCIES: FieldOption[] = [

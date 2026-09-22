@@ -6,28 +6,47 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { TextField } from "@/components/ui/field";
-import { EXPENSE_CATS, expenseCatIcon } from "@/lib/finance/constants";
+import { cn } from "@/lib/utils";
+import { EXPENSE_CATS, INCOME_CATS, expenseCatIcon, incomeCatIcon } from "@/lib/finance/constants";
 import { todayIso } from "@/lib/finance/format";
 import { addExpense, addCustomExpenseCategory } from "@/app/app/expenses/actions";
+import { addIncome, addCustomIncomeCategory } from "@/app/app/incomes/actions";
 
-interface ExpenseModalProps {
+export type TransactionType = "expense" | "income";
+
+interface TransactionModalProps {
   open: boolean;
   onClose: () => void;
-  customCategories: string[];
+  defaultType?: TransactionType;
+  customExpenseCategories: string[];
+  customIncomeCategories: string[];
 }
 
-export function ExpenseModal({ open, onClose, customCategories }: ExpenseModalProps) {
+export function TransactionModal({
+  open,
+  onClose,
+  defaultType = "expense",
+  customExpenseCategories,
+  customIncomeCategories,
+}: TransactionModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [type, setType] = useState<TransactionType>(defaultType);
   const [category, setCategory] = useState<string>("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [addingCat, setAddingCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
-  const [localCats, setLocalCats] = useState<string[]>([]);
+  const [localExpenseCats, setLocalExpenseCats] = useState<string[]>([]);
+  const [localIncomeCats, setLocalIncomeCats] = useState<string[]>([]);
   const [error, setError] = useState("");
 
-  const allCats = [...EXPENSE_CATS, ...customCategories, ...localCats.filter((c) => !customCategories.includes(c))];
+  const isExpense = type === "expense";
+  const baseCats = isExpense ? EXPENSE_CATS : INCOME_CATS;
+  const customCats = isExpense ? customExpenseCategories : customIncomeCategories;
+  const localCats = isExpense ? localExpenseCats : localIncomeCats;
+  const allCats = [...baseCats, ...customCats, ...localCats.filter((c) => !customCats.includes(c))];
+  const catIcon = isExpense ? expenseCatIcon : incomeCatIcon;
 
   function reset() {
     setCategory("");
@@ -43,12 +62,24 @@ export function ExpenseModal({ open, onClose, customCategories }: ExpenseModalPr
     onClose();
   }
 
+  function switchType(next: TransactionType) {
+    setType(next);
+    setCategory("");
+    setError("");
+    setAddingCat(false);
+  }
+
   function addCategory() {
     const name = newCatName.trim();
     if (!name) return;
     if (!allCats.includes(name)) {
-      setLocalCats((c) => [...c, name]);
-      startTransition(() => addCustomExpenseCategory(name));
+      if (isExpense) {
+        setLocalExpenseCats((c) => [...c, name]);
+        startTransition(() => addCustomExpenseCategory(name));
+      } else {
+        setLocalIncomeCats((c) => [...c, name]);
+        startTransition(() => addCustomIncomeCategory(name));
+      }
     }
     setCategory(name);
     setNewCatName("");
@@ -65,18 +96,45 @@ export function ExpenseModal({ open, onClose, customCategories }: ExpenseModalPr
       return;
     }
     startTransition(async () => {
-      await addExpense({ date: todayIso(), category, amount: Number(amount), description });
+      if (isExpense) {
+        await addExpense({ date: todayIso(), category, amount: Number(amount), description });
+      } else {
+        await addIncome({ date: todayIso(), category, amount: Number(amount), description });
+      }
       router.refresh();
       handleClose();
     });
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Catat pengeluaran">
+    <Modal open={open} onClose={handleClose} title="Catat transaksi">
+      <div className="flex rounded-xl bg-bg-input p-1 mb-5">
+        <button
+          type="button"
+          onClick={() => switchType("expense")}
+          className={cn(
+            "flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            isExpense ? "bg-bg-raised text-text shadow-sm" : "text-text-dim",
+          )}
+        >
+          Pengeluaran
+        </button>
+        <button
+          type="button"
+          onClick={() => switchType("income")}
+          className={cn(
+            "flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            !isExpense ? "bg-bg-raised text-good shadow-sm" : "text-text-dim",
+          )}
+        >
+          Pemasukan
+        </button>
+      </div>
+
       <div className="flex flex-wrap gap-2 mb-4">
         {allCats.map((c) => (
           <Chip key={c} active={category === c} onClick={() => setCategory(c)}>
-            {expenseCatIcon(c)} {c}
+            {catIcon(c)} {c}
           </Chip>
         ))}
         <Chip onClick={() => setAddingCat((v) => !v)}>+ Kategori baru</Chip>
@@ -108,7 +166,7 @@ export function ExpenseModal({ open, onClose, customCategories }: ExpenseModalPr
       <TextField
         label="Detail / catatan (opsional)"
         type="text"
-        placeholder="mis. makan siang di kantor"
+        placeholder={isExpense ? "mis. makan siang di kantor" : "mis. transfer dari Budi"}
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
