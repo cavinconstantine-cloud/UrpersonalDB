@@ -92,6 +92,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="pt-1">
+      <LiquidAssetsCard total={liquidAssetsVal} todayNet={dailyRecap.net} />
       <HeroCard
         name={data.profile.name}
         netWorthVal={netWorthVal}
@@ -103,7 +104,6 @@ export default async function DashboardPage() {
         current={netWorthVal}
       />
       <DailyRecapCard recap={dailyRecap} />
-      <LiquidAssetsCard total={liquidAssetsVal} todayNet={dailyRecap.net} />
       <InsightCard hasGoals={data.goals.length > 0} totalNeed={totalNeed} fcf={cf.fcf} />
       <div className="grid grid-cols-2 gap-2.5 mx-5 mb-4">
         <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">

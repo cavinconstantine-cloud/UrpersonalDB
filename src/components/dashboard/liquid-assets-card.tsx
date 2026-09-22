@@ -5,7 +5,7 @@ export function LiquidAssetsCard({ total, todayNet }: { total: number; todayNet:
   const positive = todayNet >= 0;
 
   return (
-    <div className="mx-5 mb-4 p-4 rounded-2xl border border-hairline bg-bg-raised shadow-[var(--shadow-card)]">
+    <div className="mx-5 mt-4 mb-4 p-4 rounded-2xl border border-hairline bg-bg-raised shadow-[var(--shadow-card)]">
       <div className="flex items-center gap-1.5 text-xs text-text-dim mb-1.5">
         💧 Liquid Assets (Cash, Deposito, Reksadana, Obligasi)
       </div>
