@@ -19,10 +19,12 @@ export default async function LiabilityCategoryPage({ params }: { params: Promis
 
   const { data } = await supabase
     .from("liabilities")
-    .select("data")
+    .select("id, data")
     .eq("user_id", user.id)
     .eq("category", category)
-    .maybeSingle();
+    .order("created_at");
+
+  const holdings = (data || []).map((l) => ({ id: l.id, data: (l.data as Record<string, string | number>) || {} }));
 
   return (
     <div className="px-5 pt-6">
@@ -32,8 +34,10 @@ export default async function LiabilityCategoryPage({ params }: { params: Promis
       <h1 className="serif text-[26px] font-medium mb-1">
         {catIcon(category)} {category}
       </h1>
-      <p className="text-text-dim text-sm mb-6 leading-relaxed">Isi sesuai perjanjian atau billing statement terakhir.</p>
-      <LiabilityCategoryManager category={category} initial={(data?.data as Record<string, string | number>) || {}} />
+      <p className="text-text-dim text-sm mb-6 leading-relaxed">
+        Kamu bisa menambahkan lebih dari satu, mis. beberapa kartu kredit sekaligus.
+      </p>
+      <LiabilityCategoryManager category={category} holdings={holdings} />
     </div>
   );
 }

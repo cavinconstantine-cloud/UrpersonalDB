@@ -29,6 +29,16 @@ export function totalLiabilities(liabRows: HoldingRow[]): number {
   return liabRows.reduce((s, l) => s + liabValue(l.data), 0);
 }
 
+export function liabCatValue(cat: string, liabRows: HoldingRow[]): number {
+  return liabRows.filter((l) => l.category === cat).reduce((s, l) => s + liabValue(l.data), 0);
+}
+
+export function liabCatMonthlyPayment(cat: string, liabRows: HoldingRow[]): number {
+  const schema = LIAB_SCHEMAS[cat];
+  if (!schema) return 0;
+  return liabRows.filter((l) => l.category === cat).reduce((s, l) => s + schema.monthlyPayment(l.data), 0);
+}
+
 export function netWorth(assetCats: string[], holdings: HoldingRow[], liabRows: HoldingRow[]): number {
   return totalAssets(assetCats, holdings) - totalLiabilities(liabRows);
 }

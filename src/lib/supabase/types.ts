@@ -68,17 +68,31 @@ export interface Database {
       >;
       liabilities: Table<
         {
+          id: string;
           user_id: string;
           category: string;
           data: Json;
           updated_at: string;
         },
         Partial<{
+          id: string;
           user_id: string;
           category: string;
           data: Json;
           updated_at: string;
         }> & { user_id: string; category: string }
+      >;
+      billing_reminders_sent: Table<
+        {
+          liability_id: string;
+          sent_date: string;
+          created_at: string;
+        },
+        Partial<{
+          liability_id: string;
+          sent_date: string;
+          created_at: string;
+        }> & { liability_id: string }
       >;
       goals: Table<
         {

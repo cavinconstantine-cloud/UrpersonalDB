@@ -37,12 +37,11 @@ export async function completeOnboarding(draft: OnboardingDraft) {
     await supabase.from("asset_holdings").insert(holdingsRows);
   }
 
-  const liabRows = draft.liabCats
-    .map((cat) => ({ user_id: user.id, category: cat, data: draft.liabData[cat] || {} }))
-    .filter((r) => Object.keys(r.data).length > 0)
-    .map((r) => ({ ...r, data: holdingDataToJson(r.data) }));
+  const liabRows = Object.entries(draft.liabHoldings).flatMap(([category, holdings]) =>
+    holdings.map((h) => ({ user_id: user.id, category, data: holdingDataToJson(h) })),
+  );
   if (liabRows.length) {
-    await supabase.from("liabilities").upsert(liabRows);
+    await supabase.from("liabilities").insert(liabRows);
   }
 
   if (draft.goals.length) {

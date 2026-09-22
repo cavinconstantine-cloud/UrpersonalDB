@@ -73,6 +73,7 @@ export async function getDashboardData() {
     data: (h.data as HoldingData) || {},
   }));
   const liabilities = (liabRes.data || []).map((l) => ({
+    id: l.id,
     category: l.category,
     data: (l.data as HoldingData) || {},
   }));

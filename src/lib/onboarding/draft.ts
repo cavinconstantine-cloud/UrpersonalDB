@@ -9,7 +9,7 @@ export interface OnboardingDraft {
   assetHoldings: Record<string, HoldingData[]>;
   assetIdx: number;
   liabCats: string[];
-  liabData: Record<string, HoldingData>;
+  liabHoldings: Record<string, HoldingData[]>;
   liabIdx: number;
   cashflow: { income: string; fixedExpense: string; lifestyleExpense: string; invest: string };
   goals: Goal[];
@@ -23,7 +23,7 @@ export function emptyDraft(name = ""): OnboardingDraft {
     assetHoldings: {},
     assetIdx: 0,
     liabCats: [],
-    liabData: {},
+    liabHoldings: {},
     liabIdx: 0,
     cashflow: { income: "", fixedExpense: "", lifestyleExpense: "", invest: "" },
     goals: [],

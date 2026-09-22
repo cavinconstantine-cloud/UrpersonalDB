@@ -13,9 +13,23 @@ async function requireUser() {
   return { supabase, user };
 }
 
-export async function saveLiability(category: string, data: HoldingData) {
+export async function addLiabilityHolding(category: string, data: HoldingData) {
   const { supabase, user } = await requireUser();
-  await supabase.from("liabilities").upsert({ user_id: user.id, category, data: holdingDataToJson(data) });
+  await supabase.from("liabilities").insert({ user_id: user.id, category, data: holdingDataToJson(data) });
+  revalidatePath("/app");
+  revalidatePath(`/app/liabilities/${category}`);
+}
+
+export async function updateLiabilityHolding(id: string, data: HoldingData) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("liabilities").update({ data: holdingDataToJson(data) }).eq("id", id).eq("user_id", user.id);
+  revalidatePath("/app");
+  revalidatePath("/app/liabilities");
+}
+
+export async function deleteLiabilityHolding(id: string, category: string) {
+  const { supabase, user } = await requireUser();
+  await supabase.from("liabilities").delete().eq("id", id).eq("user_id", user.id);
   revalidatePath("/app");
   revalidatePath(`/app/liabilities/${category}`);
 }

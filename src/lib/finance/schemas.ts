@@ -155,12 +155,27 @@ function kprMonthlyPayment(h: HoldingData): number {
   return (P * r * pow) / (pow - 1);
 }
 
+const BILLING_DAY_FIELD = {
+  key: "billingDay",
+  label: "Tanggal billing (opsional, 1-31)",
+  type: "number" as const,
+  placeholder: "mis. 25",
+};
+
+function billingDayNote(h: HoldingData): string {
+  const day = num(h, "billingDay");
+  if (!day || day < 1 || day > 31) return "";
+  return `billing tgl ${day} · reminder email aktif`;
+}
+
 export const LIAB_SCHEMAS: Record<string, LiabilitySchema> = {
   KPR: {
     fields: [
+      { key: "label", label: "Nama / bank KPR", type: "text", placeholder: "mis. KPR BCA" },
       { key: "amount", label: "Sisa outstanding / OS (Rp)", type: "number" },
       { key: "rate", label: "Suku bunga (% p.a.)", type: "number", step: "any", placeholder: "mis. 8.5" },
       { key: "tenorRemaining", label: "Sisa tenor (bulan)", type: "number" },
+      BILLING_DAY_FIELD,
     ],
     monthlyPayment: kprMonthlyPayment,
     note: (h) => {
@@ -173,24 +188,46 @@ export const LIAB_SCHEMAS: Record<string, LiabilitySchema> = {
         d.setMonth(d.getMonth() + m);
         parts.push(`perkiraan lunas ${d.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`);
       }
+      const billing = billingDayNote(h);
+      if (billing) parts.push(billing);
       return parts.join(" · ");
     },
   },
   "Kartu Kredit": {
     fields: [
-      { key: "amount", label: "Sisa tagihan (Rp)", type: "number" },
-      { key: "installment", label: "Pembayaran bulanan (Rp)", type: "number" },
+      { key: "label", label: "Nama kartu", type: "text", placeholder: "mis. BCA Everyday Card" },
+      { key: "amount", label: "OS sekarang (Rp)", type: "number" },
+      { key: "limit", label: "Limit kartu (Rp)", type: "number" },
+      { key: "installment", label: "Pembayaran bulanan (perkiraan, Rp)", type: "number" },
+      BILLING_DAY_FIELD,
     ],
     monthlyPayment: (h) => num(h, "installment"),
-    note: (h) => (num(h, "installment") ? `Pembayaran bulanan ${fmtRp(num(h, "installment"))}` : ""),
+    note: (h) => {
+      const parts: string[] = [];
+      const limit = num(h, "limit");
+      const os = num(h, "amount");
+      if (limit) parts.push(`Utilisasi ${Math.round((os / limit) * 100)}% dari limit ${fmtRp(limit)}`);
+      if (num(h, "installment")) parts.push(`Pembayaran bulanan ${fmtRp(num(h, "installment"))}`);
+      const billing = billingDayNote(h);
+      if (billing) parts.push(billing);
+      return parts.join(" · ");
+    },
   },
   "Pinjaman Lainnya": {
     fields: [
+      { key: "label", label: "Nama pinjaman", type: "text", placeholder: "mis. Pinjaman KTA Bank X" },
       { key: "amount", label: "Sisa pokok (Rp)", type: "number" },
       { key: "installment", label: "Cicilan bulanan (Rp)", type: "number" },
+      BILLING_DAY_FIELD,
     ],
     monthlyPayment: (h) => num(h, "installment"),
-    note: (h) => (num(h, "installment") ? `Cicilan bulanan ${fmtRp(num(h, "installment"))}` : ""),
+    note: (h) => {
+      const parts: string[] = [];
+      if (num(h, "installment")) parts.push(`Cicilan bulanan ${fmtRp(num(h, "installment"))}`);
+      const billing = billingDayNote(h);
+      if (billing) parts.push(billing);
+      return parts.join(" · ");
+    },
   },
 };
 

@@ -5,14 +5,12 @@ import Link from "next/link";
 import { SectionCard } from "@/components/ui/section-card";
 import { AddCategoryModal } from "@/components/dashboard/add-category-modal";
 import { LIAB_CATS, catColorVar, catIcon } from "@/lib/finance/constants";
-import { LIAB_SCHEMAS, liabValue } from "@/lib/finance/schemas";
-import type { HoldingRow } from "@/lib/finance/calculations";
+import { liabCatMonthlyPayment, liabCatValue, type HoldingRow } from "@/lib/finance/calculations";
 import { fmtRp } from "@/lib/finance/format";
 
 export function LiabilitySection({ liabCats, liabilities }: { liabCats: string[]; liabilities: HoldingRow[] }) {
   const [modalOpen, setModalOpen] = useState(false);
   const remaining = LIAB_CATS.filter((c) => !liabCats.includes(c));
-  const byCat = Object.fromEntries(liabilities.map((l) => [l.category, l.data]));
 
   return (
     <>
@@ -31,9 +29,15 @@ export function LiabilitySection({ liabCats, liabilities }: { liabCats: string[]
           <div className="text-sm text-text-dim py-2 pb-4">Belum ada utang tercatat.</div>
         ) : (
           liabCats.map((c) => {
-            const data = byCat[c] || {};
-            const schema = LIAB_SCHEMAS[c];
-            const note = schema?.note?.(data) || "";
+            const rows = liabilities.filter((l) => l.category === c);
+            const value = liabCatValue(c, liabilities);
+            const monthly = liabCatMonthlyPayment(c, liabilities);
+            const note =
+              rows.length === 0
+                ? "Belum ada data"
+                : rows.length === 1
+                  ? String(rows[0].data.label || "")
+                  : `${rows.length} entri${monthly ? ` · cicilan ${fmtRp(monthly)}/bln` : ""}`;
             return (
               <Link
                 key={c}
@@ -49,10 +53,10 @@ export function LiabilitySection({ liabCats, liabilities }: { liabCats: string[]
                   </div>
                   <div className="min-w-0">
                     <div>{c}</div>
-                    {note && <div className="text-xs text-text-dim">{note}</div>}
+                    {note && <div className="text-xs text-text-dim truncate">{note}</div>}
                   </div>
                 </div>
-                <div className="shrink-0">{fmtRp(liabValue(data))} ›</div>
+                <div className="shrink-0">{fmtRp(value)} ›</div>
               </Link>
             );
           })

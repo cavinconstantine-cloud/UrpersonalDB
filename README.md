@@ -11,11 +11,12 @@ Security) · Tailwind CSS v4 · opsional Anthropic API untuk fitur ringkasan AI.
 ## 1. Setup Supabase
 
 1. Buat project baru di [supabase.com/dashboard](https://supabase.com/dashboard) (gratis).
-2. Buka **SQL Editor** di project tsb, lalu jalankan seluruh isi file
-   [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql). Ini akan
-   membuat semua tabel yang dibutuhkan (`profiles`, `cashflow`, `asset_holdings`,
-   `liabilities`, `goals`, `expenses`, dll) lengkap dengan Row Level Security — setiap
-   akun hanya bisa membaca/menulis datanya sendiri.
+2. Buka **SQL Editor** di project tsb, lalu jalankan **berurutan** seluruh isi ketiga
+   file migration di [`supabase/migrations/`](./supabase/migrations/): `0001_init.sql`,
+   lalu `0002_income_tracking.sql`, lalu `0003_liability_holdings_and_reminders.sql`.
+   Ini membuat semua tabel yang dibutuhkan (`profiles`, `cashflow`, `asset_holdings`,
+   `liabilities`, `incomes`, `goals`, `expenses`, dll) lengkap dengan Row Level
+   Security — setiap akun hanya bisa membaca/menulis datanya sendiri.
 3. Di **Authentication → Sign In / Providers**, pastikan "Email" provider aktif.
    Secara default Supabase mewajibkan konfirmasi email — bisa dimatikan sementara
    di **Authentication → Sign In / Email** kalau mau testing lebih cepat tanpa
@@ -70,6 +71,29 @@ sampai ke dashboard di `/app`.
 
 Karena tampilan sudah mobile-first dan mendukung "Add to Home Screen" (PWA manifest +
 ikon di `public/icons`), aplikasi ini bisa dipasang di HP seperti aplikasi biasa.
+
+## 5. (Opsional) Reminder email tanggal billing
+
+Kartu Kredit, KPR, dan Pinjaman Lainnya punya field opsional "Tanggal billing". Kalau
+diisi, cron job harian (`vercel.json` → `/api/cron/billing-reminders`, jalan tiap jam
+02:00 UTC / 09:00 WIB) mengirim email reminder ke pemilik akun pada tanggal tsb. Untuk
+mengaktifkan, isi 2 env var tambahan (di Vercel **Project Settings → Environment
+Variables**, sama seperti `NEXT_PUBLIC_SUPABASE_URL` dkk):
+
+- `SUPABASE_SERVICE_ROLE_KEY` — dari Supabase **Project Settings → API**, bagian
+  **Secret keys** (`sb_secret_...`). Ini kredensial admin yang bisa baca data semua
+  user — **jangan pernah** dipakai di kode client-side; di aplikasi ini hanya dibaca
+  oleh route cron di server (`src/lib/supabase/admin.ts`).
+- `RESEND_API_KEY` — daftar gratis di [resend.com](https://resend.com) (100
+  email/hari gratis), buat API key di Dashboard → API Keys.
+
+Tanpa domain terverifikasi di Resend, email hanya bisa terkirim ke alamat email
+pemilik akun Resend itu sendiri (mode testing) — cukup untuk kamu coba sendiri dulu.
+Supaya reminder benar-benar sampai ke semua tester, verifikasi domain kamu di Resend
+lalu isi `REMINDER_FROM_EMAIL` dengan alamat dari domain tsb.
+
+Kosongkan salah satu env var ini kapan saja untuk mematikan fitur reminder — sisanya
+tetap jalan normal.
 
 ## Struktur proyek
 

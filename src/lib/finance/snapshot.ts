@@ -21,7 +21,12 @@ export function buildFinancialSnapshot(input: {
   const assetLines =
     input.assetCats.map((c) => `- ${c}: ${fmtRp(catValue(c, input.holdings))}`).join("\n") || "(belum ada)";
   const liabLines =
-    input.liabRows.map((l) => `- ${l.category}: ${fmtRp(liabValue(l.data))}`).join("\n") || "(belum ada)";
+    input.liabRows
+      .map((l) => {
+        const label = l.data.label ? ` (${l.data.label})` : "";
+        return `- ${l.category}${label}: ${fmtRp(liabValue(l.data))}`;
+      })
+      .join("\n") || "(belum ada)";
   const goalLines =
     input.goals
       .map(
