@@ -89,9 +89,10 @@ export function RecurringItemsManager({ title, addPlaceholder, items, onAdd, onU
               <input
                 type="number"
                 inputMode="numeric"
-                value={item.amount}
+                value={item.amount === 0 ? "" : item.amount}
                 onChange={(e) => patchLocal(item.id, { amount: Number(e.target.value) || 0 })}
                 onBlur={() => commit(local.find((i) => i.id === item.id)!)}
+                placeholder="0"
                 className="w-[130px] text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text"
               />
               <button

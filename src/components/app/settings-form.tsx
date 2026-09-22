@@ -52,15 +52,17 @@ export function SettingsForm({ initialName, initialOtherCashflow }: SettingsForm
           label="Lifestyle expense (Rp/bulan)"
           type="number"
           inputMode="numeric"
-          value={cf.lifestyleExpense}
+          value={cf.lifestyleExpense === 0 ? "" : cf.lifestyleExpense}
           onChange={(e) => setCf((v) => ({ ...v, lifestyleExpense: Number(e.target.value) || 0 }))}
+          placeholder="0"
         />
         <TextField
           label="Investasi rutin (Rp/bulan)"
           type="number"
           inputMode="numeric"
-          value={cf.invest}
+          value={cf.invest === 0 ? "" : cf.invest}
           onChange={(e) => setCf((v) => ({ ...v, invest: Number(e.target.value) || 0 }))}
+          placeholder="0"
         />
         <Button size="sm" onClick={saveCashflow} disabled={isPending}>
           {saved === "cashflow" ? "Tersimpan ✓" : "Simpan"}

@@ -57,6 +57,12 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
         <div className="text-sm text-text-dim mb-6 py-4 text-center">Belum ada goals. Pilih salah satu di bawah untuk mulai.</div>
       )}
       {local.map((g) => {
+        const synced = syncedGoals.find((s) => s.id === g.id) ?? g;
+        const dirty =
+          g.name !== synced.name ||
+          g.target !== synced.target ||
+          g.current !== synced.current ||
+          g.targetDate !== synced.targetDate;
         const need = goalMonthlyNeed(g);
         const pct = g.target > 0 ? Math.min(100, (g.current / g.target) * 100) : 0;
         const onTrack = need <= Math.max(0, fcf);
@@ -67,7 +73,6 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
                 type="text"
                 value={g.name}
                 onChange={(e) => patchLocal(g.id, { name: e.target.value })}
-                onBlur={(e) => commit(g.id, { name: e.target.value })}
                 placeholder="Nama goal"
                 className="flex-1 text-sm font-medium px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text"
               />
@@ -96,9 +101,10 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
                 <label className="text-[11px] text-text-dim">Target (Rp)</label>
                 <input
                   type="number"
-                  value={g.target}
+                  inputMode="numeric"
+                  value={g.target === 0 ? "" : g.target}
                   onChange={(e) => patchLocal(g.id, { target: Number(e.target.value) || 0 })}
-                  onBlur={(e) => commit(g.id, { target: Number(e.target.value) || 0 })}
+                  placeholder="0"
                   className="w-full px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
                 />
               </div>
@@ -106,9 +112,10 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
                 <label className="text-[11px] text-text-dim">Terkumpul (Rp)</label>
                 <input
                   type="number"
-                  value={g.current}
+                  inputMode="numeric"
+                  value={g.current === 0 ? "" : g.current}
                   onChange={(e) => patchLocal(g.id, { current: Number(e.target.value) || 0 })}
-                  onBlur={(e) => commit(g.id, { current: Number(e.target.value) || 0 })}
+                  placeholder="0"
                   className="w-full px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
                 />
               </div>
@@ -118,9 +125,29 @@ export function GoalsManager({ goals, fcf }: { goals: Goal[]; fcf: number }) {
               type="date"
               value={g.targetDate}
               onChange={(e) => patchLocal(g.id, { targetDate: e.target.value })}
-              onBlur={(e) => commit(g.id, { targetDate: e.target.value })}
               className="w-full px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
             />
+
+            {dirty && (
+              <div className="flex gap-2.5 mt-3">
+                <button
+                  className="flex-1 text-sm font-medium rounded-lg bg-brand text-brand-ink py-2 disabled:opacity-50"
+                  disabled={isPending}
+                  onClick={() =>
+                    commit(g.id, { name: g.name, target: g.target, current: g.current, targetDate: g.targetDate })
+                  }
+                >
+                  Simpan
+                </button>
+                <button
+                  className="flex-1 text-sm font-medium rounded-lg border border-hairline text-text-dim py-2 disabled:opacity-50"
+                  disabled={isPending}
+                  onClick={() => patchLocal(g.id, synced)}
+                >
+                  Batal
+                </button>
+              </div>
+            )}
           </div>
         );
       })}

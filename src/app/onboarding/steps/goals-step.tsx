@@ -63,15 +63,19 @@ export function GoalsStep({
           <label className="text-[11px] text-text-dim">Target (Rp)</label>
           <input
             type="number"
-            value={g.target}
+            inputMode="numeric"
+            value={g.target === 0 ? "" : g.target}
             onChange={(e) => updateGoal(g.id, { target: Number(e.target.value) || 0 })}
+            placeholder="0"
             className="w-full mb-2 px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
           />
           <label className="text-[11px] text-text-dim">Sudah terkumpul (Rp)</label>
           <input
             type="number"
-            value={g.current}
+            inputMode="numeric"
+            value={g.current === 0 ? "" : g.current}
             onChange={(e) => updateGoal(g.id, { current: Number(e.target.value) || 0 })}
+            placeholder="0"
             className="w-full mb-2 px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text text-sm"
           />
           <label className="text-[11px] text-text-dim">Target tanggal</label>
