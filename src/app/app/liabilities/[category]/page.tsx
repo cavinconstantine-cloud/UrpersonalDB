@@ -22,7 +22,7 @@ export default async function LiabilityCategoryPage({ params }: { params: Promis
     .select("id, data")
     .eq("user_id", user.id)
     .eq("category", category)
-    .order("created_at");
+    .order("updated_at");
 
   const holdings = (data || []).map((l) => ({ id: l.id, data: (l.data as Record<string, string | number>) || {} }));
 
