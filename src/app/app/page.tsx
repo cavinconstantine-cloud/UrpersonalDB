@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getDashboardData, recordNetWorthSnapshot } from "@/lib/data/dashboard";
+import { getDashboardData, recordFcfSnapshot, recordNetWorthSnapshot } from "@/lib/data/dashboard";
 import {
   cashflowNums,
   computeDailyRecap,
@@ -26,6 +26,7 @@ import { LiabilitySection } from "@/components/dashboard/liability-section";
 import { GoalsPreview } from "@/components/dashboard/goals-preview";
 import { TransactionsPreview } from "@/components/dashboard/transactions-preview";
 import { UpcomingBillingCard } from "@/components/dashboard/upcoming-billing-card";
+import { FcfTrend } from "@/components/dashboard/fcf-trend";
 import { MarketNewsCard } from "@/components/dashboard/market-news-card";
 import type { TxRow } from "@/components/app/transaction-list";
 
@@ -59,6 +60,7 @@ export default async function DashboardPage() {
       invest: Number(data.cashflow.invest),
     },
     monthExpTotal,
+    monthIncTotal,
   );
   const dbr = computeDBR(cf, data.liabilities);
   const totalAssetsVal = totalAssets(data.profile.asset_categories, data.holdings);
@@ -69,6 +71,14 @@ export default async function DashboardPage() {
   const installments = upcomingInstallments(data.liabilities);
 
   await recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal);
+  await recordFcfSnapshot(data.user.id, {
+    incomeTotal: cf.incomeTotal,
+    fixedExpense: cf.fixedExpense,
+    lifestyleTotal: cf.lifestyleTotal,
+    invest: cf.invest,
+    fcf: cf.fcf,
+    savingRate: cf.savingRate,
+  });
 
   const totalNeed = data.goals.reduce((s, g) => s + goalMonthlyNeed(g), 0);
 
@@ -119,6 +129,10 @@ export default async function DashboardPage() {
           <div className="serif text-[19px]">{Math.round(cf.savingRate * 100)}%</div>
         </div>
       </div>
+      <FcfTrend
+        points={data.fcfSnapshots.map((s) => ({ month: s.snapshot_month, fcf: Number(s.fcf) }))}
+        current={cf.fcf}
+      />
       <DbrCard dbr={dbr} hasFixedExpense={cf.fixedExpense > 0} />
       <UpcomingBillingCard installments={installments} />
       <AiInsightCard available={aiAvailable} />

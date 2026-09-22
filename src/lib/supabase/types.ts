@@ -234,6 +234,32 @@ export interface Database {
           created_at: string;
         }> & { user_id: string }
       >;
+      fcf_snapshots: Table<
+        {
+          user_id: string;
+          snapshot_month: string;
+          income: number;
+          fixed_expense: number;
+          lifestyle_expense: number;
+          invest: number;
+          fcf: number;
+          saving_rate: number;
+          created_at: string;
+          updated_at: string;
+        },
+        Partial<{
+          user_id: string;
+          snapshot_month: string;
+          income: number;
+          fixed_expense: number;
+          lifestyle_expense: number;
+          invest: number;
+          fcf: number;
+          saving_rate: number;
+          created_at: string;
+          updated_at: string;
+        }> & { user_id: string; snapshot_month: string }
+      >;
       market_news: Table<
         {
           id: string;

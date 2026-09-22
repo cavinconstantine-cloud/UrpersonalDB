@@ -14,6 +14,11 @@ function daysAgoIso(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+function monthsAgoFirstOfMonthIso(months: number): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() - months, 1).toISOString().slice(0, 10);
+}
+
 export async function getDashboardData() {
   const supabase = await createClient();
   const {
@@ -35,6 +40,7 @@ export async function getDashboardData() {
     customIncCatRes,
     snapshotsRes,
     marketNewsRes,
+    fcfSnapshotsRes,
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
@@ -69,6 +75,12 @@ export async function getDashboardData() {
       .order("published_at", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase
+      .from("fcf_snapshots")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("snapshot_month", monthsAgoFirstOfMonthIso(11))
+      .order("snapshot_month"),
   ]);
 
   const profile = profileRes.data;
@@ -121,6 +133,7 @@ export async function getDashboardData() {
       }[],
       publishedAt: n.published_at,
     })),
+    fcfSnapshots: fcfSnapshotsRes.data || [],
   };
 }
 
@@ -138,5 +151,37 @@ export async function recordNetWorthSnapshot(
     net_worth: netWorthVal,
     total_assets: totalAssetsVal,
     total_liabilities: totalLiabilitiesVal,
+  });
+}
+
+/**
+ * Upserts the current month's FCF breakdown, keyed by the 1st of the month.
+ * Called on every dashboard view — the current month's row stays live all
+ * month, then is left untouched (frozen) once the month rolls over, giving
+ * a natural per-month history without any manual reset.
+ */
+export async function recordFcfSnapshot(
+  userId: string,
+  cf: {
+    incomeTotal: number;
+    fixedExpense: number;
+    lifestyleTotal: number;
+    invest: number;
+    fcf: number;
+    savingRate: number;
+  },
+) {
+  const supabase = await createClient();
+  const now = new Date();
+  const snapshotMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  await supabase.from("fcf_snapshots").upsert({
+    user_id: userId,
+    snapshot_month: snapshotMonth,
+    income: cf.incomeTotal,
+    fixed_expense: cf.fixedExpense,
+    lifestyle_expense: cf.lifestyleTotal,
+    invest: cf.invest,
+    fcf: cf.fcf,
+    saving_rate: cf.savingRate,
   });
 }

@@ -47,6 +47,7 @@ Rincian utang:
 ${liabLines}
 Pemasukan tambahan tercatat bulan ini (di luar income rutin, mis. transferan/side income): ${fmtRp(input.monthIncomeTracked)}
 Income bulanan (rutin): ${fmtRp(input.cf.income)}
+Total income bulan ini (rutin + tercatat, dasar hitungan FCF): ${fmtRp(input.cf.incomeTotal)}
 Fixed expense: ${fmtRp(input.cf.fixedExpense)}
 Lifestyle expense (termasuk pengeluaran tercatat bulan ini): ${fmtRp(input.cf.lifestyleTotal)}
 Investasi rutin bulanan: ${fmtRp(input.cf.invest)}

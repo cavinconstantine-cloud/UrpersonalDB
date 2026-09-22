@@ -95,15 +95,18 @@ export function computeDailyRecap(
 
 export interface CashflowNums extends CashflowInputs {
   lifestyleTotal: number;
+  /** Income rutin + income tambahan yang dicatat manual bulan ini (mis. transferan, side income). */
+  incomeTotal: number;
   fcf: number;
   savingRate: number;
 }
 
-export function cashflowNums(cf: CashflowInputs, monthExpenses: number): CashflowNums {
+export function cashflowNums(cf: CashflowInputs, monthExpenses: number, monthIncome = 0): CashflowNums {
   const lifestyleTotal = cf.lifestyleExpense + monthExpenses;
-  const fcf = cf.income - cf.fixedExpense - lifestyleTotal - cf.invest;
-  const savingRate = cf.income > 0 ? cf.invest / cf.income : 0;
-  return { ...cf, lifestyleTotal, fcf, savingRate };
+  const incomeTotal = cf.income + monthIncome;
+  const fcf = incomeTotal - cf.fixedExpense - lifestyleTotal - cf.invest;
+  const savingRate = incomeTotal > 0 ? cf.invest / incomeTotal : 0;
+  return { ...cf, lifestyleTotal, incomeTotal, fcf, savingRate };
 }
 
 export function monthsBetween(a: Date, b: Date): number {
