@@ -17,10 +17,13 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);
+drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = id);
+drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own" on public.profiles
   for insert with check (auth.uid() = id);
 
@@ -56,6 +59,7 @@ create table if not exists public.cashflow (
 
 alter table public.cashflow enable row level security;
 
+drop policy if exists "cashflow_all_own" on public.cashflow;
 create policy "cashflow_all_own" on public.cashflow
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -76,6 +80,7 @@ create index if not exists asset_holdings_user_idx on public.asset_holdings (use
 
 alter table public.asset_holdings enable row level security;
 
+drop policy if exists "asset_holdings_all_own" on public.asset_holdings;
 create policy "asset_holdings_all_own" on public.asset_holdings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -92,6 +97,7 @@ create table if not exists public.liabilities (
 
 alter table public.liabilities enable row level security;
 
+drop policy if exists "liabilities_all_own" on public.liabilities;
 create policy "liabilities_all_own" on public.liabilities
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -113,6 +119,7 @@ create index if not exists goals_user_idx on public.goals (user_id);
 
 alter table public.goals enable row level security;
 
+drop policy if exists "goals_all_own" on public.goals;
 create policy "goals_all_own" on public.goals
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -133,6 +140,7 @@ create index if not exists expenses_user_date_idx on public.expenses (user_id, e
 
 alter table public.expenses enable row level security;
 
+drop policy if exists "expenses_all_own" on public.expenses;
 create policy "expenses_all_own" on public.expenses
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -148,6 +156,7 @@ create table if not exists public.custom_expense_categories (
 
 alter table public.custom_expense_categories enable row level security;
 
+drop policy if exists "custom_expense_categories_all_own" on public.custom_expense_categories;
 create policy "custom_expense_categories_all_own" on public.custom_expense_categories
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
@@ -167,6 +176,7 @@ create table if not exists public.net_worth_snapshots (
 
 alter table public.net_worth_snapshots enable row level security;
 
+drop policy if exists "net_worth_snapshots_all_own" on public.net_worth_snapshots;
 create policy "net_worth_snapshots_all_own" on public.net_worth_snapshots
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
