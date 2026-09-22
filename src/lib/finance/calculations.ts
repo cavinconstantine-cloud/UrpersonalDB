@@ -51,6 +51,25 @@ export function monthExpenseTotal(expenses: Expense[], ym: string = currentYm())
   return expenses.filter((e) => e.date.slice(0, 7) === ym).reduce((s, e) => s + Number(e.amount || 0), 0);
 }
 
+export interface ExpenseCategorySlice {
+  category: string;
+  amount: number;
+  pct: number;
+}
+
+/** Current month's expenses grouped by category, sorted by amount descending. */
+export function expenseByCategory(expenses: Expense[], ym: string = currentYm()): ExpenseCategorySlice[] {
+  const monthExpenses = expenses.filter((e) => e.date.slice(0, 7) === ym);
+  const total = monthExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const byCategory = new Map<string, number>();
+  for (const e of monthExpenses) {
+    byCategory.set(e.category, (byCategory.get(e.category) || 0) + Number(e.amount || 0));
+  }
+  return Array.from(byCategory.entries())
+    .map(([category, amount]) => ({ category, amount, pct: total > 0 ? (amount / total) * 100 : 0 }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
 export function monthIncomeTotal(incomes: Income[], ym: string = currentYm()): number {
   return incomes.filter((i) => i.date.slice(0, 7) === ym).reduce((s, i) => s + Number(i.amount || 0), 0);
 }
