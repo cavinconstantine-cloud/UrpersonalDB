@@ -4,8 +4,10 @@ import { redirect } from "next/navigation";
 import { signOutAction } from "@/app/(auth)/actions";
 import { SettingsForm } from "@/components/app/settings-form";
 import { RecurringCashflowSections } from "@/components/app/recurring-cashflow-sections";
+import { BudgetManager } from "@/components/app/budget-manager";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { EXPENSE_CATS } from "@/lib/finance/constants";
 
 export const metadata: Metadata = { title: "Pengaturan" };
 
@@ -16,12 +18,22 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, cashflowRes, recurringIncomeRes, recurringExpenseRes] = await Promise.all([
-    supabase.from("profiles").select("name").eq("id", user.id).single(),
-    supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
-    supabase.from("recurring_incomes").select("id, label, amount").eq("user_id", user.id).order("created_at"),
-    supabase.from("recurring_expenses").select("id, label, amount").eq("user_id", user.id).order("created_at"),
-  ]);
+  const [profileRes, cashflowRes, recurringIncomeRes, recurringExpenseRes, budgetsRes, customExpCatRes] =
+    await Promise.all([
+      supabase.from("profiles").select("name").eq("id", user.id).single(),
+      supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
+      supabase.from("recurring_incomes").select("id, label, amount").eq("user_id", user.id).order("created_at"),
+      supabase.from("recurring_expenses").select("id, label, amount").eq("user_id", user.id).order("created_at"),
+      supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
+      supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
+    ]);
+
+  const expenseCats = [...EXPENSE_CATS, ...(customExpCatRes.data || []).map((c) => c.name)];
+  const budgetByCategory = new Map((budgetsRes.data || []).map((b) => [b.category, Number(b.monthly_limit)]));
+  const budgetRows = expenseCats.map((category) => ({
+    category,
+    monthlyLimit: budgetByCategory.get(category) || 0,
+  }));
 
   return (
     <div className="px-5 pt-6">
@@ -44,6 +56,8 @@ export default async function SettingsPage() {
         incomeItems={(recurringIncomeRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) }))}
         expenseItems={(recurringExpenseRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) }))}
       />
+
+      <BudgetManager rows={budgetRows} />
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
         <div className="serif text-[15px] mb-1">Akun</div>

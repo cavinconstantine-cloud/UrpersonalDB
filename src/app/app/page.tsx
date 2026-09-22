@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getDashboardData, recordFcfSnapshot, recordNetWorthSnapshot } from "@/lib/data/dashboard";
 import {
+  budgetProgress,
   cashflowNums,
   computeDailyRecap,
   computeDBR,
@@ -30,6 +31,7 @@ import { UpcomingBillingCard } from "@/components/dashboard/upcoming-billing-car
 import { FcfTrend } from "@/components/dashboard/fcf-trend";
 import { MarketNewsCard } from "@/components/dashboard/market-news-card";
 import { ExpenseSplitCard } from "@/components/dashboard/expense-split-card";
+import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import type { TxRow } from "@/components/app/transaction-list";
 
 export const metadata: Metadata = { title: "Dashboard" };
@@ -72,6 +74,7 @@ export default async function DashboardPage() {
   const dailyRecap = computeDailyRecap(monthExpensesMapped, monthIncomesMapped);
   const installments = upcomingInstallments(data.liabilities);
   const expenseSlices = expenseByCategory(monthExpensesMapped);
+  const budgetItems = budgetProgress(monthExpensesMapped, data.budgets);
 
   await recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal);
   await recordFcfSnapshot(data.user.id, {
@@ -144,6 +147,7 @@ export default async function DashboardPage() {
       <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
       <GoalsPreview goals={data.goals} fcf={cf.fcf} />
       <ExpenseSplitCard slices={expenseSlices} total={monthExpTotal} />
+      <BudgetProgressCard items={budgetItems} />
       <TransactionsPreview
         transactions={recentTransactions}
         monthExpenseTotal={monthExpTotal}

@@ -41,6 +41,7 @@ export async function getDashboardData() {
     snapshotsRes,
     marketNewsRes,
     fcfSnapshotsRes,
+    budgetsRes,
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).single(),
     supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
@@ -81,6 +82,7 @@ export async function getDashboardData() {
       .eq("user_id", user.id)
       .gte("snapshot_month", monthsAgoFirstOfMonthIso(11))
       .order("snapshot_month"),
+    supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
   ]);
 
   const profile = profileRes.data;
@@ -134,6 +136,7 @@ export async function getDashboardData() {
       publishedAt: n.published_at,
     })),
     fcfSnapshots: fcfSnapshotsRes.data || [],
+    budgets: (budgetsRes.data || []).map((b) => ({ category: b.category, monthlyLimit: Number(b.monthly_limit) })),
   };
 }
 

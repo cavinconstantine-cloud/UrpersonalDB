@@ -70,6 +70,42 @@ export function expenseByCategory(expenses: Expense[], ym: string = currentYm())
     .sort((a, b) => b.amount - a.amount);
 }
 
+export interface CategoryBudget {
+  category: string;
+  monthlyLimit: number;
+}
+
+export type BudgetTone = "good" | "warning" | "critical";
+
+export interface BudgetProgressItem {
+  category: string;
+  spent: number;
+  limit: number;
+  pct: number;
+  tone: BudgetTone;
+}
+
+/** Spend-vs-limit for each category with a budget set (limit > 0), sorted by pct spent descending. */
+export function budgetProgress(
+  expenses: Expense[],
+  budgets: CategoryBudget[],
+  ym: string = currentYm(),
+): BudgetProgressItem[] {
+  const spentByCategory = new Map<string, number>();
+  for (const slice of expenseByCategory(expenses, ym)) {
+    spentByCategory.set(slice.category, slice.amount);
+  }
+  return budgets
+    .filter((b) => b.monthlyLimit > 0)
+    .map((b) => {
+      const spent = spentByCategory.get(b.category) || 0;
+      const pct = (spent / b.monthlyLimit) * 100;
+      const tone: BudgetTone = pct >= 100 ? "critical" : pct >= 80 ? "warning" : "good";
+      return { category: b.category, spent, limit: b.monthlyLimit, pct, tone };
+    })
+    .sort((a, b) => b.pct - a.pct);
+}
+
 export function monthIncomeTotal(incomes: Income[], ym: string = currentYm()): number {
   return incomes.filter((i) => i.date.slice(0, 7) === ym).reduce((s, i) => s + Number(i.amount || 0), 0);
 }

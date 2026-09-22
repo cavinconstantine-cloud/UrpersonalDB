@@ -84,6 +84,22 @@ export interface Database {
           updated_at: string;
         }> & { user_id: string }
       >;
+      budgets: Table<
+        {
+          user_id: string;
+          category: string;
+          monthly_limit: number;
+          created_at: string;
+          updated_at: string;
+        },
+        Partial<{
+          user_id: string;
+          category: string;
+          monthly_limit: number;
+          created_at: string;
+          updated_at: string;
+        }> & { user_id: string; category: string }
+      >;
       asset_holdings: Table<
         {
           id: string;
