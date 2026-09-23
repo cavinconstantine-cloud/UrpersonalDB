@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { IDX_TICKERS } from "@/lib/finance/idx-tickers";
+
+const KNOWN_TICKERS = new Set(IDX_TICKERS.map((t) => t.ticker));
 import type { HoldingData } from "@/lib/finance/types";
 
 export const dynamic = "force-dynamic";
@@ -120,15 +122,30 @@ export async function GET(request: Request) {
     .eq("category", "Saham");
 
   let holdingsUpdated = 0;
+  let holdingsBackfilled = 0;
   for (const h of sahamHoldings || []) {
     const data = (h.data as HoldingData) || {};
-    const ticker = typeof data.ticker === "string" ? data.ticker : null;
+    let ticker = typeof data.ticker === "string" ? data.ticker : null;
+
+    // Holdings added before ticker search existed only ever stored a
+    // free-text label (the old field was literally "mis. BBCA") — no
+    // `ticker` key at all. Recover it from the label so those users never
+    // have to re-enter anything: if it matches a known code exactly, adopt
+    // it as the ticker and persist that below alongside the price.
+    if (!ticker) {
+      const labelUpper = typeof data.label === "string" ? data.label.trim().toUpperCase() : "";
+      if (KNOWN_TICKERS.has(labelUpper)) {
+        ticker = labelUpper;
+        holdingsBackfilled++;
+      }
+    }
     if (!ticker) continue;
+
     const fetched = results.get(ticker);
     if (!fetched) continue;
     const { error } = await admin
       .from("asset_holdings")
-      .update({ data: { ...data, curPrice: fetched.price, priceAsOf: isoToday } })
+      .update({ data: { ...data, ticker, curPrice: fetched.price, priceAsOf: isoToday } })
       .eq("id", h.id);
     if (!error) holdingsUpdated++;
   }
@@ -139,6 +156,7 @@ export async function GET(request: Request) {
     tickersAttempted: IDX_TICKERS.length + 1,
     upserted,
     holdingsUpdated,
+    holdingsBackfilled,
     ihsg: ihsg ? { price: ihsg.price, prevClose: ihsg.prevClose } : null,
   });
 }

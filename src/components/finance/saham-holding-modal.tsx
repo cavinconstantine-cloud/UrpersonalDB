@@ -7,7 +7,7 @@ import { NumberField } from "@/components/ui/number-field";
 import { TextField } from "@/components/ui/field";
 import { fmtRp } from "@/lib/finance/format";
 import { STOCK_LOT_SIZE } from "@/lib/finance/constants";
-import { searchIdxTickers } from "@/lib/finance/idx-tickers";
+import { IDX_TICKERS, searchIdxTickers } from "@/lib/finance/idx-tickers";
 import type { HoldingData } from "@/lib/finance/types";
 
 export interface StockPriceInfo {
@@ -36,7 +36,13 @@ function fmtAsOf(asOf: string): string {
 }
 
 export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave, onDelete }: SahamHoldingModalProps) {
-  const initialTicker = typeof initial?.ticker === "string" ? initial.ticker : null;
+  // Holdings added before ticker search existed only ever stored a free-text
+  // `label` (the old field was literally "mis. BBCA") — no `ticker` key at
+  // all. Recover it from the label so those users never have to re-enter
+  // data: if it matches a known code exactly, treat that as the ticker.
+  const initialLabel = typeof initial?.label === "string" ? initial.label.trim().toUpperCase() : "";
+  const labelAsTicker = initialLabel && IDX_TICKERS.some((t) => t.ticker === initialLabel) ? initialLabel : null;
+  const initialTicker = (typeof initial?.ticker === "string" ? initial.ticker : null) ?? labelAsTicker;
   const initialHasKnownTicker = Boolean(initialTicker && stockPrices[initialTicker]);
 
   const [step, setStep] = useState<"search" | "form">(initial ? "form" : "search");
