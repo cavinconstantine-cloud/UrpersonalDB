@@ -1,13 +1,11 @@
 -- Uangku — daily asset value snapshots, per HOLDING (not per category).
 --
--- Supersedes 0008's asset_category_snapshots: that only kept a category
--- total per day, which can't answer "which specific stock/holding in
--- Saham grew the most this month" (e.g. BBCA vs BBRI) — only the
--- category-wide number. Storing one row per holding per day lets the
--- Summary review compute both the category total AND the best/worst
--- individual holding by aggregating this table with SQL, so there is a
--- single source of truth instead of two snapshot tables that could drift
--- out of sync with each other.
+-- One row per holding per day. A category total for a given day is just
+-- SUM(value) GROUP BY category over this table — no separate
+-- category-level table needed, so there's nothing to keep in sync. This
+-- is what lets the Summary review answer "which specific stock/fund grew
+-- the most this month" (e.g. BBCA vs BBRI within Saham), not just the
+-- category aggregate.
 --
 -- holding_id intentionally carries NO foreign key to asset_holdings: a
 -- snapshot is a frozen record of what a position was worth on a given
@@ -15,8 +13,6 @@
 -- label/category are copied in at snapshot time for the same reason —
 -- so history reads correctly even if the live holding no longer exists
 -- or was renamed.
-
-drop table if exists public.asset_category_snapshots;
 
 create table if not exists public.asset_holding_snapshots (
   user_id uuid not null references auth.users (id) on delete cascade,
