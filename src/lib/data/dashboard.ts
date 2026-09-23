@@ -65,13 +65,13 @@ export async function getDashboardData() {
       .order("income_date", { ascending: false }),
     supabase
       .from("expenses")
-      .select("id, expense_date, category, amount, description")
+      .select("id, expense_date, category, amount, description, account_holding_id")
       .eq("user_id", user.id)
       .order("expense_date", { ascending: false })
       .limit(8),
     supabase
       .from("incomes")
-      .select("id, income_date, category, amount, description")
+      .select("id, income_date, category, amount, description, account_holding_id")
       .eq("user_id", user.id)
       .order("income_date", { ascending: false })
       .limit(8),

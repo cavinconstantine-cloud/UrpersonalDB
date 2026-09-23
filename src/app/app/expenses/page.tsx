@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { EXPENSE_CATS, INCOME_CATS } from "@/lib/finance/constants";
 import { fmtRp } from "@/lib/finance/format";
 import { TransactionList, type TxRow } from "@/components/app/transaction-list";
+import type { HoldingData } from "@/lib/finance/types";
 
 export const metadata: Metadata = { title: "Transaksi" };
 
@@ -14,12 +15,19 @@ export default async function ExpensesPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [expensesRes, incomesRes, customExpCatRes, customIncCatRes] = await Promise.all([
+  const [expensesRes, incomesRes, customExpCatRes, customIncCatRes, cashRes] = await Promise.all([
     supabase.from("expenses").select("*").eq("user_id", user.id).order("expense_date", { ascending: false }),
     supabase.from("incomes").select("*").eq("user_id", user.id).order("income_date", { ascending: false }),
     supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
     supabase.from("custom_income_categories").select("name").eq("user_id", user.id),
+    supabase.from("asset_holdings").select("id, data").eq("user_id", user.id).eq("category", "Cash"),
   ]);
+
+  const cashAccounts = (cashRes.data || []).map((h) => ({
+    id: h.id,
+    label: String((h.data as HoldingData)?.label || "Rekening"),
+  }));
+  const accountLabelById = new Map(cashAccounts.map((a) => [a.id, a.label]));
 
   const expenseRows: TxRow[] = (expensesRes.data || []).map((e) => ({
     id: e.id,
@@ -28,6 +36,8 @@ export default async function ExpensesPage() {
     category: e.category,
     amount: Number(e.amount),
     description: e.description,
+    accountHoldingId: e.account_holding_id,
+    accountLabel: e.account_holding_id ? (accountLabelById.get(e.account_holding_id) ?? null) : null,
   }));
   const incomeRows: TxRow[] = (incomesRes.data || []).map((i) => ({
     id: i.id,
@@ -36,6 +46,8 @@ export default async function ExpensesPage() {
     category: i.category,
     amount: Number(i.amount),
     description: i.description,
+    accountHoldingId: i.account_holding_id,
+    accountLabel: i.account_holding_id ? (accountLabelById.get(i.account_holding_id) ?? null) : null,
   }));
 
   const transactions = [...expenseRows, ...incomeRows].sort((a, b) => b.date.localeCompare(a.date));
@@ -57,6 +69,7 @@ export default async function ExpensesPage() {
         transactions={transactions}
         expenseCategories={expenseCategories}
         incomeCategories={incomeCategories}
+        cashAccounts={cashAccounts}
       />
     </div>
   );

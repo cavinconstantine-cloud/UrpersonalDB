@@ -18,6 +18,7 @@ export async function addExpense(input: {
   category: string;
   amount: number;
   description: string;
+  accountHoldingId?: string | null;
 }) {
   const { supabase, user } = await requireUser();
   if (input.amount <= 0) throw new Error("Jumlah harus lebih dari 0.");
@@ -29,6 +30,7 @@ export async function addExpense(input: {
     category: input.category,
     amount: input.amount,
     description: input.description,
+    account_holding_id: input.accountHoldingId ?? null,
   });
 
   revalidatePath("/app");
@@ -58,7 +60,13 @@ export async function addManyExpenses(
 
 export async function updateExpense(
   id: string,
-  input: { date: string; category: string; amount: number; description: string },
+  input: {
+    date: string;
+    category: string;
+    amount: number;
+    description: string;
+    accountHoldingId?: string | null;
+  },
 ) {
   const { supabase, user } = await requireUser();
   await supabase
@@ -68,6 +76,7 @@ export async function updateExpense(
       category: input.category,
       amount: input.amount,
       description: input.description,
+      account_holding_id: input.accountHoldingId ?? null,
     })
     .eq("id", id)
     .eq("user_id", user.id);

@@ -18,6 +18,7 @@ export async function addIncome(input: {
   category: string;
   amount: number;
   description: string;
+  accountHoldingId?: string | null;
 }) {
   const { supabase, user } = await requireUser();
   if (input.amount <= 0) throw new Error("Jumlah harus lebih dari 0.");
@@ -29,6 +30,7 @@ export async function addIncome(input: {
     category: input.category,
     amount: input.amount,
     description: input.description,
+    account_holding_id: input.accountHoldingId ?? null,
   });
 
   revalidatePath("/app");
@@ -37,7 +39,13 @@ export async function addIncome(input: {
 
 export async function updateIncome(
   id: string,
-  input: { date: string; category: string; amount: number; description: string },
+  input: {
+    date: string;
+    category: string;
+    amount: number;
+    description: string;
+    accountHoldingId?: string | null;
+  },
 ) {
   const { supabase, user } = await requireUser();
   await supabase
@@ -47,6 +55,7 @@ export async function updateIncome(
       category: input.category,
       amount: input.amount,
       description: input.description,
+      account_holding_id: input.accountHoldingId ?? null,
     })
     .eq("id", id)
     .eq("user_id", user.id);

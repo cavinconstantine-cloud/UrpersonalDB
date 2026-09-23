@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { expenseCatColorVar, expenseCatIcon, incomeCatColorVar, incomeCatIcon } from "@/lib/finance/constants";
 import { fmtMonthYear, fmtRp } from "@/lib/finance/format";
 import { TransactionEditModal } from "./transaction-edit-modal";
-import type { TransactionType } from "./transaction-modal";
+import type { CashAccount, TransactionType } from "./transaction-modal";
 
 export interface TxRow {
   id: string;
@@ -13,16 +13,20 @@ export interface TxRow {
   category: string;
   amount: number;
   description: string;
+  accountHoldingId: string | null;
+  accountLabel: string | null;
 }
 
 export function TransactionList({
   transactions,
   expenseCategories,
   incomeCategories,
+  cashAccounts,
 }: {
   transactions: TxRow[];
   expenseCategories: string[];
   incomeCategories: string[];
+  cashAccounts: CashAccount[];
 }) {
   const [editing, setEditing] = useState<TxRow | null>(null);
 
@@ -77,8 +81,15 @@ export function TransactionList({
                       </div>
                       <div className="min-w-0">
                         <div className="truncate">{t.description || t.category}</div>
-                        <div className="text-xs text-text-dim">
-                          {t.category} · {t.date}
+                        <div className="text-xs text-text-dim flex items-center gap-1.5 flex-wrap">
+                          <span>
+                            {t.category} · {t.date}
+                          </span>
+                          {t.accountLabel && (
+                            <span className="inline-flex items-center gap-1 bg-bg-input border border-hairline rounded-full px-1.5 py-[1px]">
+                              🏦 {t.accountLabel}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -99,6 +110,7 @@ export function TransactionList({
           onClose={() => setEditing(null)}
           type={editing.type}
           categories={editing.type === "expense" ? expenseCategories : incomeCategories}
+          cashAccounts={cashAccounts}
           transaction={editing}
         />
       )}

@@ -3,16 +3,17 @@
 import { useState, type ReactNode } from "react";
 import { Plus, ArrowDownLeft } from "lucide-react";
 import { BottomNav } from "./bottom-nav";
-import { TransactionModal, type TransactionType } from "./transaction-modal";
+import { TransactionModal, type CashAccount, type TransactionType } from "./transaction-modal";
 import { useLanguage } from "./language-provider";
 
 interface AppShellProps {
   customExpenseCategories: string[];
   customIncomeCategories: string[];
+  cashAccounts: CashAccount[];
   children: ReactNode;
 }
 
-export function AppShell({ customExpenseCategories, customIncomeCategories, children }: AppShellProps) {
+export function AppShell({ customExpenseCategories, customIncomeCategories, cashAccounts, children }: AppShellProps) {
   const { dict } = useLanguage();
   const [modal, setModal] = useState<{ open: boolean; type: TransactionType }>({
     open: false,
@@ -50,6 +51,7 @@ export function AppShell({ customExpenseCategories, customIncomeCategories, chil
         onClose={() => setModal((m) => ({ ...m, open: false }))}
         customExpenseCategories={customExpenseCategories}
         customIncomeCategories={customIncomeCategories}
+        cashAccounts={cashAccounts}
       />
     </div>
   );

@@ -112,6 +112,12 @@ export default async function DashboardPage() {
 
   const totalNeed = data.goals.reduce((s, g) => s + goalMonthlyNeed(g), 0);
 
+  const accountLabelById = new Map(
+    data.holdings
+      .filter((h) => h.category === "Cash")
+      .map((h) => [h.id, String(h.data.label || "Rekening")] as const),
+  );
+
   const recentExpensesMapped: TxRow[] = data.recentExpenses.map((e) => ({
     id: e.id,
     type: "expense",
@@ -119,6 +125,8 @@ export default async function DashboardPage() {
     category: e.category,
     amount: Number(e.amount),
     description: e.description,
+    accountHoldingId: e.account_holding_id,
+    accountLabel: e.account_holding_id ? (accountLabelById.get(e.account_holding_id) ?? null) : null,
   }));
   const recentIncomesMapped: TxRow[] = data.recentIncomes.map((i) => ({
     id: i.id,
@@ -127,6 +135,8 @@ export default async function DashboardPage() {
     category: i.category,
     amount: Number(i.amount),
     description: i.description,
+    accountHoldingId: i.account_holding_id,
+    accountLabel: i.account_holding_id ? (accountLabelById.get(i.account_holding_id) ?? null) : null,
   }));
   const recentTransactions = [...recentExpensesMapped, ...recentIncomesMapped]
     .sort((a, b) => b.date.localeCompare(a.date))

@@ -46,8 +46,15 @@ export function TransactionsPreview({
                   </div>
                   <div className="min-w-0">
                     <div className="truncate">{t.description || t.category}</div>
-                    <div className="text-xs text-text-dim">
-                      {t.category} · {t.date}
+                    <div className="text-xs text-text-dim flex items-center gap-1.5 flex-wrap">
+                      <span>
+                        {t.category} · {t.date}
+                      </span>
+                      {t.accountLabel && (
+                        <span className="inline-flex items-center gap-1 bg-bg-input border border-hairline rounded-full px-1.5 py-[1px]">
+                          🏦 {t.accountLabel}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

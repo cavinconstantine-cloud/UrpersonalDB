@@ -15,12 +15,18 @@ import { addIncome, addCustomIncomeCategory } from "@/app/app/incomes/actions";
 
 export type TransactionType = "expense" | "income";
 
+export interface CashAccount {
+  id: string;
+  label: string;
+}
+
 interface TransactionModalProps {
   open: boolean;
   onClose: () => void;
   defaultType?: TransactionType;
   customExpenseCategories: string[];
   customIncomeCategories: string[];
+  cashAccounts: CashAccount[];
 }
 
 export function TransactionModal({
@@ -29,6 +35,7 @@ export function TransactionModal({
   defaultType = "expense",
   customExpenseCategories,
   customIncomeCategories,
+  cashAccounts,
 }: TransactionModalProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -36,6 +43,7 @@ export function TransactionModal({
   const [category, setCategory] = useState<string>("");
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState("");
+  const [accountHoldingId, setAccountHoldingId] = useState<string | null>(null);
   const [addingCat, setAddingCat] = useState(false);
   const [newCatName, setNewCatName] = useState("");
   const [localExpenseCats, setLocalExpenseCats] = useState<string[]>([]);
@@ -53,6 +61,7 @@ export function TransactionModal({
     setCategory("");
     setAmount(0);
     setDescription("");
+    setAccountHoldingId(null);
     setAddingCat(false);
     setNewCatName("");
     setError("");
@@ -98,9 +107,9 @@ export function TransactionModal({
     }
     startTransition(async () => {
       if (isExpense) {
-        await addExpense({ date: todayIso(), category, amount, description });
+        await addExpense({ date: todayIso(), category, amount, description, accountHoldingId });
       } else {
-        await addIncome({ date: todayIso(), category, amount, description });
+        await addIncome({ date: todayIso(), category, amount, description, accountHoldingId });
       }
       router.refresh();
       handleClose();
@@ -153,6 +162,25 @@ export function TransactionModal({
           <Button size="sm" variant="ghost" onClick={addCategory}>
             Tambah
           </Button>
+        </div>
+      )}
+      {cashAccounts.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-baseline gap-1.5 mb-2">
+            <span className="text-sm font-medium">Sumber Dana</span>
+            <span className="text-xs text-text-muted">(opsional)</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {cashAccounts.map((a) => (
+              <Chip
+                key={a.id}
+                active={accountHoldingId === a.id}
+                onClick={() => setAccountHoldingId(accountHoldingId === a.id ? null : a.id)}
+              >
+                🏦 {a.label}
+              </Chip>
+            ))}
+          </div>
         </div>
       )}
       {error && <div className="mb-3 text-xs text-critical">{error}</div>}
