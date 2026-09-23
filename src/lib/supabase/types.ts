@@ -354,6 +354,106 @@ export interface Database {
           created_at: string;
         }> & { headline: string; summary: string }
       >;
+      bill_splits: Table<
+        {
+          id: string;
+          user_id: string;
+          title: string;
+          merchant: string | null;
+          receipt_image_path: string | null;
+          subtotal: number;
+          tax: number;
+          service: number;
+          total: number;
+          share_token: string;
+          account_holding_id: string | null;
+          creator_expense_id: string | null;
+          status: string;
+          created_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          title: string;
+          merchant: string | null;
+          receipt_image_path: string | null;
+          subtotal: number;
+          tax: number;
+          service: number;
+          total: number;
+          share_token: string;
+          account_holding_id: string | null;
+          creator_expense_id: string | null;
+          status: string;
+          created_at: string;
+        }> & { user_id: string; title: string }
+      >;
+      bill_split_participants: Table<
+        {
+          id: string;
+          bill_split_id: string;
+          name: string;
+          is_creator: boolean;
+          sort_order: number;
+        },
+        Partial<{
+          id: string;
+          bill_split_id: string;
+          name: string;
+          is_creator: boolean;
+          sort_order: number;
+        }> & { bill_split_id: string; name: string }
+      >;
+      bill_split_items: Table<
+        {
+          id: string;
+          bill_split_id: string;
+          name: string;
+          qty: number;
+          unit_price: number;
+          sort_order: number;
+        },
+        Partial<{
+          id: string;
+          bill_split_id: string;
+          name: string;
+          qty: number;
+          unit_price: number;
+          sort_order: number;
+        }> & { bill_split_id: string; name: string }
+      >;
+      bill_split_item_assignments: Table<
+        {
+          id: string;
+          item_id: string;
+          participant_id: string;
+          units: number;
+        },
+        Partial<{
+          id: string;
+          item_id: string;
+          participant_id: string;
+          units: number;
+        }> & { item_id: string; participant_id: string }
+      >;
+      bill_split_misreads: Table<
+        {
+          id: string;
+          user_id: string;
+          bill_split_id: string | null;
+          image_path: string | null;
+          note: string | null;
+          created_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          bill_split_id: string | null;
+          image_path: string | null;
+          note: string | null;
+          created_at: string;
+        }> & { user_id: string }
+      >;
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
