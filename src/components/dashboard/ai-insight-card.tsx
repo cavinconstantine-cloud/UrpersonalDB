@@ -4,12 +4,16 @@ import { useState, useTransition } from "react";
 import { SectionCard } from "@/components/ui/section-card";
 import { generateAiInsight } from "@/app/app/ai-actions";
 
+/** Flip to true once Anthropic credit is topped up — see the Split Bill "Kartu ditolak / credit" thread. */
+const AI_INSIGHT_ENABLED = false;
+
 export function AiInsightCard({ available }: { available: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [text, setText] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   function run() {
+    if (!AI_INSIGHT_ENABLED) return;
     setError(null);
     startTransition(async () => {
       const res = await generateAiInsight();
@@ -19,6 +23,21 @@ export function AiInsightCard({ available }: { available: boolean }) {
   }
 
   if (!available) return null;
+
+  if (!AI_INSIGHT_ENABLED) {
+    return (
+      <SectionCard title="✨ Ringkasan & Saran AI">
+        <div className="pb-4 opacity-50">
+          <p className="text-sm text-text-dim mb-3.5 leading-relaxed">
+            Minta AI membaca kondisi keuanganmu saat ini dan memberi saran.
+          </p>
+          <button disabled className="w-full rounded-xl bg-brand text-brand-ink py-3 text-sm font-medium cursor-not-allowed">
+            Analisa dengan AI <span className="font-normal">(segera hadir)</span>
+          </button>
+        </div>
+      </SectionCard>
+    );
+  }
 
   return (
     <SectionCard
