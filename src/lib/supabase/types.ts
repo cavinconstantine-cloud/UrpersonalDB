@@ -176,6 +176,7 @@ export interface Database {
           category: string;
           amount: number;
           description: string;
+          account_holding_id: string | null;
           created_at: string;
         },
         Partial<{
@@ -185,6 +186,7 @@ export interface Database {
           category: string;
           amount: number;
           description: string;
+          account_holding_id: string | null;
           created_at: string;
         }> & { user_id: string }
       >;
@@ -208,6 +210,7 @@ export interface Database {
           category: string;
           amount: number;
           description: string;
+          account_holding_id: string | null;
           created_at: string;
         },
         Partial<{
@@ -217,6 +220,7 @@ export interface Database {
           category: string;
           amount: number;
           description: string;
+          account_holding_id: string | null;
           created_at: string;
         }> & { user_id: string }
       >;
