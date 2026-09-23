@@ -1,7 +1,7 @@
 "use server";
 
 import Anthropic from "@anthropic-ai/sdk";
-import { getDashboardData } from "@/lib/data/dashboard";
+import { getFinancialSnapshotData } from "@/lib/data/dashboard";
 import {
   cashflowNums,
   computeDBR,
@@ -30,7 +30,7 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
     return { ok: false, error: "Fitur AI belum dikonfigurasi. Tambahkan ANTHROPIC_API_KEY di environment." };
   }
 
-  const data = await getDashboardData();
+  const data = await getFinancialSnapshotData();
 
   const monthIncomeTracked = monthIncomeTotal(
     data.monthIncomes.map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),

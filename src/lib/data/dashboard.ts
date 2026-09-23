@@ -156,6 +156,75 @@ export async function getDashboardData() {
   };
 }
 
+/**
+ * Narrow variant of getDashboardData() for the AI insight action — fetches
+ * only the fields buildFinancialSnapshot() actually consumes, instead of
+ * the full 17-query dashboard payload (market news, snapshots, budgets,
+ * recurring items, recent transactions, etc. are irrelevant to the prompt).
+ */
+export async function getFinancialSnapshotData() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const [profileRes, cashflowRes, holdingsRes, liabRes, goalsRes, monthExpRes, monthIncRes] = await Promise.all([
+    supabase.from("profiles").select("onboarding_step, asset_categories, liability_categories").eq("id", user.id).single(),
+    supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
+    supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id).order("created_at"),
+    supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
+    supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
+    supabase
+      .from("expenses")
+      .select("id, expense_date, category, amount, description")
+      .eq("user_id", user.id)
+      .gte("expense_date", firstOfMonthIso())
+      .order("expense_date", { ascending: false }),
+    supabase
+      .from("incomes")
+      .select("id, income_date, category, amount, description")
+      .eq("user_id", user.id)
+      .gte("income_date", firstOfMonthIso())
+      .order("income_date", { ascending: false }),
+  ]);
+
+  const profile = profileRes.data;
+  if (!profile || profile.onboarding_step !== "done") redirect("/onboarding");
+
+  const holdings = (holdingsRes.data || []).map((h) => ({
+    id: h.id,
+    category: h.category,
+    data: (h.data as HoldingData) || {},
+  }));
+  const liabilities = (liabRes.data || []).map((l) => ({
+    id: l.id,
+    category: l.category,
+    data: (l.data as HoldingData) || {},
+  }));
+
+  return {
+    profile,
+    cashflow: cashflowRes.data || {
+      income: 0,
+      fixed_expense: 0,
+      lifestyle_expense: 0,
+      invest: 0,
+    },
+    holdings,
+    liabilities,
+    goals: (goalsRes.data || []).map((g) => ({
+      id: g.id,
+      name: g.name,
+      target: Number(g.target),
+      current: Number(g.current),
+      targetDate: g.target_date,
+    })),
+    monthExpenses: monthExpRes.data || [],
+    monthIncomes: monthIncRes.data || [],
+  };
+}
+
 export async function recordNetWorthSnapshot(
   userId: string,
   netWorthVal: number,
