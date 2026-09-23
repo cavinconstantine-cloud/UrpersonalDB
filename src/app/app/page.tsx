@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { getDashboardData, recordFcfSnapshot, recordNetWorthSnapshot } from "@/lib/data/dashboard";
+import {
+  getDashboardData,
+  recordAssetCategorySnapshots,
+  recordFcfSnapshot,
+  recordNetWorthSnapshot,
+} from "@/lib/data/dashboard";
 import {
   budgetProgress,
   cashflowNums,
@@ -91,6 +96,7 @@ export default async function DashboardPage() {
       fcf: cf.fcf,
       savingRate: cf.savingRate,
     }),
+    recordAssetCategorySnapshots(data.user.id, data.profile.asset_categories, data.holdings),
   ]);
 
   const totalNeed = data.goals.reduce((s, g) => s + goalMonthlyNeed(g), 0);

@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { catValue, type HoldingRow } from "@/lib/finance/calculations";
 import type { HoldingData } from "@/lib/finance/types";
 
 function firstOfMonthIso(): string {
@@ -272,4 +273,25 @@ export async function recordFcfSnapshot(
     fcf: cf.fcf,
     saving_rate: cf.savingRate,
   });
+}
+
+/**
+ * Upserts today's per-category asset value, one row per asset category the
+ * user tracks. Called on every dashboard view, same pattern as the net
+ * worth / FCF snapshots — today's row stays live, older days are frozen
+ * history. This is what lets the Summary review show how much Cash,
+ * Deposito, Saham, etc. were worth on a given day in the past, since
+ * asset_holdings itself only ever holds the current value.
+ */
+export async function recordAssetCategorySnapshots(userId: string, assetCats: string[], holdings: HoldingRow[]) {
+  if (assetCats.length === 0) return;
+  const supabase = await createClient();
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = assetCats.map((category) => ({
+    user_id: userId,
+    snapshot_date: today,
+    category,
+    total_value: catValue(category, holdings),
+  }));
+  await supabase.from("asset_category_snapshots").upsert(rows);
 }
