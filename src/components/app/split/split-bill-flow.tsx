@@ -32,17 +32,50 @@ function newId() {
 
 const AVATAR_COLORS = ["bg-good", "bg-brand", "bg-warning", "bg-critical", "bg-text-muted"];
 
-function readFileAsBase64(file: File): Promise<{ base64: string; mediaType: string }> {
+const MAX_DIMENSION = 1600;
+const JPEG_QUALITY = 0.82;
+
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      const base64 = result.split(",")[1] ?? "";
-      resolve({ base64, mediaType: file.type || "image/jpeg" });
-    };
+    reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+
+/**
+ * A phone camera photo is easily 3-8MB — way past both Next.js's Server
+ * Action body limit and Vercel's platform request-size ceiling, so sending
+ * it straight to `extractReceipt` fails the POST itself (shows up as a raw
+ * browser "server error" page, not our in-app error UI). Downscaling to a
+ * sane max dimension and re-encoding as JPEG keeps it consistently small —
+ * receipts are text, not photography, so this costs nothing extraction can
+ * actually use, and it makes the vision call faster too.
+ */
+async function readFileAsBase64(file: File): Promise<{ base64: string; mediaType: string }> {
+  const dataUrl = await readFileAsDataUrl(file);
+  try {
+    const img = new Image();
+    const loaded: HTMLImageElement = await new Promise((resolve, reject) => {
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+    const scale = Math.min(1, MAX_DIMENSION / Math.max(loaded.width, loaded.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(loaded.width * scale);
+    canvas.height = Math.round(loaded.height * scale);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no canvas context");
+    ctx.drawImage(loaded, 0, 0, canvas.width, canvas.height);
+    const resizedDataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+    return { base64: resizedDataUrl.split(",")[1] ?? "", mediaType: "image/jpeg" };
+  } catch {
+    // Resize failed (e.g. HEIC the browser can't decode into <img>) — fall
+    // back to the original file as-is rather than blocking the upload.
+    return { base64: dataUrl.split(",")[1] ?? "", mediaType: file.type || "image/jpeg" };
+  }
 }
 
 export function SplitBillFlow({ cashAccounts, onDone }: SplitBillFlowProps) {
