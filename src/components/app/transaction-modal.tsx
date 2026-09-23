@@ -14,6 +14,9 @@ import { addExpense, addCustomExpenseCategory } from "@/app/app/expenses/actions
 import { addIncome, addCustomIncomeCategory } from "@/app/app/incomes/actions";
 import { SplitBillFlow } from "@/components/app/split/split-bill-flow";
 
+/** Flip to true once Anthropic credit is topped up — see the "Kartu ditolak / credit" thread. */
+const SPLIT_BILL_ENABLED = false;
+
 export type TransactionType = "expense" | "income";
 
 export interface CashAccount {
@@ -148,14 +151,19 @@ export function TransactionModal({
       {isExpense && (
         <button
           type="button"
-          onClick={() => setSplitMode((v) => !v)}
-          className="w-full flex items-center justify-between gap-2 rounded-xl border border-hairline bg-bg-raised px-3.5 py-3 mb-4"
+          disabled={!SPLIT_BILL_ENABLED}
+          onClick={() => SPLIT_BILL_ENABLED && setSplitMode((v) => !v)}
+          className={cn(
+            "w-full flex items-center justify-between gap-2 rounded-xl border border-hairline bg-bg-raised px-3.5 py-3 mb-4",
+            !SPLIT_BILL_ENABLED && "opacity-50 cursor-not-allowed",
+          )}
         >
           <span className="flex items-center gap-2 text-sm text-text">
             🧾 Mode Split Bill
             <span className="text-[9.5px] font-bold tracking-wide text-warning bg-warning/14 border border-warning/35 rounded-full px-1.5 py-0.5">
               BETA
             </span>
+            {!SPLIT_BILL_ENABLED && <span className="text-xs text-text-muted font-normal">(segera hadir)</span>}
           </span>
           <span
             className={cn(
@@ -173,7 +181,7 @@ export function TransactionModal({
         </button>
       )}
 
-      {isExpense && splitMode ? (
+      {isExpense && SPLIT_BILL_ENABLED && splitMode ? (
         <SplitBillFlow cashAccounts={cashAccounts} onDone={() => { router.refresh(); handleClose(); }} />
       ) : (
         <>
