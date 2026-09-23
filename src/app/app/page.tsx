@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { after } from "next/server";
 import {
   getDashboardData,
-  recordAssetCategorySnapshots,
+  recordAssetHoldingSnapshots,
   recordFcfSnapshot,
   recordNetWorthSnapshot,
 } from "@/lib/data/dashboard";
@@ -86,18 +87,23 @@ export default async function DashboardPage() {
   const expenseSlices = expenseByCategory(monthExpensesMapped);
   const budgetItems = budgetProgress(monthExpensesMapped, data.budgets);
 
-  await Promise.all([
-    recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal),
-    recordFcfSnapshot(data.user.id, {
-      incomeTotal: cf.incomeTotal,
-      fixedExpense: cf.fixedExpense,
-      lifestyleTotal: cf.lifestyleTotal,
-      invest: cf.invest,
-      fcf: cf.fcf,
-      savingRate: cf.savingRate,
-    }),
-    recordAssetCategorySnapshots(data.user.id, data.profile.asset_categories, data.holdings),
-  ]);
+  // Deferred to run after the response is sent — this bookkeeping (net
+  // worth / FCF / per-holding history) has no bearing on what's rendered,
+  // so it shouldn't make the user wait for the dashboard to appear.
+  after(() =>
+    Promise.all([
+      recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal),
+      recordFcfSnapshot(data.user.id, {
+        incomeTotal: cf.incomeTotal,
+        fixedExpense: cf.fixedExpense,
+        lifestyleTotal: cf.lifestyleTotal,
+        invest: cf.invest,
+        fcf: cf.fcf,
+        savingRate: cf.savingRate,
+      }),
+      recordAssetHoldingSnapshots(data.user.id, data.holdings),
+    ]),
+  );
 
   const totalNeed = data.goals.reduce((s, g) => s + goalMonthlyNeed(g), 0);
 

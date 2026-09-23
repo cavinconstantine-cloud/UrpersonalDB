@@ -17,6 +17,11 @@ export function catValue(cat: string, holdings: HoldingRow[]): number {
   return holdings.filter((h) => h.category === cat).reduce((s, h) => s + schema.value(h.data), 0);
 }
 
+export function holdingValue(cat: string, data: HoldingData): number {
+  const schema = ASSET_SCHEMAS[cat];
+  return schema ? schema.value(data) : 0;
+}
+
 export function catBuyValue(cat: string, holdings: HoldingRow[]): number | null {
   const schema = ASSET_SCHEMAS[cat];
   if (!schema || !schema.buyValue) return null;

@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { catValue, type HoldingRow } from "@/lib/finance/calculations";
+import { holdingValue } from "@/lib/finance/calculations";
 import type { HoldingData } from "@/lib/finance/types";
 
 function firstOfMonthIso(): string {
@@ -276,22 +276,31 @@ export async function recordFcfSnapshot(
 }
 
 /**
- * Upserts today's per-category asset value, one row per asset category the
- * user tracks. Called on every dashboard view, same pattern as the net
- * worth / FCF snapshots — today's row stays live, older days are frozen
- * history. This is what lets the Summary review show how much Cash,
- * Deposito, Saham, etc. were worth on a given day in the past, since
- * asset_holdings itself only ever holds the current value.
+ * Upserts today's value for every holding, one row per holding. Called on
+ * every dashboard view, same pattern as the net worth / FCF snapshots —
+ * today's row stays live, older days are frozen history. Snapshotting at
+ * the holding level (rather than just a category total) is what lets the
+ * Summary review answer "which specific stock/fund grew the most this
+ * month", not just "Saham as a whole". label/category are copied in as of
+ * today rather than joined live, so history stays correct even if the
+ * holding is later renamed or deleted; a category total for a given day
+ * is just SUM(value) GROUP BY category over this table, so there's no
+ * separate category-level table to keep in sync.
  */
-export async function recordAssetCategorySnapshots(userId: string, assetCats: string[], holdings: HoldingRow[]) {
-  if (assetCats.length === 0) return;
+export async function recordAssetHoldingSnapshots(
+  userId: string,
+  holdings: { id: string; category: string; data: HoldingData }[],
+) {
+  if (holdings.length === 0) return;
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
-  const rows = assetCats.map((category) => ({
+  const rows = holdings.map((h) => ({
     user_id: userId,
     snapshot_date: today,
-    category,
-    total_value: catValue(category, holdings),
+    holding_id: h.id,
+    category: h.category,
+    label: typeof h.data.label === "string" ? h.data.label : "",
+    value: holdingValue(h.category, h.data),
   }));
-  await supabase.from("asset_category_snapshots").upsert(rows);
+  await supabase.from("asset_holding_snapshots").upsert(rows);
 }

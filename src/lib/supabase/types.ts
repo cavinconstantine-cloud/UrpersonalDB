@@ -250,23 +250,27 @@ export interface Database {
           created_at: string;
         }> & { user_id: string }
       >;
-      asset_category_snapshots: Table<
+      asset_holding_snapshots: Table<
         {
           user_id: string;
           snapshot_date: string;
+          holding_id: string;
           category: string;
-          total_value: number;
+          label: string;
+          value: number;
           created_at: string;
           updated_at: string;
         },
         Partial<{
           user_id: string;
           snapshot_date: string;
+          holding_id: string;
           category: string;
-          total_value: number;
+          label: string;
+          value: number;
           created_at: string;
           updated_at: string;
-        }> & { user_id: string; snapshot_date: string; category: string }
+        }> & { user_id: string; snapshot_date: string; holding_id: string }
       >;
       fcf_snapshots: Table<
         {
