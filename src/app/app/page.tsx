@@ -18,6 +18,7 @@ import {
   monthExpenseTotal,
   monthIncomeTotal,
   netWorth,
+  rollingAverageMonthlyIncome,
   totalAssets,
   totalLiabilities,
   upcomingGoalMaturities,
@@ -72,6 +73,17 @@ export default async function DashboardPage() {
   const monthExpTotal = monthExpenseTotal(monthExpensesMapped);
   const monthIncTotal = monthIncomeTotal(monthIncomesMapped);
   const investIncomeMonthly = investmentIncomeMonthly(data.holdings);
+  const isPengusaha = data.profile.profile_type === "pengusaha";
+  const incomesLast3MonthsMapped = data.incomesLast3Months.map((i) => ({
+    id: i.id,
+    date: i.income_date,
+    category: i.category,
+    amount: Number(i.amount),
+    description: i.description,
+  }));
+  const trackedIncomeForCf = isPengusaha
+    ? rollingAverageMonthlyIncome(incomesLast3MonthsMapped)
+    : monthIncTotal;
 
   const cf = cashflowNums(
     {
@@ -81,7 +93,7 @@ export default async function DashboardPage() {
       invest: Number(data.cashflow.invest),
     },
     monthExpTotal,
-    monthIncTotal + investIncomeMonthly,
+    trackedIncomeForCf + investIncomeMonthly,
   );
   const dbr = computeDBR(cf, data.liabilities);
   const totalAssetsVal = totalAssets(data.profile.asset_categories, data.holdings);

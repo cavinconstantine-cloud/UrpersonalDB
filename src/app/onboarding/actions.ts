@@ -18,6 +18,8 @@ export async function completeOnboarding(draft: OnboardingDraft) {
       name: draft.name,
       asset_categories: draft.assetCats,
       liability_categories: draft.liabCats,
+      profile_type: draft.profileType || null,
+      payday_day: draft.profileType === "karyawan" ? draft.paydayDay : null,
       onboarding_step: "done",
     })
     .eq("id", user.id);

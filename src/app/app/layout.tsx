@@ -12,10 +12,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [expenseCatsRes, incomeCatsRes, cashRes, lang] = await Promise.all([
+  const [expenseCatsRes, incomeCatsRes, cashRes, profileRes, lang] = await Promise.all([
     supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
     supabase.from("custom_income_categories").select("name").eq("user_id", user.id),
     supabase.from("asset_holdings").select("id, data").eq("user_id", user.id).eq("category", "Cash"),
+    supabase.from("profiles").select("profile_type").eq("id", user.id).single(),
     getLang(),
   ]);
 
@@ -30,6 +31,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         customExpenseCategories={(expenseCatsRes.data || []).map((c) => c.name)}
         customIncomeCategories={(incomeCatsRes.data || []).map((c) => c.name)}
         cashAccounts={cashAccounts}
+        userId={user.id}
+        hasProfileType={Boolean(profileRes.data?.profile_type)}
       >
         {children}
       </AppShell>

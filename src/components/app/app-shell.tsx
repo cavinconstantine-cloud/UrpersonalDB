@@ -4,16 +4,26 @@ import { useState, type ReactNode } from "react";
 import { Plus, ArrowDownLeft } from "lucide-react";
 import { BottomNav } from "./bottom-nav";
 import { TransactionModal, type CashAccount, type TransactionType } from "./transaction-modal";
+import { WhatsNewSlideshow } from "./whats-new-slideshow";
 import { useLanguage } from "./language-provider";
 
 interface AppShellProps {
   customExpenseCategories: string[];
   customIncomeCategories: string[];
   cashAccounts: CashAccount[];
+  userId: string;
+  hasProfileType: boolean;
   children: ReactNode;
 }
 
-export function AppShell({ customExpenseCategories, customIncomeCategories, cashAccounts, children }: AppShellProps) {
+export function AppShell({
+  customExpenseCategories,
+  customIncomeCategories,
+  cashAccounts,
+  userId,
+  hasProfileType,
+  children,
+}: AppShellProps) {
   const { dict } = useLanguage();
   const [modal, setModal] = useState<{ open: boolean; type: TransactionType }>({
     open: false,
@@ -44,6 +54,7 @@ export function AppShell({ customExpenseCategories, customIncomeCategories, cash
       </div>
 
       <BottomNav />
+      <WhatsNewSlideshow userId={userId} hasProfileType={hasProfileType} />
       <TransactionModal
         key={modal.type}
         open={modal.open}

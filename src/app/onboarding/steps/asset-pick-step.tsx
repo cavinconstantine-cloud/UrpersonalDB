@@ -47,7 +47,11 @@ export function AssetPickStep({
         ))}
       </div>
       <div className="flex gap-2.5">
-        <Button variant="ghost" onClick={() => update({ step: "account" })} className="w-[90px] flex-none">
+        <Button
+          variant="ghost"
+          onClick={() => update({ step: draft.profileType === "pengusaha" ? "pengusahaIntro" : "karyawanPayday" })}
+          className="w-[90px] flex-none"
+        >
           Kembali
         </Button>
         <Button onClick={next} className="flex-1">

@@ -8,6 +8,7 @@ import {
   goalProjectionMonths,
   holdingValue,
   investmentIncomeMonthly,
+  rollingAverageMonthlyIncome,
   type HoldingRowWithGoal,
 } from "@/lib/finance/calculations";
 import { depositoNetInterestMonthly, obligasiNetCouponMonthly } from "@/lib/finance/schemas";
@@ -25,23 +26,44 @@ export default async function GoalsPage() {
 
   const firstOfMonth = new Date();
   firstOfMonth.setDate(1);
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 2, 1);
 
-  const [goalsRes, cashflowRes, monthExpRes, holdingsRes, creditsRes] = await Promise.all([
-    supabase.from("goals").select("*").eq("user_id", user.id).order("created_at"),
-    supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
-    supabase
-      .from("expenses")
-      .select("amount")
-      .eq("user_id", user.id)
-      .gte("expense_date", firstOfMonth.toISOString().slice(0, 10)),
-    supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id),
-    supabase.from("goal_interest_credits").select("goal_id, amount").eq("user_id", user.id),
-  ]);
+  const [goalsRes, profileRes, cashflowRes, monthExpRes, holdingsRes, creditsRes, incomesLast3MonthsRes] =
+    await Promise.all([
+      supabase.from("goals").select("*").eq("user_id", user.id).order("created_at"),
+      supabase.from("profiles").select("profile_type").eq("id", user.id).single(),
+      supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
+      supabase
+        .from("expenses")
+        .select("amount")
+        .eq("user_id", user.id)
+        .gte("expense_date", firstOfMonth.toISOString().slice(0, 10)),
+      supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id),
+      supabase.from("goal_interest_credits").select("goal_id, amount").eq("user_id", user.id),
+      supabase
+        .from("incomes")
+        .select("id, income_date, category, amount, description")
+        .eq("user_id", user.id)
+        .gte("income_date", threeMonthsAgo.toISOString().slice(0, 10)),
+    ]);
 
   const cf = cashflowRes.data;
   const monthTotal = (monthExpRes.data || []).reduce((s, e) => s + Number(e.amount), 0);
   const holdings = (holdingsRes.data || []).map((h) => ({ category: h.category, data: (h.data as HoldingData) || {} }));
   const investIncomeMonthly = investmentIncomeMonthly(holdings);
+  const isPengusaha = profileRes.data?.profile_type === "pengusaha";
+  const trackedIncomeForCf = isPengusaha
+    ? rollingAverageMonthlyIncome(
+        (incomesLast3MonthsRes.data || []).map((i) => ({
+          id: i.id,
+          date: i.income_date,
+          category: i.category,
+          amount: Number(i.amount),
+          description: i.description,
+        })),
+      )
+    : 0;
 
   const holdingsWithGoal: HoldingRowWithGoal[] = (holdingsRes.data || []).map((h) => ({
     id: h.id,
@@ -81,7 +103,7 @@ export default async function GoalsPage() {
       invest: Number(cf?.invest || 0),
     },
     monthTotal,
-    investIncomeMonthly,
+    trackedIncomeForCf + investIncomeMonthly,
   );
 
   const goals = (goalsRes.data || []).map((g) => ({

@@ -35,6 +35,7 @@ export async function getDashboardData() {
     goalsRes,
     monthExpRes,
     monthIncRes,
+    incomesLast3MonthsRes,
     recentExpRes,
     recentIncRes,
     customExpCatRes,
@@ -47,7 +48,11 @@ export async function getDashboardData() {
     recurringExpenseRes,
     assetHoldingSnapshotsRes,
   ] = await Promise.all([
-    supabase.from("profiles").select("name, onboarding_step, asset_categories, liability_categories").eq("id", user.id).single(),
+    supabase
+      .from("profiles")
+      .select("name, onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
+      .eq("id", user.id)
+      .single(),
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
     supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id).order("created_at"),
     supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
@@ -63,6 +68,12 @@ export async function getDashboardData() {
       .select("id, income_date, category, amount, description")
       .eq("user_id", user.id)
       .gte("income_date", firstOfMonthIso())
+      .order("income_date", { ascending: false }),
+    supabase
+      .from("incomes")
+      .select("id, income_date, category, amount, description")
+      .eq("user_id", user.id)
+      .gte("income_date", monthsAgoFirstOfMonthIso(2))
       .order("income_date", { ascending: false }),
     supabase
       .from("expenses")
@@ -141,6 +152,7 @@ export async function getDashboardData() {
     })),
     monthExpenses: monthExpRes.data || [],
     monthIncomes: monthIncRes.data || [],
+    incomesLast3Months: incomesLast3MonthsRes.data || [],
     recentExpenses: recentExpRes.data || [],
     recentIncomes: recentIncRes.data || [],
     customExpenseCategories: (customExpCatRes.data || []).map((c) => c.name),
@@ -184,25 +196,36 @@ export async function getFinancialSnapshotData() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, cashflowRes, holdingsRes, liabRes, goalsRes, monthExpRes, monthIncRes] = await Promise.all([
-    supabase.from("profiles").select("onboarding_step, asset_categories, liability_categories").eq("id", user.id).single(),
-    supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
-    supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id).order("created_at"),
-    supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
-    supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
-    supabase
-      .from("expenses")
-      .select("id, expense_date, category, amount, description")
-      .eq("user_id", user.id)
-      .gte("expense_date", firstOfMonthIso())
-      .order("expense_date", { ascending: false }),
-    supabase
-      .from("incomes")
-      .select("id, income_date, category, amount, description")
-      .eq("user_id", user.id)
-      .gte("income_date", firstOfMonthIso())
-      .order("income_date", { ascending: false }),
-  ]);
+  const [profileRes, cashflowRes, holdingsRes, liabRes, goalsRes, monthExpRes, monthIncRes, incomesLast3MonthsRes] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
+        .eq("id", user.id)
+        .single(),
+      supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
+      supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id).order("created_at"),
+      supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
+      supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
+      supabase
+        .from("expenses")
+        .select("id, expense_date, category, amount, description")
+        .eq("user_id", user.id)
+        .gte("expense_date", firstOfMonthIso())
+        .order("expense_date", { ascending: false }),
+      supabase
+        .from("incomes")
+        .select("id, income_date, category, amount, description")
+        .eq("user_id", user.id)
+        .gte("income_date", firstOfMonthIso())
+        .order("income_date", { ascending: false }),
+      supabase
+        .from("incomes")
+        .select("id, income_date, category, amount, description")
+        .eq("user_id", user.id)
+        .gte("income_date", monthsAgoFirstOfMonthIso(2))
+        .order("income_date", { ascending: false }),
+    ]);
 
   const profile = profileRes.data;
   if (!profile || profile.onboarding_step !== "done") redirect("/onboarding");
@@ -237,6 +260,7 @@ export async function getFinancialSnapshotData() {
     })),
     monthExpenses: monthExpRes.data || [],
     monthIncomes: monthIncRes.data || [],
+    incomesLast3Months: incomesLast3MonthsRes.data || [],
   };
 }
 

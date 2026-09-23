@@ -1,6 +1,18 @@
 import type { Goal, HoldingData } from "@/lib/finance/types";
 
-export type OnboardingStep = "account" | "assetPick" | "assetInput" | "liabPick" | "liabInput" | "cashflow" | "goals";
+export type OnboardingStep =
+  | "account"
+  | "profileType"
+  | "karyawanPayday"
+  | "pengusahaIntro"
+  | "assetPick"
+  | "assetInput"
+  | "liabPick"
+  | "liabInput"
+  | "cashflow"
+  | "goals";
+
+export type ProfileType = "karyawan" | "pengusaha" | "";
 
 export interface FixedExpenseItem {
   id: string;
@@ -11,6 +23,8 @@ export interface FixedExpenseItem {
 export interface OnboardingDraft {
   step: OnboardingStep;
   name: string;
+  profileType: ProfileType;
+  paydayDay: number | null;
   assetCats: string[];
   assetHoldings: Record<string, HoldingData[]>;
   assetIdx: number;
@@ -26,6 +40,8 @@ export function emptyDraft(name = ""): OnboardingDraft {
   return {
     step: "account",
     name,
+    profileType: "",
+    paydayDay: null,
     assetCats: [],
     assetHoldings: {},
     assetIdx: 0,

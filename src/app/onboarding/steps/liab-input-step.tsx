@@ -57,7 +57,7 @@ export function LiabInputStep({
 
   return (
     <div>
-      <ProgressDots current={3} total={5} />
+      <ProgressDots current={4} total={6} />
       <h1 className="serif text-[26px] font-medium mb-2">{cat}</h1>
       <p className="text-text-dim text-sm mb-6 leading-relaxed">
         Kamu bisa menambahkan lebih dari satu — mis. beberapa kartu kredit sekaligus.

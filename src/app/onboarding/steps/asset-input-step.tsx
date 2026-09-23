@@ -58,11 +58,24 @@ export function AssetInputStep({
 
   return (
     <div>
-      <ProgressDots current={2} total={5} />
+      <ProgressDots current={4} total={6} />
       <h1 className="serif text-[26px] font-medium mb-2">{cat}</h1>
-      <p className="text-text-dim text-sm mb-6 leading-relaxed">
-        Kamu bisa menambahkan lebih dari satu — mis. beberapa produk reksadana sekaligus.
+      <p className="text-text-dim text-sm mb-3.5 leading-relaxed">
+        Kamu bisa menambahkan lebih dari satu — mis. beberapa {cat === "Cash" ? "rekening" : "produk reksadana"}{" "}
+        sekaligus.
       </p>
+
+      {cat === "Cash" && (
+        <div className="flex gap-2.5 bg-good/10 border border-good/30 rounded-2xl p-3.5 mb-6">
+          <span className="text-base leading-tight shrink-0">💡</span>
+          <p className="text-xs text-text-dim leading-relaxed">
+            <span className="text-text font-medium">Tambahin semua rekeningmu di sini.</span> Nanti pas catat
+            pengeluaran/pemasukan, kamu bisa pilih rekening mana yang kepakai lewat{" "}
+            <span className="text-good font-medium">Sumber Dana</span> — saldo rekening itu otomatis ke-update
+            sendiri, jadi nggak perlu itung manual.
+          </p>
+        </div>
+      )}
 
       <div className={gain !== null ? "grid grid-cols-2 gap-2.5 mb-5" : "grid grid-cols-1 gap-2.5 mb-5"}>
         <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">

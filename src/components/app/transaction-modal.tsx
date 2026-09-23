@@ -8,8 +8,8 @@ import { Chip } from "@/components/ui/chip";
 import { TextField } from "@/components/ui/field";
 import { NumberField } from "@/components/ui/number-field";
 import { cn } from "@/lib/utils";
-import { EXPENSE_CATS, INCOME_CATS, expenseCatIcon, incomeCatIcon } from "@/lib/finance/constants";
-import { todayIso } from "@/lib/finance/format";
+import { BUSINESS_INCOME_CAT, EXPENSE_CATS, INCOME_CATS, expenseCatIcon, incomeCatIcon } from "@/lib/finance/constants";
+import { fmtRp, todayIso } from "@/lib/finance/format";
 import { addExpense, addCustomExpenseCategory } from "@/app/app/expenses/actions";
 import { addIncome, addCustomIncomeCategory } from "@/app/app/incomes/actions";
 import { SplitBillFlow } from "@/components/app/split/split-bill-flow";
@@ -54,6 +54,8 @@ export function TransactionModal({
   const [localIncomeCats, setLocalIncomeCats] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [splitMode, setSplitMode] = useState(false);
+  const [taxOn, setTaxOn] = useState(true);
+  const [taxType, setTaxType] = useState<"umkm" | "jasa">("umkm");
 
   const isExpense = type === "expense";
   const baseCats = isExpense ? EXPENSE_CATS : INCOME_CATS;
@@ -61,6 +63,11 @@ export function TransactionModal({
   const localCats = isExpense ? localExpenseCats : localIncomeCats;
   const allCats = [...baseCats, ...customCats, ...localCats.filter((c) => !customCats.includes(c))];
   const catIcon = isExpense ? expenseCatIcon : incomeCatIcon;
+  const isBusinessIncome = !isExpense && category === BUSINESS_INCOME_CAT;
+
+  const taxRate = taxType === "umkm" ? 0.005 : 0.025;
+  const taxAmount = isBusinessIncome && taxOn ? Math.round(amount * taxRate) : 0;
+  const netAmount = amount - taxAmount;
 
   function reset() {
     setCategory("");
@@ -71,6 +78,8 @@ export function TransactionModal({
     setNewCatName("");
     setError("");
     setSplitMode(false);
+    setTaxOn(true);
+    setTaxType("umkm");
   }
 
   function handleClose() {
@@ -115,6 +124,16 @@ export function TransactionModal({
     startTransition(async () => {
       if (isExpense) {
         await addExpense({ date: todayIso(), category, amount, description, accountHoldingId });
+      } else if (isBusinessIncome && taxOn) {
+        const taxLabel = taxType === "umkm" ? "PPh Final UMKM 0,5%" : "PPh Non-Karyawan/Jasa ~2,5%";
+        const taxNote = `Kotor ${fmtRp(amount)}, dipotong ${taxLabel} (${fmtRp(taxAmount)})`;
+        await addIncome({
+          date: todayIso(),
+          category,
+          amount: netAmount,
+          description: description ? `${description} — ${taxNote}` : taxNote,
+          accountHoldingId,
+        });
       } else {
         await addIncome({ date: todayIso(), category, amount, description, accountHoldingId });
       }
@@ -228,7 +247,92 @@ export function TransactionModal({
             </div>
           )}
           {error && <div className="mb-3 text-xs text-critical">{error}</div>}
-          <NumberField label="Jumlah (Rp)" placeholder="0" value={amount} onValueChange={setAmount} />
+          <NumberField
+            label={isBusinessIncome ? "Jumlah Kotor (Rp)" : "Jumlah (Rp)"}
+            placeholder="0"
+            value={amount}
+            onValueChange={setAmount}
+          />
+
+          {isBusinessIncome && (
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setTaxOn((v) => !v)}
+                className="w-full flex items-center justify-between gap-2.5 rounded-xl border border-hairline bg-bg-raised px-3.5 py-3 mb-3"
+              >
+                <span className="text-left">
+                  <span className="block text-[13.5px] font-medium">Kena potong pajak?</span>
+                  <span className="block text-[11px] text-text-muted">Kita bantu hitung otomatis</span>
+                </span>
+                <span
+                  className={cn(
+                    "w-[42px] h-6 rounded-full relative shrink-0 transition-colors",
+                    taxOn ? "bg-brand" : "bg-bg-input border border-hairline",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all",
+                      taxOn ? "left-[20px]" : "left-0.5",
+                    )}
+                  />
+                </span>
+              </button>
+
+              {taxOn && (
+                <>
+                  <div className="text-xs text-text-dim mb-2">Jenis pajak</div>
+                  <div className="flex flex-col gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setTaxType("umkm")}
+                      className={cn(
+                        "text-left px-3.5 py-3 rounded-xl border",
+                        taxType === "umkm" ? "bg-brand/10 border-brand" : "bg-bg-raised border-hairline",
+                      )}
+                    >
+                      <div className="text-[13px] font-medium">PPh Final UMKM — 0,5%</div>
+                      <div className="text-[11px] text-text-muted mt-0.5">
+                        PP 23/2018 — untuk usaha ber-omset ≤ Rp4,8M/tahun
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTaxType("jasa")}
+                      className={cn(
+                        "text-left px-3.5 py-3 rounded-xl border",
+                        taxType === "jasa" ? "bg-brand/10 border-brand" : "bg-bg-raised border-hairline",
+                      )}
+                    >
+                      <div className="text-[13px] font-medium">PPh Non-Karyawan / Jasa — ±2,5%</div>
+                      <div className="text-[11px] text-text-muted mt-0.5">Perkiraan untuk pendapatan jasa/freelance</div>
+                    </button>
+                  </div>
+
+                  <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 mb-2">
+                    <div className="flex justify-between text-[13px] mb-2">
+                      <span className="text-text-dim">Jumlah kotor</span>
+                      <span>{fmtRp(amount)}</span>
+                    </div>
+                    <div className="flex justify-between text-[13px] mb-2">
+                      <span className="text-text-dim">Pajak ({taxType === "umkm" ? "0,5%" : "2,5%"})</span>
+                      <span className="text-critical">- {fmtRp(taxAmount)}</span>
+                    </div>
+                    <div className="border-t border-dashed border-hairline pt-2 flex justify-between items-baseline">
+                      <span className="serif text-[13px]">Bersih masuk ke kas</span>
+                      <span className="serif text-[16px] text-good">{fmtRp(netAmount)}</span>
+                    </div>
+                  </div>
+                  <div className="text-[10.5px] text-text-muted leading-relaxed mb-1">
+                    *Estimasi kasar — tarif pastinya tergantung status NPWP &amp; jenis usahamu. Konsultasikan ke
+                    konsultan pajak buat kepastian.
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <TextField
             label="Detail / catatan (opsional)"
             type="text"
@@ -237,7 +341,11 @@ export function TransactionModal({
             onChange={(e) => setDescription(e.target.value)}
           />
           <Button fullWidth onClick={save} disabled={isPending}>
-            {isPending ? "Menyimpan…" : "Simpan"}
+            {isPending
+              ? "Menyimpan…"
+              : isBusinessIncome && taxOn
+                ? `Simpan (${fmtRp(netAmount)})`
+                : "Simpan"}
           </Button>
           <Button fullWidth variant="ghost" className="mt-2.5" onClick={handleClose}>
             Batal

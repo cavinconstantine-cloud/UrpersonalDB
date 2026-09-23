@@ -19,7 +19,7 @@ export function AccountStep({
       setError("Nama tidak boleh kosong");
       return;
     }
-    update({ step: "assetPick" });
+    update({ step: "profileType" });
   }
 
   return (

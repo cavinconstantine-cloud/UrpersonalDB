@@ -6,6 +6,9 @@ import { emptyDraft, loadDraft, saveDraft, clearDraft, type OnboardingDraft, typ
 import { completeOnboarding } from "./actions";
 import { ProgressDots } from "@/components/ui/chip";
 import { AccountStep } from "./steps/account-step";
+import { ProfileTypeStep } from "./steps/profile-type-step";
+import { KaryawanPaydayStep } from "./steps/karyawan-payday-step";
+import { PengusahaIntroStep } from "./steps/pengusaha-intro-step";
 import { AssetPickStep } from "./steps/asset-pick-step";
 import { AssetInputStep } from "./steps/asset-input-step";
 import { LiabPickStep } from "./steps/liab-pick-step";
@@ -15,14 +18,17 @@ import { GoalsStep } from "./steps/goals-step";
 
 const STEP_NUMBER: Record<OnboardingStep, number> = {
   account: 1,
-  assetPick: 2,
-  assetInput: 2,
-  liabPick: 3,
-  liabInput: 3,
-  cashflow: 4,
-  goals: 5,
+  profileType: 2,
+  karyawanPayday: 3,
+  pengusahaIntro: 3,
+  assetPick: 4,
+  assetInput: 4,
+  liabPick: 4,
+  liabInput: 4,
+  cashflow: 5,
+  goals: 6,
 };
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 export function OnboardingWizard({ userId, initialName }: { userId: string; initialName: string }) {
   const router = useRouter();
@@ -62,6 +68,9 @@ export function OnboardingWizard({ userId, initialName }: { userId: string; init
       )}
       <div className="animate-fade-up" key={draft.step + draft.assetIdx + draft.liabIdx}>
         {draft.step === "account" && <AccountStep draft={draft} update={update} />}
+        {draft.step === "profileType" && <ProfileTypeStep draft={draft} update={update} />}
+        {draft.step === "karyawanPayday" && <KaryawanPaydayStep draft={draft} update={update} />}
+        {draft.step === "pengusahaIntro" && <PengusahaIntroStep draft={draft} update={update} />}
         {draft.step === "assetPick" && <AssetPickStep draft={draft} update={update} />}
         {draft.step === "assetInput" && <AssetInputStep draft={draft} update={update} />}
         {draft.step === "liabPick" && <LiabPickStep draft={draft} update={update} />}

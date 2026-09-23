@@ -17,6 +17,8 @@ export interface Database {
           onboarding_step: string;
           asset_categories: string[];
           liability_categories: string[];
+          profile_type: string | null;
+          payday_day: number | null;
           created_at: string;
           updated_at: string;
         },
@@ -26,6 +28,8 @@ export interface Database {
           onboarding_step: string;
           asset_categories: string[];
           liability_categories: string[];
+          profile_type: string | null;
+          payday_day: number | null;
           created_at: string;
           updated_at: string;
         }> & { id: string }

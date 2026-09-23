@@ -21,6 +21,7 @@ export function CashflowStep({
   }
 
   const fixedTotal = draft.fixedExpenseItems.reduce((s, it) => s + it.amount, 0);
+  const isPengusaha = draft.profileType === "pengusaha";
 
   function addItem() {
     const label = newLabel.trim();
@@ -44,26 +45,66 @@ export function CashflowStep({
 
   return (
     <div>
-      <h1 className="serif text-[26px] font-medium mb-2">Arus kas bulanan</h1>
-      <p className="text-text-dim text-sm mb-4 leading-relaxed">Angka rata-rata per bulan cukup. Kamu bisa perbarui kapan saja.</p>
-
-      <div className="flex gap-2.5 bg-brand/10 border border-brand/20 rounded-2xl p-3.5 mb-6">
-        <span className="text-base leading-tight">💡</span>
-        <p className="text-xs text-text-dim leading-relaxed">
-          Kenapa ini ditanya? Income dikurangi semua pengeluaran dan investasi rutin ={" "}
-          <span className="text-text font-medium">Free Cash Flow</span> bulananmu — angka utama yang dipakai di
-          seluruh dashboard, termasuk saving rate dan progress goals. Fixed expense sekarang bisa dirinci per item —
-          data yang sama dipakai di halaman <span className="text-text font-medium">Arus Kas Tetap</span>, jadi
-          tidak perlu diisi dua kali nanti.
-        </p>
+      <div className="flex items-center gap-2 mb-2">
+        <h1 className="serif text-[26px] font-medium">Arus kas bulanan</h1>
+        <span
+          className={
+            isPengusaha
+              ? "text-[9px] font-bold tracking-wide text-good bg-good/14 border border-good/35 rounded-full px-[7px] py-0.5"
+              : "text-[9px] font-bold tracking-wide text-brand-strong bg-brand/14 border border-brand/35 rounded-full px-[7px] py-0.5"
+          }
+        >
+          {isPengusaha ? "PENGUSAHA" : "KARYAWAN"}
+        </span>
       </div>
+      <p className="text-text-dim text-sm mb-4 leading-relaxed">
+        {isPengusaha
+          ? "Fixed cost rutinmu aja yang diisi di sini — pendapatan usaha dihitung otomatis dari transaksi yang kamu catat."
+          : "Angka rata-rata per bulan cukup. Kamu bisa perbarui kapan saja."}
+      </p>
 
-      <NumberField
-        label="Income (Rp/bulan)"
-        placeholder="0"
-        value={Number(draft.cashflow.income) || 0}
-        onValueChange={(n) => set("income", n)}
-      />
+      {isPengusaha ? (
+        <div className="border border-dashed border-brand/40 rounded-2xl p-3.5 mb-[18px]">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-sm">📊</span>
+            <span className="text-[12.5px] font-medium">Pendapatan (dihitung otomatis)</span>
+          </div>
+          <div className="text-[11.5px] text-text-dim leading-relaxed">
+            Nggak perlu diisi manual — begitu kamu mulai catat pendapatan usaha, Uangku pakai rata-rata rolling 3
+            bulan terakhir buat hitung Free Cash Flow kamu.
+          </div>
+        </div>
+      ) : (
+        <>
+          {draft.paydayDay != null && (
+            <div className="flex gap-2 bg-good/10 border border-good/30 rounded-2xl px-3.5 py-3 mb-[18px]">
+              <span className="text-sm">🗓️</span>
+              <span className="text-xs text-text-dim leading-relaxed">
+                Gajian &amp; fixed expense kamu otomatis jalan tanggal{" "}
+                <b className="text-good">{draft.paydayDay}</b> tiap bulan (dari langkah sebelumnya) — bisa diubah
+                lagi nanti di Pengaturan.
+              </span>
+            </div>
+          )}
+          <div className="flex gap-2.5 bg-brand/10 border border-brand/20 rounded-2xl p-3.5 mb-6">
+            <span className="text-base leading-tight">💡</span>
+            <p className="text-xs text-text-dim leading-relaxed">
+              Kenapa ini ditanya? Income dikurangi semua pengeluaran dan investasi rutin ={" "}
+              <span className="text-text font-medium">Free Cash Flow</span> bulananmu — angka utama yang dipakai di
+              seluruh dashboard, termasuk saving rate dan progress goals. Fixed expense sekarang bisa dirinci per
+              item — data yang sama dipakai di halaman <span className="text-text font-medium">Arus Kas Tetap</span>,
+              jadi tidak perlu diisi dua kali nanti.
+            </p>
+          </div>
+
+          <NumberField
+            label="Income (Rp/bulan)"
+            placeholder="0"
+            value={Number(draft.cashflow.income) || 0}
+            onValueChange={(n) => set("income", n)}
+          />
+        </>
+      )}
 
       <div className="mb-[18px]">
         <div className="flex justify-between items-baseline mb-1.5">

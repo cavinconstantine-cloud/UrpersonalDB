@@ -29,12 +29,16 @@ export const EXPENSE_CATS = [
 
 export const INCOME_CATS = [
   "Gaji",
+  "Pendapatan Usaha",
   "Transferan Teman",
   "Side Income / Hustle",
   "Bonus / THR",
   "Hasil Investasi",
   "Lainnya",
 ] as const;
+
+/** Income category that supports the "Kena potong pajak?" tax-withholding toggle in the transaction modal. */
+export const BUSINESS_INCOME_CAT = "Pendapatan Usaha";
 
 export const CATEGORY_ICONS: Record<string, string> = {
   Cash: "💵",
@@ -63,6 +67,7 @@ export const EXPENSE_CAT_ICONS: Record<string, string> = {
 
 export const INCOME_CAT_ICONS: Record<string, string> = {
   Gaji: "💼",
+  "Pendapatan Usaha": "📈",
   "Transferan Teman": "🤝",
   "Side Income / Hustle": "🚀",
   "Bonus / THR": "🎁",
@@ -103,6 +108,7 @@ export const EXPENSE_CATEGORY_COLOR_VARS: Record<string, string> = {
 
 export const INCOME_CATEGORY_COLOR_VARS: Record<string, string> = {
   Gaji: "var(--series-3)",
+  "Pendapatan Usaha": "var(--series-7)",
   "Transferan Teman": "var(--series-1)",
   "Side Income / Hustle": "var(--series-2)",
   "Bonus / THR": "var(--series-4)",

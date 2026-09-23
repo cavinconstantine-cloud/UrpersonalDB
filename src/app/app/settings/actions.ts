@@ -29,3 +29,16 @@ export async function updateCashflow(input: { lifestyleExpense: number; invest: 
   revalidatePath("/app");
   revalidatePath("/app/settings");
 }
+
+export async function updateProfileType(input: { profileType: "karyawan" | "pengusaha"; paydayDay: number | null }) {
+  const { supabase, user } = await requireUser();
+  await supabase
+    .from("profiles")
+    .update({
+      profile_type: input.profileType,
+      payday_day: input.profileType === "karyawan" ? input.paydayDay : null,
+    })
+    .eq("id", user.id);
+  revalidatePath("/app");
+  revalidatePath("/app/settings");
+}

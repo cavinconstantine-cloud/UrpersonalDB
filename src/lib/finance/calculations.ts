@@ -342,6 +342,29 @@ export function monthIncomeTotal(incomes: Income[], ym: string = currentYm()): n
   return incomes.filter((i) => i.date.slice(0, 7) === ym).reduce((s, i) => s + Number(i.amount || 0), 0);
 }
 
+/**
+ * Average monthly income over the trailing `months` calendar months
+ * (current month included), counting only months that actually have
+ * recorded income — used instead of a static `cashflow.income` for
+ * Pengusaha/freelancer profiles, whose earnings swing too much month to
+ * month for a single fixed number to mean anything. Falls back to 0 when
+ * nothing has been recorded yet.
+ */
+export function rollingAverageMonthlyIncome(incomes: Income[], months = 3, today: Date = new Date()): number {
+  const anchor = new Date(today.getFullYear(), today.getMonth(), 1);
+  let total = 0;
+  let countedMonths = 0;
+  for (let i = 0; i < months; i++) {
+    const ym = new Date(anchor.getFullYear(), anchor.getMonth() - i, 1).toISOString().slice(0, 7);
+    const monthTotal = monthIncomeTotal(incomes, ym);
+    if (monthTotal > 0) {
+      total += monthTotal;
+      countedMonths++;
+    }
+  }
+  return countedMonths > 0 ? total / countedMonths : 0;
+}
+
 /** Categories treated as liquid — accessible within a short time if needed. */
 export const LIQUID_ASSET_CATS = ["Cash", "Deposito", "Reksadana", "Obligasi"] as const;
 
@@ -596,12 +619,19 @@ export function upcomingInstallments(liabRows: LiabilityHoldingRow[], today: Dat
   return result.sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
+/**
+ * Uses `incomeTotal` (static income + tracked transactions) rather than the
+ * static `income` alone — Pengusaha profiles never set a static income, so
+ * anchoring on `income` would always read "belum bisa dihitung" for them
+ * even once they're recording real earnings.
+ */
 export function computeDBR(cf: CashflowNums, liabRows: HoldingRow[]): DbrResult {
   const monthlyDebt = totalMonthlyDebtPayment(liabRows);
-  const pct = cf.income > 0 ? (monthlyDebt / cf.income) * 100 : 0;
+  const income = cf.incomeTotal;
+  const pct = income > 0 ? (monthlyDebt / income) * 100 : 0;
   let label: string;
   let tone: DbrTone;
-  if (cf.income <= 0) {
+  if (income <= 0) {
     label = "Belum bisa dihitung — isi Income di Cash Flow";
     tone = "neutral";
   } else if (pct <= 35) {
@@ -614,5 +644,5 @@ export function computeDBR(cf: CashflowNums, liabRows: HoldingRow[]): DbrResult 
     label = "Berisiko";
     tone = "danger";
   }
-  return { pct: Math.round(pct * 10) / 10, label, tone, monthlyDebt, income: cf.income };
+  return { pct: Math.round(pct * 10) / 10, label, tone, monthlyDebt, income };
 }
