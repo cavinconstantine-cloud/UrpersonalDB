@@ -3,7 +3,7 @@ import Link from "next/link";
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-medium font-sans text-[15px] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
+  "inline-flex items-center justify-center gap-2 rounded-xl font-medium font-sans text-[15px] transition duration-150 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand";
 
 const variants = {
   primary: "bg-brand text-brand-ink hover:brightness-105 active:brightness-95 shadow-sm",

@@ -114,7 +114,7 @@ export function TransactionModal({
           type="button"
           onClick={() => switchType("expense")}
           className={cn(
-            "flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            "flex-1 py-2.5 rounded-lg text-sm font-medium transition duration-150 active:scale-95",
             isExpense ? "bg-bg-raised text-text shadow-sm" : "text-text-dim",
           )}
         >
@@ -124,7 +124,7 @@ export function TransactionModal({
           type="button"
           onClick={() => switchType("income")}
           className={cn(
-            "flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors",
+            "flex-1 py-2.5 rounded-lg text-sm font-medium transition duration-150 active:scale-95",
             !isExpense ? "bg-bg-raised text-good shadow-sm" : "text-text-dim",
           )}
         >

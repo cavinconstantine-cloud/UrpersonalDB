@@ -10,7 +10,7 @@ export function Chip({ active, className, ...props }: ChipProps) {
     <button
       type="button"
       className={cn(
-        "px-4 py-2.5 rounded-full border text-sm select-none transition-colors",
+        "px-4 py-2.5 rounded-full border text-sm select-none transition duration-150 active:scale-95",
         active
           ? "border-brand text-brand-strong bg-brand/10"
           : "border-hairline text-text-dim bg-bg-raised hover:bg-bg-sunken",

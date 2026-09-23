@@ -20,7 +20,7 @@ export function LanguageToggle() {
           onClick={() => setLang(value)}
           disabled={isPending}
           className={cn(
-            "flex-1 py-2.5 rounded-lg text-xs transition-colors",
+            "flex-1 py-2.5 rounded-lg text-xs transition duration-150 active:scale-90",
             lang === value ? "bg-bg-raised text-text shadow-sm" : "text-text-dim",
           )}
         >

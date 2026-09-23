@@ -50,7 +50,7 @@ export function ThemeToggle() {
           key={value}
           onClick={() => apply(value)}
           className={cn(
-            "flex-1 flex flex-col items-center gap-1 py-2.5 rounded-lg text-xs transition-colors",
+            "flex-1 flex flex-col items-center gap-1 py-2.5 rounded-lg text-xs transition duration-150 active:scale-90",
             pref === value ? "bg-bg-raised text-text shadow-sm" : "text-text-dim",
           )}
         >
