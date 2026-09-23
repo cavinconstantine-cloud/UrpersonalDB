@@ -101,7 +101,24 @@ export async function extractReceipt(base64: string, mediaType: string): Promise
       return { ok: false, imagePath: path, error: "AI tidak berhasil membaca struk ini. Coba foto ulang atau isi manual." };
     }
     return { ok: true, imagePath: path, extraction };
-  } catch {
+  } catch (err) {
+    console.error("extractReceipt: Anthropic call failed:", err);
+    if (err instanceof Anthropic.AuthenticationError) {
+      return { ok: false, imagePath: path, error: "ANTHROPIC_API_KEY tidak valid — cek kembali key-nya di Vercel." };
+    }
+    if (err instanceof Anthropic.PermissionDeniedError) {
+      return {
+        ok: false,
+        imagePath: path,
+        error: "Akun Anthropic belum punya akses ke model ini, atau billing/credit belum aktif di console.anthropic.com.",
+      };
+    }
+    if (err instanceof Anthropic.RateLimitError) {
+      return { ok: false, imagePath: path, error: "Terlalu banyak request ke AI sekaligus. Tunggu sebentar lalu coba lagi." };
+    }
+    if (err instanceof Anthropic.BadRequestError) {
+      return { ok: false, imagePath: path, error: "Foto struknya nggak bisa diproses AI. Coba foto ulang dengan pencahayaan lebih jelas." };
+    }
     return { ok: false, imagePath: path, error: "Terjadi kendala saat membaca struk. Coba lagi sebentar lagi." };
   }
 }
