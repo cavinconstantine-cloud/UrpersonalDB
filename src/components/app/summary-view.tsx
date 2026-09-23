@@ -60,19 +60,43 @@ function biggestCategoryDecrease(
   return best;
 }
 
+/** The category whose spend rose the most (by %) between two periods — needs at least 15% up and prior spend > 0 (new categories aren't counted, there's no baseline % to report). */
+function biggestCategoryIncrease(
+  current: ExpenseCategorySlice[],
+  previous: ExpenseCategorySlice[],
+): { category: string; pctUp: number } | null {
+  const previousMap = new Map(previous.map((p) => [p.category, p.amount]));
+  let best: { category: string; pctUp: number } | null = null;
+  for (const c of current) {
+    const prevAmt = previousMap.get(c.category) ?? 0;
+    if (prevAmt <= 0) continue;
+    const pctUp = ((c.amount - prevAmt) / prevAmt) * 100;
+    if (pctUp >= 15 && (!best || pctUp > best.pctUp)) best = { category: c.category, pctUp };
+  }
+  return best;
+}
+
 function buildInsightText(args: {
   delta: number | null;
   savingRate: number | null;
   avgSavingRate6mo: number | null;
   categoryDrop: { category: string; pctDown: number } | null;
+  categoryRise: { category: string; pctUp: number } | null;
+  topCategory: ExpenseCategorySlice | null;
+  periodNoun: string; // "bulan ini" / "tahun ini"
 }): string {
-  const { delta, savingRate, avgSavingRate6mo, categoryDrop } = args;
+  const { delta, savingRate, avgSavingRate6mo, categoryDrop, categoryRise, topCategory, periodNoun } = args;
   const parts: string[] = [];
+  if (topCategory) {
+    parts.push(`Pengeluaran terbesar ${periodNoun} di ${topCategory.category} (${Math.round(topCategory.pct)}%)`);
+  }
   if (delta !== null) {
-    parts.push(delta >= 0 ? "FCF naik dibanding periode sebelumnya" : "FCF turun dibanding periode sebelumnya");
+    parts.push(delta >= 0 ? `FCF naik ${Math.abs(Math.round(delta))}% dibanding periode sebelumnya` : `FCF turun ${Math.abs(Math.round(delta))}% dibanding periode sebelumnya`);
   }
   if (categoryDrop) {
     parts.push(`pengeluaran ${categoryDrop.category} turun ${Math.round(categoryDrop.pctDown)}%`);
+  } else if (categoryRise) {
+    parts.push(`pengeluaran ${categoryRise.category} naik ${Math.round(categoryRise.pctUp)}%`);
   }
   if (savingRate !== null && avgSavingRate6mo !== null && avgSavingRate6mo > 0) {
     const vsPts = Math.round((savingRate - avgSavingRate6mo) * 100);
@@ -84,7 +108,7 @@ function buildInsightText(args: {
   }
   if (parts.length === 0) return "";
   const emoji = delta !== null && delta < 0 ? "📉" : "✨";
-  return `${emoji} ${parts[0].charAt(0).toUpperCase()}${parts[0].slice(1)}${parts.length > 1 ? " — " + parts.slice(1).join(", ") : ""}.`;
+  return `${emoji} ${parts[0]}${parts.length > 1 ? " — " + parts.slice(1).join(", ") : ""}.`;
 }
 
 function buildShareText(args: {
@@ -160,10 +184,20 @@ export function SummaryView({
     mode === "monthly" ? expenseByCategory(expenses, selectedYm) : expenseByCategoryForYear(expenses, selectedYear);
   const prevExpenseSlices = mode === "monthly" ? expenseByCategory(expenses, shiftYm(selectedYm, -1)) : [];
   const categoryDrop = mode === "monthly" ? biggestCategoryDecrease(expenseSlices, prevExpenseSlices) : null;
+  const categoryRise = mode === "monthly" ? biggestCategoryIncrease(expenseSlices, prevExpenseSlices) : null;
+  const topCategory = expenseSlices[0] ?? null;
 
   const topTx = topTransactions(expenses, incomes, periodPrefix, 3);
 
-  const insight = buildInsightText({ delta, savingRate, avgSavingRate6mo, categoryDrop });
+  const insight = buildInsightText({
+    delta,
+    savingRate,
+    avgSavingRate6mo,
+    categoryDrop,
+    categoryRise,
+    topCategory,
+    periodNoun: mode === "monthly" ? "bulan ini" : "tahun ini",
+  });
 
   async function handleShare() {
     const text = buildShareText({ periodLabel, fcfValue, expenseSlices, topTx });
