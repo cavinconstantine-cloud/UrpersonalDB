@@ -32,11 +32,20 @@ async function fetchYahooPrice(symbol: string): Promise<FetchedPrice | null> {
     });
     if (!res.ok) return null;
     const json = await res.json();
-    const meta = json?.chart?.result?.[0]?.meta;
-    const price = Number(meta?.regularMarketPrice);
-    const prevClose = Number(meta?.chartPreviousClose ?? meta?.previousClose);
-    if (!price || !Number.isFinite(price)) return null;
-    return { ticker: symbol, price, prevClose: Number.isFinite(prevClose) ? prevClose : price };
+    const result = json?.chart?.result?.[0];
+
+    // `meta.chartPreviousClose` is NOT "yesterday's close" — it's the close
+    // from before the whole requested range began, so with range=5d it's
+    // ~6 trading days back. Using it as the daily-change reference silently
+    // computed a multi-day move labeled as a 1-day change. Read the actual
+    // daily closes array instead and take the last two real (non-null) days.
+    const closes: unknown[] = result?.indicators?.quote?.[0]?.close ?? [];
+    const validCloses = closes.filter((c): c is number => typeof c === "number" && Number.isFinite(c));
+    if (validCloses.length === 0) return null;
+
+    const price = validCloses[validCloses.length - 1];
+    const prevClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : price;
+    return { ticker: symbol, price, prevClose };
   } catch {
     return null;
   }

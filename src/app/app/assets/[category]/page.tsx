@@ -83,7 +83,12 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
           ? "Harga saham & IHSG di sini adalah harga penutupan hari sebelumnya (H-1), diperbarui otomatis tiap hari kerja — bukan harga real-time/live. Kamu tinggal isi jumlah lot & harga beli."
           : "Kamu bisa menambahkan lebih dari satu, mis. beberapa produk sekaligus."}
       </p>
-      {category === "Saham" && ihsg && <IhsgWidget price={ihsg.price} changePct={ihsg.changePct} asOf={ihsg.asOf} />}
+      {category === "Saham" && ihsg && (
+        <>
+          <IhsgWidget price={ihsg.price} changePct={ihsg.changePct} asOf={ihsg.asOf} />
+          <div className="text-xs font-medium text-text-dim mb-2.5">📊 Portofolio Saham Kamu</div>
+        </>
+      )}
       <AssetCategoryManager
         category={category}
         holdings={holdings}
