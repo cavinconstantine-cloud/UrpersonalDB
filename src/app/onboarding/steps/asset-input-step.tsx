@@ -18,7 +18,7 @@ export function AssetInputStep({
 }) {
   const cat = draft.assetCats[draft.assetIdx];
   const schema = ASSET_SCHEMAS[cat];
-  const holdings = draft.assetHoldings[cat] || [];
+  const holdings = draft.assetHoldings?.[cat] || [];
   const [modal, setModal] = useState<{ open: boolean; index?: number }>({ open: false });
 
   const total = holdings.reduce((s, h) => s + schema.value(h), 0);

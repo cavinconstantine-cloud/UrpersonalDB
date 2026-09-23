@@ -18,7 +18,7 @@ export function LiabInputStep({
 }) {
   const cat = draft.liabCats[draft.liabIdx];
   const schema = LIAB_SCHEMAS[cat];
-  const holdings = draft.liabHoldings[cat] || [];
+  const holdings = draft.liabHoldings?.[cat] || [];
   const [modal, setModal] = useState<{ open: boolean; index?: number }>({ open: false });
 
   const total = holdings.reduce((s, h) => s + liabValue(h), 0);
