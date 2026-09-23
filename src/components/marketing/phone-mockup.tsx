@@ -43,29 +43,41 @@ export function PhoneMockup() {
             </svg>
           </div>
 
-          <div className="mx-4 mb-2.5 bg-bg-raised border border-hairline rounded-2xl p-3 shadow-[var(--shadow-card)]">
-            <div className="text-[10px] serif mb-2">📅 Jatuh Tempo Angsuran</div>
-            <div className="flex items-center justify-between text-[9px]">
-              <div>
-                <div>KPR BCA</div>
-                <div className="text-text-dim text-[8px]">KPR · tgl 25 · Rp 15,2jt/bln</div>
-              </div>
-              <div className="text-right shrink-0" style={{ color: "var(--warning)" }}>
-                3 hari lagi
-              </div>
-            </div>
-          </div>
-
           <div className="mx-4 bg-bg-raised border border-hairline rounded-2xl p-3 shadow-[var(--shadow-card)]">
-            <div className="text-[10px] serif mb-1.5">🌐 Berita Pasar</div>
-            <div className="text-[9px] font-medium leading-snug mb-1">
-              The Fed naikkan suku bunga, tekan Rupiah &amp; pasar EM
+            <div className="flex items-baseline justify-between mb-2">
+              <div className="text-[11px] serif">📊 Summary Bulanan</div>
+              <div
+                className="text-[8px] font-medium rounded-full px-[7px] py-[2px]"
+                style={{ color: "var(--good)", background: "var(--good-wash)" }}
+              >
+                ▲ 19% vs bulan lalu
+              </div>
             </div>
-            <div className="text-[8px] text-text-dim leading-relaxed mb-1.5">
-              Dianalisa AI — dampak ke reksadana &amp; obligasi kamu dijelaskan singkat, tetap dikutip dari sumber
-              tepercaya.
+            <div className="serif text-[17px] leading-none mb-0.5">Rp 6.900.000</div>
+            <div className="text-[8px] text-text-dim mb-2">Free Cash Flow bulan ini</div>
+            <div className="text-[8px] italic text-text-dim leading-relaxed mb-2.5">
+              ✨ Pengeluaran terbesar di Makan &amp; Minum (28%) — saving rate 27% di atas rata-rata 6 bulan.
             </div>
-            <div className="text-[7px] text-brand-strong">Bloomberg ↗ · Reuters ↗</div>
+            <div className="h-px bg-hairline mb-2" />
+            <div className="text-[8px] uppercase tracking-wide text-text-muted mb-1.5">🚀 Aset paling bergerak</div>
+            <div className="flex gap-1.5">
+              {[
+                { label: "BBCA", pct: "▲ 20%", up: true },
+                { label: "FR0100", pct: "▲ 10%", up: true },
+                { label: "Reksadana X", pct: "▼ 10%", up: false },
+              ].map((a) => (
+                <div
+                  key={a.label}
+                  className="flex-1 rounded-[10px] px-2 py-1.5"
+                  style={{ background: a.up ? "var(--good-wash)" : "var(--critical-wash)" }}
+                >
+                  <div className="text-[8px] font-medium truncate">{a.label}</div>
+                  <div className="text-[8px] font-medium" style={{ color: a.up ? "var(--good)" : "var(--critical)" }}>
+                    {a.pct}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
