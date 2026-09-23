@@ -79,7 +79,7 @@ export async function extractReceipt(base64: string, mediaType: string): Promise
       ? (mediaType as "image/jpeg" | "image/png" | "image/webp" | "image/gif")
       : "image/jpeg";
     const response = await anthropic.messages.parse({
-      model: "claude-opus-5",
+      model: "claude-opus-5-5",
       max_tokens: 4000,
       messages: [
         {
