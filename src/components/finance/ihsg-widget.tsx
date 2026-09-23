@@ -32,7 +32,7 @@ export function IhsgWidget({ price, changePct, asOf }: { price: number; changePc
           {changePct.toFixed(2)}%
         </span>
       </div>
-      <div className="text-[10px] text-text-muted">Tutup {fmtAsOf(asOf)}</div>
+      <div className="text-[10px] text-text-muted">Tutup {fmtAsOf(asOf)} — bukan harga real-time</div>
     </div>
   );
 }

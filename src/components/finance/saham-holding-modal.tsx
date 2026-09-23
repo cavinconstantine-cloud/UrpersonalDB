@@ -140,6 +140,13 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
           <button onClick={goManual} className="w-full text-center text-xs text-text-muted underline mb-3">
             Kode sahamnya nggak ketemu? Isi manual
           </button>
+          <div className="flex gap-2 bg-brand/10 border border-brand/25 rounded-xl px-3 py-2.5 mb-4">
+            <span className="text-xs shrink-0">💡</span>
+            <span className="text-[11px] text-text-dim leading-relaxed">
+              Harga yang ditampilkan adalah <b className="text-text">harga penutupan hari sebelumnya (H-1)</b>,
+              diperbarui otomatis tiap hari kerja — bukan harga real-time/live.
+            </span>
+          </div>
           <Button fullWidth variant="ghost" onClick={onClose}>
             Batal
           </Button>
@@ -173,8 +180,8 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
                 <div className="flex gap-2 bg-good/10 border border-good/30 rounded-xl px-3 py-2.5 mb-5">
                   <span className="text-xs shrink-0">🕒</span>
                   <span className="text-[11.5px] text-text-dim leading-relaxed">
-                    Harga per tutup market <b className="text-text">{fmtAsOf(picked.asOf)}</b>. Diperbarui otomatis
-                    tiap hari kerja — kamu nggak perlu update manual.
+                    Harga penutupan <b className="text-text">{fmtAsOf(picked.asOf)}</b> — <b className="text-text">bukan harga real-time/live</b>,
+                    cuma diperbarui tiap hari kerja. Kamu nggak perlu update manual.
                   </span>
                 </div>
               )}

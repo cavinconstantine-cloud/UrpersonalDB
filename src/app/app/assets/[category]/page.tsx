@@ -80,7 +80,7 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       </h1>
       <p className="text-text-dim text-sm mb-6 leading-relaxed">
         {category === "Saham"
-          ? "Harga saham diperbarui otomatis tiap hari kerja — kamu tinggal isi jumlah lot & harga beli."
+          ? "Harga saham & IHSG di sini adalah harga penutupan hari sebelumnya (H-1), diperbarui otomatis tiap hari kerja — bukan harga real-time/live. Kamu tinggal isi jumlah lot & harga beli."
           : "Kamu bisa menambahkan lebih dari satu, mis. beberapa produk sekaligus."}
       </p>
       {category === "Saham" && ihsg && <IhsgWidget price={ihsg.price} changePct={ihsg.changePct} asOf={ihsg.asOf} />}

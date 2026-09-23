@@ -95,6 +95,11 @@ export function AssetSection({
                     <span>{fmtRp(val)} ›</span>
                   </div>
                 </Link>
+                {c === "Saham" && (
+                  <div className="text-[10px] text-text-muted pl-[44px] pb-2.5 -mt-1">
+                    Harga penutupan kemarin, bukan real-time
+                  </div>
+                )}
                 {isCash && cashAccounts.length > 0 && (
                   <div className="flex flex-col gap-2 pl-[44px] pb-3">
                     {cashAccounts.map((acc) => (
