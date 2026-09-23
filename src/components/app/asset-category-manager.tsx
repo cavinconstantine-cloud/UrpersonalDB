@@ -4,9 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HoldingModal } from "@/components/finance/holding-modal";
 import { Button } from "@/components/ui/button";
+import { MovementBadge } from "@/components/ui/movement-badge";
 import { ASSET_SCHEMAS } from "@/lib/finance/schemas";
 import { fmtRp } from "@/lib/finance/format";
 import { addHolding, updateHolding, deleteHolding, removeAssetCategory } from "@/app/app/assets/actions";
+import { categoryDailyMovement, dailyMovementByHolding, type AssetSnapshotRow } from "@/lib/finance/calculations";
 import type { HoldingData } from "@/lib/finance/types";
 
 interface Holding {
@@ -14,7 +16,15 @@ interface Holding {
   data: HoldingData;
 }
 
-export function AssetCategoryManager({ category, holdings }: { category: string; holdings: Holding[] }) {
+export function AssetCategoryManager({
+  category,
+  holdings,
+  snapshots = [],
+}: {
+  category: string;
+  holdings: Holding[];
+  snapshots?: AssetSnapshotRow[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [modal, setModal] = useState<{ open: boolean; holding?: Holding }>({ open: false });
@@ -23,6 +33,10 @@ export function AssetCategoryManager({ category, holdings }: { category: string;
   const total = holdings.reduce((s, h) => s + schema.value(h.data), 0);
   const buyTotal = schema.buyValue ? holdings.reduce((s, h) => s + schema.buyValue!(h.data), 0) : null;
   const gain = buyTotal !== null ? total - buyTotal : null;
+
+  const holdingsWithCategory = holdings.map((h) => ({ id: h.id, category, data: h.data }));
+  const totalMovement = categoryDailyMovement(category, snapshots, holdingsWithCategory);
+  const movementByHolding = dailyMovementByHolding(snapshots, holdingsWithCategory);
 
   function save(data: HoldingData) {
     startTransition(async () => {
@@ -51,7 +65,10 @@ export function AssetCategoryManager({ category, holdings }: { category: string;
     <div>
       <div className={gain !== null ? "grid grid-cols-2 gap-2.5 mb-5" : "grid grid-cols-1 gap-2.5 mb-5"}>
         <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">
-          <div className="text-xs text-text-dim mb-1">Total nilai sekarang</div>
+          <div className="text-xs text-text-dim mb-1 flex items-center gap-1.5">
+            Total nilai sekarang
+            <MovementBadge movement={totalMovement} />
+          </div>
           <div className="serif text-[19px]">{fmtRp(total)}</div>
         </div>
         {gain !== null && (
@@ -91,7 +108,10 @@ export function AssetCategoryManager({ category, holdings }: { category: string;
                 className="w-full flex items-start justify-between gap-3 py-3 border-b border-hairline text-sm text-left last:border-b-0"
               >
                 <div>
-                  <div>{String(h.data.label || category)}</div>
+                  <div className="flex items-center gap-1.5">
+                    {String(h.data.label || category)}
+                    <MovementBadge movement={movementByHolding.get(h.id) ?? null} />
+                  </div>
                   {g !== null && (
                     <div className="text-xs" style={{ color: g >= 0 ? "var(--good)" : "var(--critical)" }}>
                       {g >= 0 ? "+" : ""}

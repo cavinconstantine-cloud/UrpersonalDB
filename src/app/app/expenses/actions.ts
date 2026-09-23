@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { EXPENSE_CATS } from "@/lib/finance/constants";
+import { adjustCashBalance } from "@/app/app/assets/account-sync";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -32,6 +33,7 @@ export async function addExpense(input: {
     description: input.description,
     account_holding_id: input.accountHoldingId ?? null,
   });
+  await adjustCashBalance(supabase, user.id, input.accountHoldingId, -input.amount);
 
   revalidatePath("/app");
   revalidatePath("/app/expenses");
@@ -69,6 +71,14 @@ export async function updateExpense(
   },
 ) {
   const { supabase, user } = await requireUser();
+
+  const { data: existing } = await supabase
+    .from("expenses")
+    .select("amount, account_holding_id")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   await supabase
     .from("expenses")
     .update({
@@ -81,13 +91,33 @@ export async function updateExpense(
     .eq("id", id)
     .eq("user_id", user.id);
 
+  if (existing) {
+    // undo the old debit, then apply the new one — handles amount changes,
+    // switching accounts, or removing/adding the Sumber Dana link
+    await adjustCashBalance(supabase, user.id, existing.account_holding_id, Number(existing.amount));
+  }
+  await adjustCashBalance(supabase, user.id, input.accountHoldingId, -input.amount);
+
   revalidatePath("/app");
   revalidatePath("/app/expenses");
 }
 
 export async function deleteExpense(id: string) {
   const { supabase, user } = await requireUser();
+
+  const { data: existing } = await supabase
+    .from("expenses")
+    .select("amount, account_holding_id")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   await supabase.from("expenses").delete().eq("id", id).eq("user_id", user.id);
+
+  if (existing) {
+    await adjustCashBalance(supabase, user.id, existing.account_holding_id, Number(existing.amount));
+  }
+
   revalidatePath("/app");
   revalidatePath("/app/expenses");
 }

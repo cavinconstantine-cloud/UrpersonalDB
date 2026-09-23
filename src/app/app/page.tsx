@@ -181,7 +181,11 @@ export default async function DashboardPage() {
       <UpcomingInvestmentIncomeCard items={investIncomeItems} />
       <AiInsightCard available={aiAvailable} />
       <MarketNewsCard news={data.marketNews} />
-      <AssetSection assetCats={data.profile.asset_categories} holdings={data.holdings} />
+      <AssetSection
+        assetCats={data.profile.asset_categories}
+        holdings={data.holdings}
+        snapshots={data.assetHoldingSnapshots}
+      />
       <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
       <GoalsPreview goals={data.goals} fcf={cf.fcf} />
       <ExpenseSplitCard slices={expenseSlices} total={monthExpTotal} />

@@ -233,6 +233,74 @@ export function topAssetMovers(
   return movers.sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange)).slice(0, limit);
 }
 
+export interface DailyMovement {
+  currentValue: number;
+  previousValue: number;
+  absChange: number;
+  pctChange: number | null;
+}
+
+/**
+ * Per-holding day-over-day movement: baseline is the latest snapshot
+ * strictly before today (yesterday's close, or whenever tracking last
+ * recorded a value), current is the LIVE holding value rather than
+ * today's snapshot — today's snapshot is written post-response via
+ * `after()`, so it doesn't exist yet when a page renders. Holdings with
+ * no snapshot before today are left out (nothing to compare against yet).
+ */
+export function dailyMovementByHolding(
+  snapshots: AssetSnapshotRow[],
+  liveHoldings: HoldingRowWithId[],
+  today: Date = new Date(),
+): Map<string, DailyMovement> {
+  const cutoffIso = today.toISOString().slice(0, 10);
+  const byHolding = new Map<string, AssetSnapshotRow[]>();
+  for (const s of snapshots) {
+    if (!byHolding.has(s.holdingId)) byHolding.set(s.holdingId, []);
+    byHolding.get(s.holdingId)!.push(s);
+  }
+
+  const result = new Map<string, DailyMovement>();
+  for (const live of liveHoldings) {
+    const rows = byHolding.get(live.id);
+    if (!rows) continue;
+    const before = rows.filter((r) => r.date < cutoffIso).sort((a, b) => a.date.localeCompare(b.date));
+    if (before.length === 0) continue;
+    const previousValue = before[before.length - 1].value;
+    const currentValue = holdingValue(live.category, live.data);
+    const absChange = currentValue - previousValue;
+    const pctChange = previousValue !== 0 ? (absChange / previousValue) * 100 : null;
+    result.set(live.id, { currentValue, previousValue, absChange, pctChange });
+  }
+  return result;
+}
+
+/** Aggregates `dailyMovementByHolding` across every holding in a category — null when none of the category's holdings have a baseline yet. */
+export function categoryDailyMovement(
+  category: string,
+  snapshots: AssetSnapshotRow[],
+  liveHoldings: HoldingRowWithId[],
+  today: Date = new Date(),
+): DailyMovement | null {
+  const byHolding = dailyMovementByHolding(snapshots, liveHoldings, today);
+  const catHoldingIds = new Set(liveHoldings.filter((h) => h.category === category).map((h) => h.id));
+
+  let currentValue = 0;
+  let previousValue = 0;
+  let found = false;
+  for (const [id, movement] of byHolding) {
+    if (!catHoldingIds.has(id)) continue;
+    found = true;
+    currentValue += movement.currentValue;
+    previousValue += movement.previousValue;
+  }
+  if (!found) return null;
+
+  const absChange = currentValue - previousValue;
+  const pctChange = previousValue !== 0 ? (absChange / previousValue) * 100 : null;
+  return { currentValue, previousValue, absChange, pctChange };
+}
+
 export interface CategoryBudget {
   category: string;
   monthlyLimit: number;
