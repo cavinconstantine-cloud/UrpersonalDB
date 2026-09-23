@@ -18,49 +18,41 @@ interface FetchedPrice {
 }
 
 /**
- * Yahoo Finance's public chart endpoint — unofficial (no key, no SLA; the
- * same one the `yfinance` library wraps). It's the only free source that
- * covers IDX .JK tickers and the ^JKSE index, so failures here are expected
- * occasionally: a failed ticker is skipped, not fatal to the whole run.
+ * Yahoo Finance's public quote endpoint — unofficial (no key, no SLA; the
+ * same one the `yfinance` library wraps). Unlike the chart/candle endpoint
+ * (built for rendering charts, not day-over-day change), this one returns
+ * `regularMarketPrice` and `regularMarketPreviousClose` directly — Yahoo
+ * computes "yesterday's close" itself, the same way every finance app does,
+ * so there's no need to infer it from a daily-candle array. Takes a batch
+ * of symbols in one request. A symbol missing from the response (delisted,
+ * no data) is simply absent from the returned map — not fatal to the run.
  */
-async function fetchYahooPrice(symbol: string): Promise<FetchedPrice | null> {
+async function fetchYahooQuotes(symbols: string[]): Promise<Map<string, FetchedPrice>> {
+  const out = new Map<string, FetchedPrice>();
+  if (symbols.length === 0) return out;
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d`;
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`;
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; UangkuBot/1.0)" },
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) return out;
     const json = await res.json();
-    const result = json?.chart?.result?.[0];
-
-    // `meta.chartPreviousClose` is NOT "yesterday's close" — it's the close
-    // from before the whole requested range began, so with range=5d it's
-    // ~6 trading days back. Using it as the daily-change reference silently
-    // computed a multi-day move labeled as a 1-day change. Read the actual
-    // daily closes array instead and take the last two real (non-null) days.
-    const closes: unknown[] = result?.indicators?.quote?.[0]?.close ?? [];
-    const validCloses = closes.filter((c): c is number => typeof c === "number" && Number.isFinite(c));
-    if (validCloses.length === 0) return null;
-
-    const price = validCloses[validCloses.length - 1];
-    const prevClose = validCloses.length >= 2 ? validCloses[validCloses.length - 2] : price;
-    return { ticker: symbol, price, prevClose };
-  } catch {
-    return null;
-  }
-}
-
-/** Runs fetchers with at most `limit` in flight at once — polite to the upstream, bounded runtime. */
-async function fetchWithConcurrency<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
-  let i = 0;
-  async function worker() {
-    while (i < items.length) {
-      const item = items[i++];
-      await fn(item);
+    const quotes: unknown[] = json?.quoteResponse?.result ?? [];
+    for (const q of quotes) {
+      const quote = q as Record<string, unknown>;
+      const symbol = typeof quote.symbol === "string" ? quote.symbol : null;
+      const price = typeof quote.regularMarketPrice === "number" ? quote.regularMarketPrice : null;
+      const prevClose =
+        typeof quote.regularMarketPreviousClose === "number" ? quote.regularMarketPreviousClose : null;
+      if (symbol && price !== null && prevClose !== null) {
+        out.set(symbol, { ticker: symbol, price, prevClose });
+      }
     }
+  } catch {
+    // leave out empty/partial — a failed batch is skipped, not fatal
   }
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
 }
 
 export async function GET(request: Request) {
@@ -84,12 +76,14 @@ export async function GET(request: Request) {
   const isoToday = new Date().toISOString().slice(0, 10);
   const results = new Map<string, FetchedPrice>();
 
-  await fetchWithConcurrency(IDX_TICKERS, 8, async (t) => {
-    const fetched = await fetchYahooPrice(`${t.ticker}.JK`);
-    if (fetched) results.set(t.ticker, fetched);
-  });
+  const symbols = [...IDX_TICKERS.map((t) => `${t.ticker}.JK`), IHSG_TICKER];
+  const quotes = await fetchYahooQuotes(symbols);
 
-  const ihsg = await fetchYahooPrice(IHSG_TICKER);
+  for (const t of IDX_TICKERS) {
+    const fetched = quotes.get(`${t.ticker}.JK`);
+    if (fetched) results.set(t.ticker, { ...fetched, ticker: t.ticker });
+  }
+  const ihsg = quotes.get(IHSG_TICKER) ?? null;
   if (ihsg) results.set(IHSG_TICKER, ihsg);
 
   let upserted = 0;
