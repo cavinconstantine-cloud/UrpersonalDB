@@ -45,42 +45,52 @@ export async function getDashboardData() {
     recurringIncomeRes,
     recurringExpenseRes,
   ] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", user.id).single(),
-    supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
-    supabase.from("asset_holdings").select("*").eq("user_id", user.id).order("created_at"),
-    supabase.from("liabilities").select("*").eq("user_id", user.id),
-    supabase.from("goals").select("*").eq("user_id", user.id).order("created_at"),
+    supabase.from("profiles").select("name, onboarding_step, asset_categories, liability_categories").eq("id", user.id).single(),
+    supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
+    supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id).order("created_at"),
+    supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
+    supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
     supabase
       .from("expenses")
-      .select("*")
+      .select("id, expense_date, category, amount, description")
       .eq("user_id", user.id)
       .gte("expense_date", firstOfMonthIso())
       .order("expense_date", { ascending: false }),
     supabase
       .from("incomes")
-      .select("*")
+      .select("id, income_date, category, amount, description")
       .eq("user_id", user.id)
       .gte("income_date", firstOfMonthIso())
       .order("income_date", { ascending: false }),
-    supabase.from("expenses").select("*").eq("user_id", user.id).order("expense_date", { ascending: false }).limit(8),
-    supabase.from("incomes").select("*").eq("user_id", user.id).order("income_date", { ascending: false }).limit(8),
+    supabase
+      .from("expenses")
+      .select("id, expense_date, category, amount, description")
+      .eq("user_id", user.id)
+      .order("expense_date", { ascending: false })
+      .limit(8),
+    supabase
+      .from("incomes")
+      .select("id, income_date, category, amount, description")
+      .eq("user_id", user.id)
+      .order("income_date", { ascending: false })
+      .limit(8),
     supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
     supabase.from("custom_income_categories").select("name").eq("user_id", user.id),
     supabase
       .from("net_worth_snapshots")
-      .select("*")
+      .select("snapshot_date, net_worth")
       .eq("user_id", user.id)
       .gte("snapshot_date", daysAgoIso(90))
       .order("snapshot_date"),
     supabase
       .from("market_news")
-      .select("*")
+      .select("id, headline, summary, sources, published_at")
       .order("published_at", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(5),
     supabase
       .from("fcf_snapshots")
-      .select("*")
+      .select("snapshot_month, fcf")
       .eq("user_id", user.id)
       .gte("snapshot_month", monthsAgoFirstOfMonthIso(11))
       .order("snapshot_month"),

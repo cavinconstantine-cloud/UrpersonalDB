@@ -81,15 +81,17 @@ export default async function DashboardPage() {
   const expenseSlices = expenseByCategory(monthExpensesMapped);
   const budgetItems = budgetProgress(monthExpensesMapped, data.budgets);
 
-  await recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal);
-  await recordFcfSnapshot(data.user.id, {
-    incomeTotal: cf.incomeTotal,
-    fixedExpense: cf.fixedExpense,
-    lifestyleTotal: cf.lifestyleTotal,
-    invest: cf.invest,
-    fcf: cf.fcf,
-    savingRate: cf.savingRate,
-  });
+  await Promise.all([
+    recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal),
+    recordFcfSnapshot(data.user.id, {
+      incomeTotal: cf.incomeTotal,
+      fixedExpense: cf.fixedExpense,
+      lifestyleTotal: cf.lifestyleTotal,
+      invest: cf.invest,
+      fcf: cf.fcf,
+      savingRate: cf.savingRate,
+    }),
+  ]);
 
   const totalNeed = data.goals.reduce((s, g) => s + goalMonthlyNeed(g), 0);
 
