@@ -27,9 +27,9 @@ export default async function SummaryPage() {
 
   const since = monthsAgoFirstOfMonthIso(12);
 
-  const [cashflowRes, holdingsRes, expRes, incRes, fcfRes] = await Promise.all([
+  const [cashflowRes, holdingsRes, expRes, incRes, fcfRes, assetSnapshotsRes] = await Promise.all([
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
-    supabase.from("asset_holdings").select("category, data").eq("user_id", user.id),
+    supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id),
     supabase
       .from("expenses")
       .select("id, expense_date, category, amount, description")
@@ -48,6 +48,12 @@ export default async function SummaryPage() {
       .eq("user_id", user.id)
       .gte("snapshot_month", since)
       .order("snapshot_month"),
+    supabase
+      .from("asset_holding_snapshots")
+      .select("snapshot_date, holding_id, category, label, value")
+      .eq("user_id", user.id)
+      .gte("snapshot_date", since)
+      .order("snapshot_date"),
   ]);
 
   const expenses: Expense[] = (expRes.data || []).map((e) => ({
@@ -64,7 +70,18 @@ export default async function SummaryPage() {
     amount: Number(i.amount),
     description: i.description,
   }));
-  const holdings = (holdingsRes.data || []).map((h) => ({ category: h.category, data: (h.data as HoldingData) || {} }));
+  const holdings = (holdingsRes.data || []).map((h) => ({
+    id: h.id,
+    category: h.category,
+    data: (h.data as HoldingData) || {},
+  }));
+  const assetSnapshots = (assetSnapshotsRes.data || []).map((s) => ({
+    date: s.snapshot_date,
+    holdingId: s.holding_id,
+    category: s.category,
+    label: s.label,
+    value: Number(s.value),
+  }));
 
   // The current month's fcf_snapshots row can be stale (only refreshed when
   // the Home dashboard is viewed) — recompute it live here, same formula as
@@ -92,7 +109,7 @@ export default async function SummaryPage() {
 
   return (
     <div className="pt-6">
-      <SummaryView expenses={expenses} incomes={incomes} fcfSeries={fcfSeries} />
+      <SummaryView expenses={expenses} incomes={incomes} fcfSeries={fcfSeries} holdings={holdings} assetSnapshots={assetSnapshots} />
     </div>
   );
 }

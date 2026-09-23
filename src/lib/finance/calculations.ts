@@ -140,6 +140,99 @@ export function topTransactions(
   return combined.sort((a, b) => b.amount - a.amount).slice(0, limit);
 }
 
+export interface AssetSnapshotRow {
+  date: string; // "YYYY-MM-DD"
+  holdingId: string;
+  category: string;
+  label: string;
+  value: number;
+}
+
+export interface AssetMover {
+  id: string;
+  category: string;
+  label: string;
+  currentValue: number;
+  baselineValue: number;
+  pctChange: number;
+}
+
+/** Start/end dates for a "YYYY-MM" or "YYYY" period, clamped to `today` when the period is still ongoing. */
+function periodBounds(datePrefix: string, today: Date): { startIso: string; endIso: string; includesLiveToday: boolean } {
+  const toIso = (d: Date) => d.toISOString().slice(0, 10);
+  if (datePrefix.length === 7) {
+    const [y, m] = datePrefix.split("-").map(Number);
+    const start = new Date(y, m - 1, 1);
+    const lastDay = new Date(y, m, 0);
+    const isCurrent = today.getFullYear() === y && today.getMonth() === m - 1;
+    return { startIso: toIso(start), endIso: toIso(isCurrent ? today : lastDay), includesLiveToday: isCurrent };
+  }
+  const y = Number(datePrefix);
+  const isCurrent = today.getFullYear() === y;
+  return {
+    startIso: `${y}-01-01`,
+    endIso: toIso(isCurrent ? today : new Date(y, 11, 31)),
+    includesLiveToday: isCurrent,
+  };
+}
+
+/**
+ * The holdings whose value moved the most (up or down, by %) between the
+ * start of the given period and now — e.g. "which stock/fund grew or
+ * shrank the most this month". Needs a snapshot from before the period
+ * (the baseline) to compute a % against; holdings without one (tracking
+ * hasn't started yet, or too new) are left out rather than guessed at.
+ * The current-period end uses the live holding value when the period is
+ * still ongoing (this month/year), falling back to the latest in-period
+ * snapshot for a period that's already over.
+ */
+export function topAssetMovers(
+  snapshots: AssetSnapshotRow[],
+  liveHoldings: HoldingRowWithId[],
+  datePrefix: string,
+  today: Date = new Date(),
+  limit = 3,
+): AssetMover[] {
+  const { startIso, endIso, includesLiveToday } = periodBounds(datePrefix, today);
+  const liveById = new Map(liveHoldings.map((h) => [h.id, h]));
+
+  const byHolding = new Map<string, AssetSnapshotRow[]>();
+  for (const s of snapshots) {
+    if (!byHolding.has(s.holdingId)) byHolding.set(s.holdingId, []);
+    byHolding.get(s.holdingId)!.push(s);
+  }
+
+  const movers: AssetMover[] = [];
+  for (const [holdingId, rows] of byHolding) {
+    const sorted = [...rows].sort((a, b) => a.date.localeCompare(b.date));
+    const before = sorted.filter((r) => r.date < startIso);
+    const baseline = before.length > 0 ? before[before.length - 1] : null;
+    if (!baseline || baseline.value <= 0) continue;
+
+    let currentValue: number;
+    let category: string;
+    let label: string;
+    const live = liveById.get(holdingId);
+    if (includesLiveToday && live) {
+      currentValue = holdingValue(live.category, live.data);
+      category = live.category;
+      label = typeof live.data.label === "string" && live.data.label ? live.data.label : live.category;
+    } else {
+      const withinPeriod = sorted.filter((r) => r.date >= startIso && r.date <= endIso);
+      if (withinPeriod.length === 0) continue;
+      const latest = withinPeriod[withinPeriod.length - 1];
+      currentValue = latest.value;
+      category = latest.category;
+      label = latest.label || latest.category;
+    }
+
+    const pctChange = ((currentValue - baseline.value) / baseline.value) * 100;
+    movers.push({ id: holdingId, category, label, currentValue, baselineValue: baseline.value, pctChange });
+  }
+
+  return movers.sort((a, b) => Math.abs(b.pctChange) - Math.abs(a.pctChange)).slice(0, limit);
+}
+
 export interface CategoryBudget {
   category: string;
   monthlyLimit: number;

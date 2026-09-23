@@ -10,10 +10,14 @@ import {
   expenseByCategory,
   expenseByCategoryForYear,
   topTransactions,
+  topAssetMovers,
+  type AssetMover,
+  type AssetSnapshotRow,
   type ExpenseCategorySlice,
+  type HoldingRowWithId,
   type TopTransaction,
 } from "@/lib/finance/calculations";
-import { expenseCatColorVar, expenseCatIcon, incomeCatColorVar, incomeCatIcon } from "@/lib/finance/constants";
+import { catColorVar, catIcon, expenseCatColorVar, expenseCatIcon, incomeCatColorVar, incomeCatIcon } from "@/lib/finance/constants";
 import { fmtRp } from "@/lib/finance/format";
 import type { Expense, Income } from "@/lib/finance/types";
 
@@ -116,12 +120,17 @@ function buildShareText(args: {
   fcfValue: number;
   expenseSlices: ExpenseCategorySlice[];
   topTx: TopTransaction[];
+  assetMovers: AssetMover[];
 }): string {
-  const { periodLabel, fcfValue, expenseSlices, topTx } = args;
+  const { periodLabel, fcfValue, expenseSlices, topTx, assetMovers } = args;
   const lines = [`Ringkasan keuangan — ${periodLabel}`, `Free Cash Flow: ${fmtRp(fcfValue)}`];
   if (expenseSlices.length > 0) {
     lines.push("", "Pengeluaran terbesar:");
     for (const s of expenseSlices.slice(0, 3)) lines.push(`- ${s.category}: ${fmtRp(s.amount)} (${Math.round(s.pct)}%)`);
+  }
+  if (assetMovers.length > 0) {
+    lines.push("", "Aset paling bergerak:");
+    for (const m of assetMovers) lines.push(`- ${m.label} (${m.category}): ${m.pctChange >= 0 ? "+" : ""}${Math.round(m.pctChange)}%`);
   }
   if (topTx.length > 0) {
     lines.push("", "Top transaksi:");
@@ -134,10 +143,14 @@ export function SummaryView({
   expenses,
   incomes,
   fcfSeries,
+  holdings,
+  assetSnapshots,
 }: {
   expenses: Expense[];
   incomes: Income[];
   fcfSeries: FcfPoint[];
+  holdings: HoldingRowWithId[];
+  assetSnapshots: AssetSnapshotRow[];
 }) {
   const [mode, setMode] = useState<Mode>("monthly");
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
@@ -188,6 +201,7 @@ export function SummaryView({
   const topCategory = expenseSlices[0] ?? null;
 
   const topTx = topTransactions(expenses, incomes, periodPrefix, 3);
+  const assetMovers = topAssetMovers(assetSnapshots, holdings, periodPrefix, new Date(), 3);
 
   const insight = buildInsightText({
     delta,
@@ -200,7 +214,7 @@ export function SummaryView({
   });
 
   async function handleShare() {
-    const text = buildShareText({ periodLabel, fcfValue, expenseSlices, topTx });
+    const text = buildShareText({ periodLabel, fcfValue, expenseSlices, topTx, assetMovers });
     if (typeof navigator !== "undefined" && "share" in navigator) {
       try {
         await navigator.share({ title: "Uangku — Summary", text });
@@ -287,6 +301,43 @@ export function SummaryView({
       </div>
 
       <ExpenseSplitCard slices={expenseSlices} total={expenseSlices.reduce((s, e) => s + e.amount, 0)} title="📊 Pengeluaran Terbesar" />
+
+      <SectionCard title="🚀 Top 3 Aset Bergerak">
+        {assetMovers.length === 0 ? (
+          <div className="text-sm text-text-dim py-2 pb-4">
+            Belum ada data pergerakan aset untuk periode ini — akan muncul setelah ada riwayat nilai dari bulan sebelumnya.
+          </div>
+        ) : (
+          assetMovers.map((m) => {
+            const up = m.pctChange >= 0;
+            return (
+              <div
+                key={m.id}
+                className="flex items-center justify-between gap-3 py-[11px] border-b border-hairline last:border-b-0 text-sm"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-base shrink-0"
+                    style={{ background: `color-mix(in srgb, ${catColorVar(m.category)} 16%, transparent)` }}
+                  >
+                    {catIcon(m.category)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="truncate">{m.label}</div>
+                    <div className="text-xs text-text-dim">{m.category}</div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-medium" style={{ color: up ? "var(--good)" : "var(--critical)" }}>
+                    {up ? "▲" : "▼"} {Math.abs(Math.round(m.pctChange))}%
+                  </div>
+                  <div className="text-xs text-text-dim">{fmtRp(m.currentValue)}</div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </SectionCard>
 
       <SectionCard title="🏆 Top 3 Transaksi">
         {topTx.length === 0 ? (
