@@ -104,7 +104,26 @@ Jangan menyebut nama produk investasi atau saham tertentu — cukup arahan umum 
 
     if (!text) return { ok: false, error: "AI tidak menghasilkan jawaban. Coba lagi." };
     return { ok: true, text };
-  } catch {
+  } catch (err) {
+    console.error("generateAiInsight: Anthropic call failed:", err);
+    if (err instanceof Anthropic.AuthenticationError) {
+      return { ok: false, error: "ANTHROPIC_API_KEY tidak valid — cek kembali key-nya di Vercel." };
+    }
+    if (err instanceof Anthropic.PermissionDeniedError) {
+      return {
+        ok: false,
+        error: "Akun Anthropic belum punya akses ke model ini, atau billing/credit belum aktif di console.anthropic.com.",
+      };
+    }
+    if (err instanceof Anthropic.RateLimitError) {
+      return { ok: false, error: "Terlalu banyak request ke AI sekaligus. Tunggu sebentar lalu coba lagi." };
+    }
+    if (err instanceof Anthropic.BadRequestError) {
+      return { ok: false, error: `Ditolak Claude API: ${err.message}` };
+    }
+    if (err instanceof Error) {
+      return { ok: false, error: `Terjadi kendala saat menganalisa: ${err.message}` };
+    }
     return { ok: false, error: "Terjadi kendala saat menganalisa. Coba lagi sebentar lagi." };
   }
 }
