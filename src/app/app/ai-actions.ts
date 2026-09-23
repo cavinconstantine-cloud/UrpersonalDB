@@ -5,6 +5,7 @@ import { getFinancialSnapshotData } from "@/lib/data/dashboard";
 import {
   cashflowNums,
   computeDBR,
+  investmentIncomeMonthly,
   liquidAssets,
   monthExpenseTotal,
   monthIncomeTotal,
@@ -35,6 +36,7 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
   const monthIncomeTracked = monthIncomeTotal(
     data.monthIncomes.map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),
   );
+  const investIncomeMonthly = investmentIncomeMonthly(data.holdings);
 
   const cf = cashflowNums(
     {
@@ -46,7 +48,7 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
     monthExpenseTotal(
       data.monthExpenses.map((e) => ({ id: e.id, date: e.expense_date, category: e.category, amount: e.amount, description: e.description })),
     ),
-    monthIncomeTracked,
+    monthIncomeTracked + investIncomeMonthly,
   );
   const dbr = computeDBR(cf, data.liabilities);
   const totalAssetsVal = totalAssets(data.profile.asset_categories, data.holdings);

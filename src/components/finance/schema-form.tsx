@@ -3,6 +3,7 @@
 import { TextField, SelectField } from "@/components/ui/field";
 import { NumberField } from "@/components/ui/number-field";
 import { KURS_REF } from "@/lib/finance/constants";
+import { sanitizeDecimalInput } from "@/lib/finance/format";
 import type { HoldingData, SchemaField } from "@/lib/finance/types";
 
 interface SchemaFormProps {
@@ -48,12 +49,12 @@ export function SchemaForm({ fields, values, onChange, noteText }: SchemaFormPro
           <div key={f.key}>
             <TextField
               label={f.label}
-              type={f.type}
-              inputMode={f.type === "number" ? "decimal" : undefined}
+              type={f.decimal ? "text" : f.type}
+              inputMode={f.type === "number" || f.decimal ? "decimal" : undefined}
               step={f.step}
               placeholder={f.placeholder}
               value={String(val)}
-              onChange={(e) => onChange(f.key, e.target.value)}
+              onChange={(e) => onChange(f.key, f.decimal ? sanitizeDecimalInput(e.target.value) : e.target.value)}
             />
             {showKursHint && (f.key === "rate" || f.key === "fxRate") && currency !== "IDR" && kursRef ? (
               <div className="-mt-3 mb-4 text-xs text-text-dim leading-relaxed">

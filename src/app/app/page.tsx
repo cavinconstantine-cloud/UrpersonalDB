@@ -13,6 +13,7 @@ import {
   computeDBR,
   expenseByCategory,
   goalMonthlyNeed,
+  investmentIncomeMonthly,
   liquidAssets,
   monthExpenseTotal,
   monthIncomeTotal,
@@ -20,6 +21,7 @@ import {
   totalAssets,
   totalLiabilities,
   upcomingInstallments,
+  upcomingInvestmentIncome,
 } from "@/lib/finance/calculations";
 import { fmtRp } from "@/lib/finance/format";
 import { HeroCard } from "@/components/dashboard/hero-card";
@@ -34,6 +36,7 @@ import { LiabilitySection } from "@/components/dashboard/liability-section";
 import { GoalsPreview } from "@/components/dashboard/goals-preview";
 import { TransactionsPreview } from "@/components/dashboard/transactions-preview";
 import { UpcomingBillingCard } from "@/components/dashboard/upcoming-billing-card";
+import { UpcomingInvestmentIncomeCard } from "@/components/dashboard/upcoming-investment-income-card";
 import { FcfTrend } from "@/components/dashboard/fcf-trend";
 import { MarketNewsCard } from "@/components/dashboard/market-news-card";
 import { ExpenseSplitCard } from "@/components/dashboard/expense-split-card";
@@ -66,6 +69,7 @@ export default async function DashboardPage() {
   }));
   const monthExpTotal = monthExpenseTotal(monthExpensesMapped);
   const monthIncTotal = monthIncomeTotal(monthIncomesMapped);
+  const investIncomeMonthly = investmentIncomeMonthly(data.holdings);
 
   const cf = cashflowNums(
     {
@@ -75,7 +79,7 @@ export default async function DashboardPage() {
       invest: Number(data.cashflow.invest),
     },
     monthExpTotal,
-    monthIncTotal,
+    monthIncTotal + investIncomeMonthly,
   );
   const dbr = computeDBR(cf, data.liabilities);
   const totalAssetsVal = totalAssets(data.profile.asset_categories, data.holdings);
@@ -84,6 +88,7 @@ export default async function DashboardPage() {
   const liquidAssetsVal = liquidAssets(data.holdings);
   const dailyRecap = computeDailyRecap(monthExpensesMapped, monthIncomesMapped);
   const installments = upcomingInstallments(data.liabilities);
+  const investIncomeItems = upcomingInvestmentIncome(data.holdings);
   const expenseSlices = expenseByCategory(monthExpensesMapped);
   const budgetItems = budgetProgress(monthExpensesMapped, data.budgets);
 
@@ -163,6 +168,7 @@ export default async function DashboardPage() {
       />
       <DbrCard dbr={dbr} hasFixedExpense={cf.fixedExpense > 0} />
       <UpcomingBillingCard installments={installments} />
+      <UpcomingInvestmentIncomeCard items={investIncomeItems} />
       <AiInsightCard available={aiAvailable} />
       <MarketNewsCard news={data.marketNews} />
       <AssetSection assetCats={data.profile.asset_categories} holdings={data.holdings} />

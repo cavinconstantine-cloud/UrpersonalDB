@@ -1,9 +1,10 @@
 import { CURRENCIES, KURS_REF, STOCK_LOT_SIZE } from "./constants";
-import { fmtRp } from "./format";
+import { fmtRp, parseDecimal } from "./format";
 import type { AssetSchema, HoldingData, LiabilitySchema } from "./types";
 
+/** Tolerant of "," as a decimal separator (6,75), not just "." (6.75). */
 function num(h: HoldingData, key: string): number {
-  return Number(h[key]) || 0;
+  return parseDecimal(h[key] as string | number | undefined);
 }
 function str(h: HoldingData, key: string): string {
   return typeof h[key] === "string" ? (h[key] as string) : "";
@@ -53,6 +54,109 @@ function fxEquivNote(nativeTotal: number, h: HoldingData, rateKey = "rate"): str
   return line;
 }
 
+// Final-tax rates on deposit interest / bond coupons for domestic taxpayers —
+// PP 123/2015 (deposito, 20%) and PP 91/2021 (obligasi, 10%, unified across
+// government and OJK-listed corporate bonds since 30 Aug 2021).
+export const DEPOSITO_TAX_RATE = 0.2;
+export const OBLIGASI_TAX_RATE = 0.1;
+
+const INTEREST_PAYOUT_OPTIONS = [
+  { value: "monthly", label: "Bulanan" },
+  { value: "maturity", label: "Saat jatuh tempo" },
+];
+const COUPON_FREQ_OPTIONS = [
+  { value: "1", label: "Bulanan" },
+  { value: "3", label: "3 Bulan" },
+  { value: "6", label: "6 Bulan" },
+  { value: "12", label: "12 Bulan" },
+];
+const INCLUDE_IN_CASHFLOW_FIELD = {
+  key: "includeInCashflow",
+  label: "Masukkan ke Arus Kas Tetap?",
+  type: "select" as const,
+  options: [
+    { value: "true", label: "Ya" },
+    { value: "false", label: "Tidak" },
+  ],
+  default: "true",
+};
+
+/** Default true — absent/anything but the literal string "false" counts as included. */
+export function isIncludedInCashflow(h: HoldingData): boolean {
+  return h.includeInCashflow !== "false";
+}
+
+/** Net (after 20% final tax) deposit interest, averaged per month regardless of payout schedule. */
+export function depositoNetInterestMonthly(h: HoldingData): number {
+  const principal = num(h, "amount") * depositoFxRate(h);
+  const rate = num(h, "rate");
+  const grossMonthly = (principal * (rate / 100)) / 12;
+  return grossMonthly * (1 - DEPOSITO_TAX_RATE);
+}
+
+/** Net (after 10% final tax) bond coupon, averaged per month regardless of payout frequency. */
+export function obligasiNetCouponMonthly(h: HoldingData): number {
+  const principal = num(h, "nominal") * fxRate(h);
+  const coupon = num(h, "coupon");
+  const grossMonthly = (principal * (coupon / 100)) / 12;
+  return grossMonthly * (1 - OBLIGASI_TAX_RATE);
+}
+
+/**
+ * Day-of-month (1-31) the deposit pays interest this month, or null if it doesn't pay this month.
+ * "monthly" payout recurs every month on `startDate`'s day; "maturity" payout only lands the month
+ * the deposit actually matures (startDate + tenor).
+ */
+export function depositoPayoutDayThisMonth(h: HoldingData, today: Date = new Date()): number | null {
+  const startDateStr = str(h, "startDate");
+  if (!startDateStr) return null;
+  const startDate = new Date(startDateStr);
+  if (isNaN(startDate.getTime())) return null;
+  if (h.interestPayout !== "maturity") {
+    return startDate.getDate();
+  }
+  const tenor = num(h, "tenor");
+  if (!tenor) return null;
+  const maturity = new Date(startDate);
+  maturity.setMonth(maturity.getMonth() + tenor);
+  if (maturity.getFullYear() === today.getFullYear() && maturity.getMonth() === today.getMonth()) {
+    return maturity.getDate();
+  }
+  return null;
+}
+
+/** Net interest paid out this month — the monthly average if paid monthly, or the full accrued interest if paid at maturity. */
+export function depositoPayoutAmountThisMonth(h: HoldingData): number {
+  if (h.interestPayout === "maturity") {
+    const principal = num(h, "amount") * depositoFxRate(h);
+    const rate = num(h, "rate");
+    const tenor = num(h, "tenor");
+    const grossTotal = principal * (rate / 100) * (tenor / 12);
+    return grossTotal * (1 - DEPOSITO_TAX_RATE);
+  }
+  return depositoNetInterestMonthly(h);
+}
+
+/** Day-of-month (1-31) the bond pays a coupon this month, counting back from `maturityDate` in `couponFreq` steps — or null. */
+export function obligasiPayoutDayThisMonth(h: HoldingData, today: Date = new Date()): number | null {
+  const maturityStr = str(h, "maturityDate");
+  if (!maturityStr) return null;
+  const maturity = new Date(maturityStr);
+  if (isNaN(maturity.getTime())) return null;
+  const freq = num(h, "couponFreq") || 6;
+  const maturityIdx = maturity.getFullYear() * 12 + maturity.getMonth();
+  const todayIdx = today.getFullYear() * 12 + today.getMonth();
+  const diff = maturityIdx - todayIdx;
+  if (diff < 0 || diff % freq !== 0) return null;
+  return maturity.getDate();
+}
+
+/** Net coupon amount for the payout landing this month — monthly-average coupon x the payout frequency (months). */
+export function obligasiPayoutAmountThisMonth(h: HoldingData): number {
+  const freq = num(h, "couponFreq") || 6;
+  return obligasiNetCouponMonthly(h) * freq;
+}
+
 export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   Cash: {
     fields: [
@@ -69,9 +173,17 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
       { key: "label", label: "Bank / nama deposito", type: "text", placeholder: "mis. Deposito BCA" },
       CURRENCY_FIELD,
       { key: "amount", label: "Nominal (sesuai mata uang di atas)", type: "number", grouped: true },
-      { key: "rate", label: "Bunga (% p.a.)", type: "number", step: "any", placeholder: "mis. 4.75" },
+      { key: "rate", label: "Bunga (% p.a.)", type: "text", decimal: true, placeholder: "mis. 4,75" },
       { key: "tenor", label: "Tenor (bulan)", type: "number" },
       { key: "startDate", label: "Tanggal mulai", type: "date" },
+      {
+        key: "interestPayout",
+        label: "Bunga dibayarkan per",
+        type: "select",
+        options: INTEREST_PAYOUT_OPTIONS,
+        default: "monthly",
+      },
+      INCLUDE_IN_CASHFLOW_FIELD,
       { ...RATE_FIELD, key: "fxRate", label: "Kurs ke IDR (isi jika bukan Rupiah)" },
     ],
     value: (h) => num(h, "amount") * depositoFxRate(h),
@@ -80,6 +192,7 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
       const bunga = num(h, "rate");
       const tenor = num(h, "tenor");
       const interest = amt * (bunga / 100) * (tenor / 12) * depositoFxRate(h);
+      const netMonthly = depositoNetInterestMonthly(h);
       let maturity = "";
       const startDate = str(h, "startDate");
       if (startDate && tenor) {
@@ -87,7 +200,10 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
         d.setMonth(d.getMonth() + tenor);
         maturity = d.toISOString().slice(0, 10);
       }
-      const parts = [`Estimasi bunga ${fmtRp(interest)}${maturity ? " · jatuh tempo " + maturity : ""}`];
+      const parts = [
+        `Estimasi bunga ${fmtRp(interest)}${maturity ? " · jatuh tempo " + maturity : ""}`,
+        `bersih ${fmtRp(netMonthly)}/bln setelah pajak final ${DEPOSITO_TAX_RATE * 100}%`,
+      ];
       const fx = fxEquivNote(amt, h, "fxRate");
       if (fx) parts.push(fx);
       return parts.join(" · ");
@@ -115,8 +231,16 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
       { key: "nominal", label: "Nominal beli (sesuai mata uang di atas)", type: "number", grouped: true },
       { key: "buyPrice", label: "Harga beli (% dari nominal)", type: "number" },
       { key: "curPrice", label: "Harga sekarang (% dari nominal)", type: "number" },
-      { key: "coupon", label: "Kupon (% p.a.)", type: "number", step: "any", placeholder: "mis. 6.25" },
+      { key: "coupon", label: "Kupon (% p.a.)", type: "text", decimal: true, placeholder: "mis. 6,25" },
+      {
+        key: "couponFreq",
+        label: "Kupon dibayarkan per",
+        type: "select",
+        options: COUPON_FREQ_OPTIONS,
+        default: "6",
+      },
       { key: "maturityDate", label: "Tanggal jatuh tempo", type: "date" },
+      INCLUDE_IN_CASHFLOW_FIELD,
       RATE_FIELD,
     ],
     value: (h) => ((num(h, "nominal") * num(h, "curPrice")) / 100) * fxRate(h),
@@ -125,8 +249,12 @@ export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
       const nominal = num(h, "nominal");
       const coupon = num(h, "coupon");
       const annualCoupon = nominal * (coupon / 100) * fxRate(h);
+      const netMonthly = obligasiNetCouponMonthly(h);
       const parts: string[] = [];
-      if (coupon) parts.push(`Proyeksi kupon ${fmtRp(annualCoupon)}/tahun (${coupon}%)`);
+      if (coupon) {
+        parts.push(`Proyeksi kupon ${fmtRp(annualCoupon)}/tahun (${coupon}%)`);
+        parts.push(`bersih ${fmtRp(netMonthly)}/bln setelah pajak final ${OBLIGASI_TAX_RATE * 100}%`);
+      }
       const maturityDate = str(h, "maturityDate");
       if (maturityDate) parts.push(`jatuh tempo ${maturityDate}`);
       const fx = fxEquivNote((nominal * num(h, "curPrice")) / 100, h);

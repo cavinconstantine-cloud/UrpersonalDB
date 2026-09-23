@@ -1,4 +1,15 @@
-import { ASSET_SCHEMAS, LIAB_SCHEMAS, liabValue } from "./schemas";
+import {
+  ASSET_SCHEMAS,
+  LIAB_SCHEMAS,
+  liabValue,
+  isIncludedInCashflow,
+  depositoNetInterestMonthly,
+  obligasiNetCouponMonthly,
+  depositoPayoutDayThisMonth,
+  depositoPayoutAmountThisMonth,
+  obligasiPayoutDayThisMonth,
+  obligasiPayoutAmountThisMonth,
+} from "./schemas";
 import { currentYm, todayIso } from "./format";
 import type { CashflowInputs, Expense, Goal, HoldingData, Income } from "./types";
 
@@ -10,6 +21,9 @@ export interface HoldingRow {
   category: string;
   data: HoldingData;
 }
+
+/** A holding row with its id — used wherever a result needs to key/link back to the specific holding. */
+export type HoldingRowWithId = HoldingRow & { id: string };
 
 export function catValue(cat: string, holdings: HoldingRow[]): number {
   const schema = ASSET_SCHEMAS[cat];
@@ -215,6 +229,62 @@ export function daysUntilBilling(billingDay: number, today: Date = new Date()): 
   }
   const daysUntil = Math.round((candidate.getTime() - base.getTime()) / 86400000);
   return { daysUntil, dueDate: candidate.toISOString().slice(0, 10) };
+}
+
+/** Net-of-tax monthly interest (Deposito) + coupon (Obligasi) income, for holdings flagged to include in cashflow. */
+export function investmentIncomeMonthly(holdings: HoldingRow[]): number {
+  let total = 0;
+  for (const h of holdings) {
+    if (!isIncludedInCashflow(h.data)) continue;
+    if (h.category === "Deposito") total += depositoNetInterestMonthly(h.data);
+    else if (h.category === "Obligasi") total += obligasiNetCouponMonthly(h.data);
+  }
+  return total;
+}
+
+export interface UpcomingInvestmentIncome {
+  id: string;
+  category: string;
+  label: string;
+  day: number;
+  daysUntil: number;
+  amount: number;
+}
+
+/** Deposito interest / Obligasi coupon payouts landing within the current calendar month (today or later), nearest first. */
+export function upcomingInvestmentIncome(
+  holdings: LiabilityHoldingRow[],
+  today: Date = new Date(),
+): UpcomingInvestmentIncome[] {
+  const result: UpcomingInvestmentIncome[] = [];
+  const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  for (const h of holdings) {
+    if (!isIncludedInCashflow(h.data)) continue;
+    let day: number | null = null;
+    let amount = 0;
+    if (h.category === "Deposito") {
+      day = depositoPayoutDayThisMonth(h.data, today);
+      amount = depositoPayoutAmountThisMonth(h.data);
+    } else if (h.category === "Obligasi") {
+      day = obligasiPayoutDayThisMonth(h.data, today);
+      amount = obligasiPayoutAmountThisMonth(h.data);
+    } else {
+      continue;
+    }
+    if (day == null || amount <= 0) continue;
+    const candidate = new Date(today.getFullYear(), today.getMonth(), day);
+    if (candidate < base) continue;
+    const daysUntil = Math.round((candidate.getTime() - base.getTime()) / 86400000);
+    result.push({
+      id: h.id,
+      category: h.category,
+      label: typeof h.data.label === "string" && h.data.label ? h.data.label : h.category,
+      day,
+      daysUntil,
+      amount,
+    });
+  }
+  return result.sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
 /** Liabilities with a billingDay set, sorted by nearest due date first. */
