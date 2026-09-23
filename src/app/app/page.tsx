@@ -20,6 +20,7 @@ import {
   netWorth,
   totalAssets,
   totalLiabilities,
+  upcomingGoalMaturities,
   upcomingInstallments,
   upcomingInvestmentIncome,
 } from "@/lib/finance/calculations";
@@ -37,6 +38,7 @@ import { GoalsPreview } from "@/components/dashboard/goals-preview";
 import { TransactionsPreview } from "@/components/dashboard/transactions-preview";
 import { UpcomingBillingCard } from "@/components/dashboard/upcoming-billing-card";
 import { UpcomingInvestmentIncomeCard } from "@/components/dashboard/upcoming-investment-income-card";
+import { GoalMaturityCard } from "@/components/dashboard/goal-maturity-card";
 import { FcfTrend } from "@/components/dashboard/fcf-trend";
 import { MarketNewsCard } from "@/components/dashboard/market-news-card";
 import { ExpenseSplitCard } from "@/components/dashboard/expense-split-card";
@@ -91,6 +93,8 @@ export default async function DashboardPage() {
   const investIncomeItems = upcomingInvestmentIncome(data.holdings);
   const expenseSlices = expenseByCategory(monthExpensesMapped);
   const budgetItems = budgetProgress(monthExpensesMapped, data.budgets);
+  const goalMaturities = upcomingGoalMaturities(data.holdings);
+  const goalNameById = new Map(data.goals.map((g) => [g.id, g.name] as const));
 
   // Deferred to run after the response is sent — this bookkeeping (net
   // worth / FCF / per-holding history) has no bearing on what's rendered,
@@ -179,6 +183,7 @@ export default async function DashboardPage() {
       <DbrCard dbr={dbr} hasFixedExpense={cf.fixedExpense > 0} />
       <UpcomingBillingCard installments={installments} />
       <UpcomingInvestmentIncomeCard items={investIncomeItems} />
+      <GoalMaturityCard items={goalMaturities} goalNameById={goalNameById} />
       <AiInsightCard available={aiAvailable} />
       <MarketNewsCard news={data.marketNews} />
       <AssetSection

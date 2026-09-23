@@ -13,17 +13,25 @@ async function requireUser() {
   return { supabase, user };
 }
 
-export async function addHolding(category: string, data: HoldingData) {
+export async function addHolding(category: string, data: HoldingData, goalId?: string | null) {
   const { supabase, user } = await requireUser();
-  await supabase.from("asset_holdings").insert({ user_id: user.id, category, data: holdingDataToJson(data) });
+  await supabase
+    .from("asset_holdings")
+    .insert({ user_id: user.id, category, data: holdingDataToJson(data), goal_id: goalId ?? null });
   revalidatePath("/app");
+  revalidatePath("/app/goals");
   revalidatePath(`/app/assets/${category}`);
 }
 
-export async function updateHolding(id: string, data: HoldingData) {
+export async function updateHolding(id: string, data: HoldingData, goalId?: string | null) {
   const { supabase, user } = await requireUser();
-  await supabase.from("asset_holdings").update({ data: holdingDataToJson(data) }).eq("id", id).eq("user_id", user.id);
+  await supabase
+    .from("asset_holdings")
+    .update({ data: holdingDataToJson(data), goal_id: goalId ?? null })
+    .eq("id", id)
+    .eq("user_id", user.id);
   revalidatePath("/app");
+  revalidatePath("/app/goals");
   revalidatePath("/app/assets");
 }
 

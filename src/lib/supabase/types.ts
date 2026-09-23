@@ -106,6 +106,7 @@ export interface Database {
           user_id: string;
           category: string;
           data: Json;
+          goal_id: string | null;
           created_at: string;
           updated_at: string;
         },
@@ -114,6 +115,7 @@ export interface Database {
           user_id: string;
           category: string;
           data: Json;
+          goal_id: string | null;
           created_at: string;
           updated_at: string;
         }> & { user_id: string; category: string }
@@ -275,6 +277,38 @@ export interface Database {
           created_at: string;
           updated_at: string;
         }> & { user_id: string; snapshot_date: string; holding_id: string }
+      >;
+      goal_interest_credits: Table<
+        {
+          id: string;
+          user_id: string;
+          goal_id: string;
+          holding_id: string;
+          credit_date: string;
+          amount: number;
+          created_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          goal_id: string;
+          holding_id: string;
+          credit_date: string;
+          amount: number;
+          created_at: string;
+        }> & { user_id: string; goal_id: string; holding_id: string }
+      >;
+      goal_maturity_reminders_sent: Table<
+        {
+          holding_id: string;
+          sent_date: string;
+          created_at: string;
+        },
+        Partial<{
+          holding_id: string;
+          sent_date: string;
+          created_at: string;
+        }> & { holding_id: string }
       >;
       fcf_snapshots: Table<
         {

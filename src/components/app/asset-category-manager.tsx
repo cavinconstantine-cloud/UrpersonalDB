@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { HoldingModal } from "@/components/finance/holding-modal";
+import { HoldingModal, type GoalOption } from "@/components/finance/holding-modal";
 import { Button } from "@/components/ui/button";
 import { MovementBadge } from "@/components/ui/movement-badge";
 import { ASSET_SCHEMAS } from "@/lib/finance/schemas";
+import { GOAL_LINKABLE_CATS } from "@/lib/finance/constants";
 import { fmtRp } from "@/lib/finance/format";
 import { addHolding, updateHolding, deleteHolding, removeAssetCategory } from "@/app/app/assets/actions";
 import { categoryDailyMovement, dailyMovementByHolding, type AssetSnapshotRow } from "@/lib/finance/calculations";
@@ -14,21 +15,26 @@ import type { HoldingData } from "@/lib/finance/types";
 interface Holding {
   id: string;
   data: HoldingData;
+  goalId?: string | null;
 }
 
 export function AssetCategoryManager({
   category,
   holdings,
   snapshots = [],
+  goals = [],
 }: {
   category: string;
   holdings: Holding[];
   snapshots?: AssetSnapshotRow[];
+  goals?: GoalOption[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [modal, setModal] = useState<{ open: boolean; holding?: Holding }>({ open: false });
   const schema = ASSET_SCHEMAS[category];
+  const linkable = (GOAL_LINKABLE_CATS as readonly string[]).includes(category);
+  const goalById = new Map(goals.map((g) => [g.id, g.name] as const));
 
   const total = holdings.reduce((s, h) => s + schema.value(h.data), 0);
   const buyTotal = schema.buyValue ? holdings.reduce((s, h) => s + schema.buyValue!(h.data), 0) : null;
@@ -38,10 +44,10 @@ export function AssetCategoryManager({
   const totalMovement = categoryDailyMovement(category, snapshots, holdingsWithCategory);
   const movementByHolding = dailyMovementByHolding(snapshots, holdingsWithCategory);
 
-  function save(data: HoldingData) {
+  function save(data: HoldingData, goalId: string | null) {
     startTransition(async () => {
-      if (modal.holding) await updateHolding(modal.holding.id, data);
-      else await addHolding(category, data);
+      if (modal.holding) await updateHolding(modal.holding.id, data, goalId);
+      else await addHolding(category, data, goalId);
       router.refresh();
     });
   }
@@ -108,9 +114,14 @@ export function AssetCategoryManager({
                 className="w-full flex items-start justify-between gap-3 py-3 border-b border-hairline text-sm text-left last:border-b-0"
               >
                 <div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {String(h.data.label || category)}
                     <MovementBadge movement={movementByHolding.get(h.id) ?? null} />
+                    {h.goalId && goalById.has(h.goalId) && (
+                      <span className="text-[10px] font-medium text-brand-strong bg-brand/10 rounded-full px-1.5 py-0.5">
+                        🔗 {goalById.get(h.goalId)}
+                      </span>
+                    )}
                   </div>
                   {g !== null && (
                     <div className="text-xs" style={{ color: g >= 0 ? "var(--good)" : "var(--critical)" }}>
@@ -142,6 +153,8 @@ export function AssetCategoryManager({
           note={schema.note}
           onSave={save}
           onDelete={modal.holding ? () => remove(modal.holding!.id) : undefined}
+          goals={linkable ? goals : undefined}
+          initialGoalId={modal.holding?.goalId ?? null}
         />
       )}
     </div>

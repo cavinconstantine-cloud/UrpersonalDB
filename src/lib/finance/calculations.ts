@@ -9,6 +9,7 @@ import {
   depositoPayoutAmountThisMonth,
   obligasiPayoutDayThisMonth,
   obligasiPayoutAmountThisMonth,
+  depositoMaturityDate,
 } from "./schemas";
 import { currentYm, todayIso } from "./format";
 import type { CashflowInputs, Expense, Goal, HoldingData, Income } from "./types";
@@ -402,6 +403,80 @@ export function monthsBetween(a: Date, b: Date): number {
 export function goalMonthlyNeed(g: Pick<Goal, "target" | "current" | "targetDate">): number {
   const months = Math.max(1, monthsBetween(new Date(), new Date(g.targetDate)));
   return Math.max(0, (g.target - g.current) / months);
+}
+
+/** A Cash/Deposito/Obligasi/Reksadana holding, optionally linked to a goal via `goalId`. */
+export type HoldingRowWithGoal = HoldingRowWithId & { goalId: string | null };
+
+/** Live value of every holding linked to `goalId` — the "pokok" (principal) contribution to that goal's progress. */
+export function goalLinkedValue(goalId: string, holdings: HoldingRowWithGoal[]): number {
+  return holdings
+    .filter((h) => h.goalId === goalId)
+    .reduce((s, h) => s + holdingValue(h.category, h.data), 0);
+}
+
+/** Net monthly interest/coupon income from Deposito/Obligasi holdings linked to `goalId` — the "fix income" that gets credited to the goal over time. */
+export function goalMonthlyContributionRate(goalId: string, holdings: HoldingRowWithGoal[]): number {
+  let total = 0;
+  for (const h of holdings) {
+    if (h.goalId !== goalId) continue;
+    if (h.category === "Deposito") total += depositoNetInterestMonthly(h.data);
+    else if (h.category === "Obligasi") total += obligasiNetCouponMonthly(h.data);
+  }
+  return total;
+}
+
+/**
+ * Months until a goal reaches its target at its current linked-interest
+ * pace — null when the goal is already at/past target, or when nothing
+ * with a fixed payout is linked yet (rate <= 0), since projecting from a
+ * zero or negative rate would either divide by zero or never resolve.
+ */
+export function goalProjectionMonths(target: number, currentTotal: number, monthlyRate: number): number | null {
+  const remaining = target - currentTotal;
+  if (remaining <= 0) return 0;
+  if (monthlyRate <= 0) return null;
+  return Math.ceil(remaining / monthlyRate);
+}
+
+export interface UpcomingGoalMaturity {
+  id: string;
+  category: string;
+  label: string;
+  goalId: string;
+  maturityDate: string;
+  daysUntil: number;
+}
+
+/** Goal-linked Deposito/Obligasi holdings maturing within the next `withinDays` (default 7) — nearest first. Used for the "jatuh tempo, akan tercopot dari goal" reminder. */
+export function upcomingGoalMaturities(
+  holdings: HoldingRowWithGoal[],
+  today: Date = new Date(),
+  withinDays = 7,
+): UpcomingGoalMaturity[] {
+  const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const result: UpcomingGoalMaturity[] = [];
+  for (const h of holdings) {
+    if (!h.goalId) continue;
+    let maturityStr: string | null = null;
+    if (h.category === "Deposito") maturityStr = depositoMaturityDate(h.data);
+    else if (h.category === "Obligasi") maturityStr = typeof h.data.maturityDate === "string" ? h.data.maturityDate : null;
+    else continue;
+    if (!maturityStr) continue;
+    const maturity = new Date(maturityStr);
+    if (isNaN(maturity.getTime())) continue;
+    const daysUntil = Math.round((maturity.getTime() - base.getTime()) / 86400000);
+    if (daysUntil < 0 || daysUntil > withinDays) continue;
+    result.push({
+      id: h.id,
+      category: h.category,
+      label: typeof h.data.label === "string" && h.data.label ? h.data.label : h.category,
+      goalId: h.goalId,
+      maturityDate: maturityStr,
+      daysUntil,
+    });
+  }
+  return result.sort((a, b) => a.daysUntil - b.daysUntil);
 }
 
 export function totalMonthlyDebtPayment(liabRows: HoldingRow[]): number {

@@ -24,10 +24,10 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data }, { data: snapshotData }] = await Promise.all([
+  const [{ data }, { data: snapshotData }, { data: goalsData }] = await Promise.all([
     supabase
       .from("asset_holdings")
-      .select("id, data")
+      .select("id, data, goal_id")
       .eq("user_id", user.id)
       .eq("category", category)
       .order("created_at"),
@@ -37,9 +37,14 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       .eq("user_id", user.id)
       .eq("category", category)
       .gte("snapshot_date", daysAgoIso(4)),
+    supabase.from("goals").select("id, name").eq("user_id", user.id).order("created_at"),
   ]);
 
-  const holdings = (data || []).map((h) => ({ id: h.id, data: (h.data as Record<string, string | number>) || {} }));
+  const holdings = (data || []).map((h) => ({
+    id: h.id,
+    data: (h.data as Record<string, string | number>) || {},
+    goalId: h.goal_id,
+  }));
   const snapshots = (snapshotData || []).map((s) => ({
     date: s.snapshot_date,
     holdingId: s.holding_id,
@@ -47,6 +52,7 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
     label: s.label,
     value: Number(s.value),
   }));
+  const goals = goalsData || [];
 
   return (
     <div className="px-5 pt-6">
@@ -59,7 +65,7 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       <p className="text-text-dim text-sm mb-6 leading-relaxed">
         Kamu bisa menambahkan lebih dari satu, mis. beberapa produk sekaligus.
       </p>
-      <AssetCategoryManager category={category} holdings={holdings} snapshots={snapshots} />
+      <AssetCategoryManager category={category} holdings={holdings} snapshots={snapshots} goals={goals} />
     </div>
   );
 }

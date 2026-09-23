@@ -49,7 +49,7 @@ export async function getDashboardData() {
   ] = await Promise.all([
     supabase.from("profiles").select("name, onboarding_step, asset_categories, liability_categories").eq("id", user.id).single(),
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
-    supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id).order("created_at"),
+    supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id).order("created_at"),
     supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
     supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
     supabase
@@ -113,6 +113,7 @@ export async function getDashboardData() {
     id: h.id,
     category: h.category,
     data: (h.data as HoldingData) || {},
+    goalId: h.goal_id,
   }));
   const liabilities = (liabRes.data || []).map((l) => ({
     id: l.id,

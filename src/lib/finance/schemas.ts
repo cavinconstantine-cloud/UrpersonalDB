@@ -102,6 +102,19 @@ export function obligasiNetCouponMonthly(h: HoldingData): number {
   return grossMonthly * (1 - OBLIGASI_TAX_RATE);
 }
 
+/** ISO date ("YYYY-MM-DD") the deposit matures (`startDate` + `tenor` months), or null if either is missing/invalid. */
+export function depositoMaturityDate(h: HoldingData): string | null {
+  const startDateStr = str(h, "startDate");
+  if (!startDateStr) return null;
+  const startDate = new Date(startDateStr);
+  if (isNaN(startDate.getTime())) return null;
+  const tenor = num(h, "tenor");
+  if (!tenor) return null;
+  const maturity = new Date(startDate);
+  maturity.setMonth(maturity.getMonth() + tenor);
+  return maturity.toISOString().slice(0, 10);
+}
+
 /**
  * Day-of-month (1-31) the deposit pays interest this month, or null if it doesn't pay this month.
  * "monthly" payout recurs every month on `startDate`'s day; "maturity" payout only lands the month

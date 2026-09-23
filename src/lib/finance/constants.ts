@@ -12,6 +12,9 @@ export const ASSET_CATS = [
   "Bisnis / Investasi Pribadi",
 ] as const;
 
+/** Asset categories a holding can be linked to a Goal from — Cash/Deposito/Obligasi have a stable/near-cash value or a fixed payout that makes goal progress meaningful; Reksadana's market value counts too, just with no fixed-income credit. */
+export const GOAL_LINKABLE_CATS = ["Cash", "Deposito", "Obligasi", "Reksadana"] as const;
+
 export const LIAB_CATS = ["KPR", "Kartu Kredit", "Pinjaman Lainnya"] as const;
 
 export const EXPENSE_CATS = [
