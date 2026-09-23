@@ -117,7 +117,13 @@ export async function extractReceipt(base64: string, mediaType: string): Promise
       return { ok: false, imagePath: path, error: "Terlalu banyak request ke AI sekaligus. Tunggu sebentar lalu coba lagi." };
     }
     if (err instanceof Anthropic.BadRequestError) {
-      return { ok: false, imagePath: path, error: "Foto struknya nggak bisa diproses AI. Coba foto ulang dengan pencahayaan lebih jelas." };
+      // Surfacing the raw API message here (temporarily, while this Beta feature is
+      // still being diagnosed) — it's only ever shown to the authenticated user
+      // testing their own upload, never on the public share page.
+      return { ok: false, imagePath: path, error: `Ditolak Claude API: ${err.message}` };
+    }
+    if (err instanceof Error) {
+      return { ok: false, imagePath: path, error: `Terjadi kendala saat membaca struk: ${err.message}` };
     }
     return { ok: false, imagePath: path, error: "Terjadi kendala saat membaca struk. Coba lagi sebentar lagi." };
   }
