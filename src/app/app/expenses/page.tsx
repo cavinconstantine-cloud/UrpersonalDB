@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { EXPENSE_CATS, INCOME_CATS } from "@/lib/finance/constants";
-import { fmtRp } from "@/lib/finance/format";
-import { TransactionList, type TxRow } from "@/components/app/transaction-list";
+import { TransactionsView } from "@/components/app/transactions-view";
+import type { TxRow } from "@/components/app/transaction-list";
 import type { HoldingData } from "@/lib/finance/types";
 
 export const metadata: Metadata = { title: "Transaksi" };
@@ -54,18 +54,12 @@ export default async function ExpensesPage() {
   const expenseCategories = [...EXPENSE_CATS, ...(customExpCatRes.data || []).map((c) => c.name)];
   const incomeCategories = [...INCOME_CATS, ...(customIncCatRes.data || []).map((c) => c.name)];
 
-  const totalExpense = expenseRows.reduce((s, e) => s + e.amount, 0);
-  const totalIncome = incomeRows.reduce((s, i) => s + i.amount, 0);
-
   return (
     <div className="pt-6">
-      <div className="px-5 mb-6">
-        <h1 className="serif text-[24px] font-medium mb-1">Transaksi</h1>
-        <p className="text-text-dim text-sm">
-          {transactions.length} transaksi · masuk {fmtRp(totalIncome)} · keluar {fmtRp(totalExpense)}
-        </p>
+      <div className="px-5 mb-1">
+        <h1 className="serif text-[24px] font-medium">Transaksi</h1>
       </div>
-      <TransactionList
+      <TransactionsView
         transactions={transactions}
         expenseCategories={expenseCategories}
         incomeCategories={incomeCategories}
