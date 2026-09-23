@@ -2,6 +2,12 @@ import type { Goal, HoldingData } from "@/lib/finance/types";
 
 export type OnboardingStep = "account" | "assetPick" | "assetInput" | "liabPick" | "liabInput" | "cashflow" | "goals";
 
+export interface FixedExpenseItem {
+  id: string;
+  label: string;
+  amount: number;
+}
+
 export interface OnboardingDraft {
   step: OnboardingStep;
   name: string;
@@ -11,7 +17,8 @@ export interface OnboardingDraft {
   liabCats: string[];
   liabHoldings: Record<string, HoldingData[]>;
   liabIdx: number;
-  cashflow: { income: string; fixedExpense: string; lifestyleExpense: string; invest: string };
+  cashflow: { income: string; lifestyleExpense: string; invest: string };
+  fixedExpenseItems: FixedExpenseItem[];
   goals: Goal[];
 }
 
@@ -25,7 +32,8 @@ export function emptyDraft(name = ""): OnboardingDraft {
     liabCats: [],
     liabHoldings: {},
     liabIdx: 0,
-    cashflow: { income: "", fixedExpense: "", lifestyleExpense: "", invest: "" },
+    cashflow: { income: "", lifestyleExpense: "", invest: "" },
+    fixedExpenseItems: [],
     goals: [],
   };
 }
@@ -37,7 +45,11 @@ function key(userId: string) {
 export function loadDraft(userId: string): OnboardingDraft | null {
   try {
     const raw = localStorage.getItem(key(userId));
-    return raw ? (JSON.parse(raw) as OnboardingDraft) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as OnboardingDraft;
+    // Defensive fallback for a draft saved before fixedExpenseItems existed.
+    if (!parsed.fixedExpenseItems) parsed.fixedExpenseItems = [];
+    return parsed;
   } catch {
     return null;
   }

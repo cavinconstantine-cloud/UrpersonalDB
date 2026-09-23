@@ -23,7 +23,7 @@ export async function completeOnboarding(draft: OnboardingDraft) {
     .eq("id", user.id);
 
   const income = Number(draft.cashflow.income) || 0;
-  const fixedExpense = Number(draft.cashflow.fixedExpense) || 0;
+  const fixedExpense = draft.fixedExpenseItems.reduce((s, it) => s + it.amount, 0);
 
   await supabase.from("cashflow").upsert({
     user_id: user.id,
@@ -33,16 +33,18 @@ export async function completeOnboarding(draft: OnboardingDraft) {
     invest: Number(draft.cashflow.invest) || 0,
   });
 
-  // Seed a starter line item so the "Pemasukan/Pengeluaran tetap" lists in
-  // Settings start in sync with what was just entered here, instead of
-  // silently resetting to 0 the first time the user edits that section.
+  // Seed the "Pemasukan/Pengeluaran tetap" lists in Arus Kas Tetap with
+  // exactly what was entered here, so nothing needs to be re-entered.
+  // fixed_expense above is a cache of SUM(recurring_expenses.amount),
+  // kept in sync the same way settings/cashflow-actions.ts does on every
+  // future add/edit/delete there.
   if (income > 0) {
     await supabase.from("recurring_incomes").insert({ user_id: user.id, label: "Pemasukan", amount: income });
   }
-  if (fixedExpense > 0) {
-    await supabase
-      .from("recurring_expenses")
-      .insert({ user_id: user.id, label: "Pengeluaran tetap", amount: fixedExpense });
+  if (draft.fixedExpenseItems.length > 0) {
+    await supabase.from("recurring_expenses").insert(
+      draft.fixedExpenseItems.map((it) => ({ user_id: user.id, label: it.label, amount: it.amount })),
+    );
   }
 
   const holdingsRows = Object.entries(draft.assetHoldings).flatMap(([category, holdings]) =>
