@@ -76,17 +76,19 @@ export default function LandingPage() {
       <SiteHeader />
 
       {/* Hero */}
-      <section className="max-w-[1100px] mx-auto px-5 pt-14 pb-16 sm:pt-20 sm:pb-24 grid sm:grid-cols-2 gap-12 items-center">
+      <section className="max-w-[1100px] mx-auto px-5 pt-14 pb-16 sm:pt-20 sm:pb-24 grid sm:grid-cols-2 gap-12 items-center relative">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs text-brand-strong bg-brand/10 rounded-full px-3 py-1.5 mb-5">
             <Sparkles size={13} /> Draft testing — dicari early user
           </div>
-          <h1 className="serif text-[34px] sm:text-[44px] leading-[1.1] font-medium mb-5">
-            Satu tempat untuk seluruh kehidupan finansialmu.
+          <h1 className="serif text-[34px] sm:text-[48px] leading-[1.08] font-medium mb-5">
+            Uang kamu,
+            <br />
+            akhirnya masuk akal.
           </h1>
           <p className="text-text-dim text-[16px] leading-relaxed mb-8 max-w-[440px]">
-            Net worth, arus kas, dan tujuan finansial — terlihat jelas, terhitung otomatis, dan bisa diupdate kapan
-            saja dari HP maupun laptop. Dibangun untuk kamu yang serius mengatur uang, bukan sekadar mencatat.
+            Net worth, arus kas, dan insight AI — dihitung otomatis, terlihat jelas, kapan saja kamu buka. Bukan
+            sekadar dicatat, tapi benar-benar dimengerti.
           </p>
           <div className="flex flex-wrap gap-3">
             <LinkButton href="/signup" size="md">
@@ -105,8 +107,31 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-        <div className="order-first sm:order-last">
-          <PhoneMockup />
+        <div className="order-first sm:order-last relative flex justify-center">
+          <div
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              width: 420,
+              height: 420,
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              background: "radial-gradient(circle, var(--brand-wash) 0%, transparent 68%)",
+              filter: "blur(6px)",
+            }}
+          />
+          <div className="relative">
+            <div
+              className="absolute -top-3.5 -right-2 z-30 flex items-center gap-1.5 text-[10px] rounded-full px-2.5 py-1.5 shadow-[var(--shadow-pop)]"
+              style={{ color: "var(--good)", background: "var(--bg-raised)", border: "1px solid var(--good-wash)" }}
+            >
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--good)" }} />
+              Live preview
+            </div>
+            <div className="scale-110">
+              <PhoneMockup />
+            </div>
+          </div>
         </div>
       </section>
 
