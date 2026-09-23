@@ -6,6 +6,7 @@ const id = {
   nav: {
     home: "Home",
     transactions: "Transaksi",
+    summary: "Summary",
     cashflow: "Arus Kas",
     settings: "Pengaturan",
   },
@@ -56,6 +57,7 @@ const en: typeof id = {
   nav: {
     home: "Home",
     transactions: "Transactions",
+    summary: "Summary",
     cashflow: "Cash Flow",
     settings: "Settings",
   },

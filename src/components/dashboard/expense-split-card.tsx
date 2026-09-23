@@ -3,7 +3,15 @@ import { expenseCatColorVar, expenseCatIcon } from "@/lib/finance/constants";
 import { fmtRp } from "@/lib/finance/format";
 import type { ExpenseCategorySlice } from "@/lib/finance/calculations";
 
-export function ExpenseSplitCard({ slices, total }: { slices: ExpenseCategorySlice[]; total: number }) {
+export function ExpenseSplitCard({
+  slices,
+  total,
+  title = "🥧 Sebaran Pengeluaran",
+}: {
+  slices: ExpenseCategorySlice[];
+  total: number;
+  title?: string;
+}) {
   if (slices.length === 0) return null;
 
   const stops = slices
@@ -14,7 +22,7 @@ export function ExpenseSplitCard({ slices, total }: { slices: ExpenseCategorySli
     .join(", ");
 
   return (
-    <SectionCard title="🥧 Sebaran Pengeluaran">
+    <SectionCard title={title}>
       <div className="flex items-center gap-5 pb-4">
         <div className="relative w-[104px] h-[104px] shrink-0">
           <div className="w-full h-full rounded-full" style={{ background: `conic-gradient(${stops})` }} />

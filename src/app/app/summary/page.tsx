@@ -1,0 +1,98 @@
+import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
+import {
+  cashflowNums,
+  investmentIncomeMonthly,
+  monthExpenseTotal,
+  monthIncomeTotal,
+} from "@/lib/finance/calculations";
+import { currentYm } from "@/lib/finance/format";
+import type { Expense, HoldingData, Income } from "@/lib/finance/types";
+import { SummaryView } from "@/components/app/summary-view";
+
+export const metadata: Metadata = { title: "Summary" };
+
+function monthsAgoFirstOfMonthIso(months: number): string {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth() - months, 1).toISOString().slice(0, 10);
+}
+
+export default async function SummaryPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const since = monthsAgoFirstOfMonthIso(12);
+
+  const [cashflowRes, holdingsRes, expRes, incRes, fcfRes] = await Promise.all([
+    supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
+    supabase.from("asset_holdings").select("category, data").eq("user_id", user.id),
+    supabase
+      .from("expenses")
+      .select("id, expense_date, category, amount, description")
+      .eq("user_id", user.id)
+      .gte("expense_date", since)
+      .order("expense_date", { ascending: false }),
+    supabase
+      .from("incomes")
+      .select("id, income_date, category, amount, description")
+      .eq("user_id", user.id)
+      .gte("income_date", since)
+      .order("income_date", { ascending: false }),
+    supabase
+      .from("fcf_snapshots")
+      .select("snapshot_month, fcf, saving_rate")
+      .eq("user_id", user.id)
+      .gte("snapshot_month", since)
+      .order("snapshot_month"),
+  ]);
+
+  const expenses: Expense[] = (expRes.data || []).map((e) => ({
+    id: e.id,
+    date: e.expense_date,
+    category: e.category,
+    amount: Number(e.amount),
+    description: e.description,
+  }));
+  const incomes: Income[] = (incRes.data || []).map((i) => ({
+    id: i.id,
+    date: i.income_date,
+    category: i.category,
+    amount: Number(i.amount),
+    description: i.description,
+  }));
+  const holdings = (holdingsRes.data || []).map((h) => ({ category: h.category, data: (h.data as HoldingData) || {} }));
+
+  // The current month's fcf_snapshots row can be stale (only refreshed when
+  // the Home dashboard is viewed) — recompute it live here, same formula as
+  // the dashboard, so Summary always agrees with what Home shows right now.
+  const cfRow = cashflowRes.data;
+  const investIncomeMonthly = investmentIncomeMonthly(holdings);
+  const liveCf = cashflowNums(
+    {
+      income: Number(cfRow?.income || 0),
+      fixedExpense: Number(cfRow?.fixed_expense || 0),
+      lifestyleExpense: Number(cfRow?.lifestyle_expense || 0),
+      invest: Number(cfRow?.invest || 0),
+    },
+    monthExpenseTotal(expenses),
+    monthIncomeTotal(incomes) + investIncomeMonthly,
+  );
+
+  const thisYm = currentYm();
+  const historicalFcf = (fcfRes.data || [])
+    .map((r) => ({ ym: r.snapshot_month.slice(0, 7), fcf: Number(r.fcf), savingRate: Number(r.saving_rate) }))
+    .filter((p) => p.ym !== thisYm);
+  const fcfSeries = [...historicalFcf, { ym: thisYm, fcf: liveCf.fcf, savingRate: liveCf.savingRate }].sort((a, b) =>
+    a.ym.localeCompare(b.ym),
+  );
+
+  return (
+    <div className="pt-6">
+      <SummaryView expenses={expenses} incomes={incomes} fcfSeries={fcfSeries} />
+    </div>
+  );
+}

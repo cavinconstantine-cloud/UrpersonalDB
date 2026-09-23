@@ -76,17 +76,68 @@ export interface ExpenseCategorySlice {
   pct: number;
 }
 
-/** Current month's expenses grouped by category, sorted by amount descending. */
-export function expenseByCategory(expenses: Expense[], ym: string = currentYm()): ExpenseCategorySlice[] {
-  const monthExpenses = expenses.filter((e) => e.date.slice(0, 7) === ym);
-  const total = monthExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+/** Expenses whose date falls within `datePrefix` ("YYYY-MM" for a month, "YYYY" for a year), grouped by category, sorted by amount descending. */
+function expenseByCategoryForPrefix(expenses: Expense[], datePrefix: string): ExpenseCategorySlice[] {
+  const matched = expenses.filter((e) => e.date.startsWith(datePrefix));
+  const total = matched.reduce((s, e) => s + Number(e.amount || 0), 0);
   const byCategory = new Map<string, number>();
-  for (const e of monthExpenses) {
+  for (const e of matched) {
     byCategory.set(e.category, (byCategory.get(e.category) || 0) + Number(e.amount || 0));
   }
   return Array.from(byCategory.entries())
     .map(([category, amount]) => ({ category, amount, pct: total > 0 ? (amount / total) * 100 : 0 }))
     .sort((a, b) => b.amount - a.amount);
+}
+
+/** Current month's expenses grouped by category, sorted by amount descending. */
+export function expenseByCategory(expenses: Expense[], ym: string = currentYm()): ExpenseCategorySlice[] {
+  return expenseByCategoryForPrefix(expenses, ym);
+}
+
+/** A given year's expenses grouped by category, sorted by amount descending. */
+export function expenseByCategoryForYear(expenses: Expense[], year: string): ExpenseCategorySlice[] {
+  return expenseByCategoryForPrefix(expenses, year);
+}
+
+export interface TopTransaction {
+  id: string;
+  type: "expense" | "income";
+  date: string;
+  category: string;
+  amount: number;
+  description: string;
+}
+
+/** Largest transactions (expenses + incomes combined) whose date falls within `datePrefix` ("YYYY-MM" or "YYYY"), biggest amount first. */
+export function topTransactions(
+  expenses: Expense[],
+  incomes: Income[],
+  datePrefix: string,
+  limit = 3,
+): TopTransaction[] {
+  const combined: TopTransaction[] = [
+    ...expenses
+      .filter((e) => e.date.startsWith(datePrefix))
+      .map((e) => ({
+        id: e.id,
+        type: "expense" as const,
+        date: e.date,
+        category: e.category,
+        amount: Number(e.amount || 0),
+        description: e.description,
+      })),
+    ...incomes
+      .filter((i) => i.date.startsWith(datePrefix))
+      .map((i) => ({
+        id: i.id,
+        type: "income" as const,
+        date: i.date,
+        category: i.category,
+        amount: Number(i.amount || 0),
+        description: i.description,
+      })),
+  ];
+  return combined.sort((a, b) => b.amount - a.amount).slice(0, limit);
 }
 
 export interface CategoryBudget {

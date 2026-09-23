@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, Receipt, Wallet, Settings } from "lucide-react";
+import { LayoutGrid, Receipt, CalendarRange, Wallet, Settings } from "lucide-react";
 import { useLanguage } from "./language-provider";
 
 export function BottomNav() {
@@ -13,6 +13,7 @@ export function BottomNav() {
   const ITEMS = [
     { href: "/app", label: dict.nav.home, icon: LayoutGrid },
     { href: "/app/expenses", label: dict.nav.transactions, icon: Receipt },
+    { href: "/app/summary", label: dict.nav.summary, icon: CalendarRange },
     { href: "/app/cashflow", label: dict.nav.cashflow, icon: Wallet },
     { href: "/app/settings", label: dict.nav.settings, icon: Settings },
   ];
@@ -22,7 +23,7 @@ export function BottomNav() {
       className="fixed bottom-0 left-0 right-0 z-30 border-t border-hairline bg-bg/90 backdrop-blur-md pb-[env(safe-area-inset-bottom,0px)]"
       aria-label="Navigasi utama"
     >
-      <div className="max-w-[560px] mx-auto grid grid-cols-4">
+      <div className="max-w-[560px] mx-auto grid grid-cols-5">
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = href === "/app" ? pathname === "/app" : pathname.startsWith(href);
           return (
