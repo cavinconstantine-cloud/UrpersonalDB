@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 
 /** Bump this when new slides are added so everyone sees the update once more. */
-const SEEN_VERSION = "1";
+const SEEN_VERSION = "2";
 
 function seenKey(userId: string) {
   return `uangku_whatsnew_seen_${userId}`;
@@ -105,7 +105,7 @@ export function WhatsNewSlideshow({ userId, hasProfileType }: WhatsNewSlideshowP
           ))}
         </div>
 
-        {slide > 0 && (
+        {!current.special && (
           <div className="flex items-center justify-between">
             <button onClick={dismiss} className="text-[13px] text-text-muted">
               Lewati
@@ -139,6 +139,8 @@ interface Slide {
   wiggle?: boolean;
   cta?: { label: string; href: string };
   dismissLabel?: string;
+  /** True only for the profile-completion intro slide — it uses its own CTA/dismiss controls instead of the standard bottom nav. */
+  special?: boolean;
 }
 
 const PROFILE_SLIDE: Slide = {
@@ -149,6 +151,7 @@ const PROFILE_SLIDE: Slide = {
   wiggle: true,
   cta: { label: "Coba Sekarang →", href: "/app/settings" },
   dismissLabel: "Nanti aja",
+  special: true,
 };
 
 const PIE_FILTER_SPLIT_SLIDES: Slide[] = [
@@ -163,5 +166,12 @@ const PIE_FILTER_SPLIT_SLIDES: Slide[] = [
     wash: "rgba(63,191,114,0.14)",
     title: "Cari & Filter Transaksi",
     body: "Cari transaksi lewat nama, atau filter by kategori, Sumber Dana, dan urutkan dari yang terbaru — semua di halaman Transaksi.",
+  },
+  {
+    icon: "📈",
+    wash: "rgba(124,110,242,0.14)",
+    title: "Harga Saham Otomatis",
+    body: "Nggak perlu update harga saham manual lagi — sekarang cari kodenya, isi jumlah lot & harga beli, harga sekarang (plus IHSG) otomatis diperbarui tiap hari kerja.",
+    cta: { label: "Lihat Portofolio Saham →", href: "/app/assets/Saham" },
   },
 ];

@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { ASSET_SCHEMAS } from "@/lib/finance/schemas";
 import { catIcon } from "@/lib/finance/constants";
 import { AssetCategoryManager } from "@/components/app/asset-category-manager";
+import { IhsgWidget } from "@/components/finance/ihsg-widget";
+import type { StockPriceInfo } from "@/components/finance/saham-holding-modal";
 
 function daysAgoIso(days: number): string {
   const d = new Date();
@@ -24,7 +26,7 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [{ data }, { data: snapshotData }, { data: goalsData }] = await Promise.all([
+  const [{ data }, { data: snapshotData }, { data: goalsData }, stockPricesRes] = await Promise.all([
     supabase
       .from("asset_holdings")
       .select("id, data, goal_id")
@@ -38,7 +40,21 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       .eq("category", category)
       .gte("snapshot_date", daysAgoIso(4)),
     supabase.from("goals").select("id, name").eq("user_id", user.id).order("created_at"),
+    category === "Saham" ? supabase.from("stock_prices").select("*") : Promise.resolve({ data: null }),
   ]);
+
+  const stockPrices: Record<string, StockPriceInfo> = {};
+  let ihsg: StockPriceInfo | null = null;
+  for (const row of stockPricesRes.data || []) {
+    const info: StockPriceInfo = {
+      companyName: row.company_name,
+      price: Number(row.price),
+      changePct: Number(row.change_pct),
+      asOf: row.as_of,
+    };
+    if (row.ticker === "^JKSE") ihsg = info;
+    else stockPrices[row.ticker] = info;
+  }
 
   const holdings = (data || []).map((h) => ({
     id: h.id,
@@ -63,9 +79,18 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
         {catIcon(category)} {category}
       </h1>
       <p className="text-text-dim text-sm mb-6 leading-relaxed">
-        Kamu bisa menambahkan lebih dari satu, mis. beberapa produk sekaligus.
+        {category === "Saham"
+          ? "Harga saham diperbarui otomatis tiap hari kerja — kamu tinggal isi jumlah lot & harga beli."
+          : "Kamu bisa menambahkan lebih dari satu, mis. beberapa produk sekaligus."}
       </p>
-      <AssetCategoryManager category={category} holdings={holdings} snapshots={snapshots} goals={goals} />
+      {category === "Saham" && ihsg && <IhsgWidget price={ihsg.price} changePct={ihsg.changePct} asOf={ihsg.asOf} />}
+      <AssetCategoryManager
+        category={category}
+        holdings={holdings}
+        snapshots={snapshots}
+        goals={goals}
+        stockPrices={stockPrices}
+      />
     </div>
   );
 }

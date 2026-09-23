@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HoldingModal, type GoalOption } from "@/components/finance/holding-modal";
+import { SahamHoldingModal, type StockPriceInfo } from "@/components/finance/saham-holding-modal";
 import { Button } from "@/components/ui/button";
 import { MovementBadge } from "@/components/ui/movement-badge";
 import { ASSET_SCHEMAS } from "@/lib/finance/schemas";
@@ -23,11 +24,13 @@ export function AssetCategoryManager({
   holdings,
   snapshots = [],
   goals = [],
+  stockPrices = {},
 }: {
   category: string;
   holdings: Holding[];
   snapshots?: AssetSnapshotRow[];
   goals?: GoalOption[];
+  stockPrices?: Record<string, StockPriceInfo>;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -142,20 +145,32 @@ export function AssetCategoryManager({
         Hapus kategori ini
       </Button>
 
-      {modal.open && (
-        <HoldingModal
+      {modal.open && category === "Saham" ? (
+        <SahamHoldingModal
           key={modal.holding?.id ?? "new"}
           open={modal.open}
           onClose={() => setModal({ open: false })}
-          title={category}
-          fields={schema.fields}
           initial={modal.holding?.data}
-          note={schema.note}
+          stockPrices={stockPrices}
           onSave={save}
           onDelete={modal.holding ? () => remove(modal.holding!.id) : undefined}
-          goals={linkable ? goals : undefined}
-          initialGoalId={modal.holding?.goalId ?? null}
         />
+      ) : (
+        modal.open && (
+          <HoldingModal
+            key={modal.holding?.id ?? "new"}
+            open={modal.open}
+            onClose={() => setModal({ open: false })}
+            title={category}
+            fields={schema.fields}
+            initial={modal.holding?.data}
+            note={schema.note}
+            onSave={save}
+            onDelete={modal.holding ? () => remove(modal.holding!.id) : undefined}
+            goals={linkable ? goals : undefined}
+            initialGoalId={modal.holding?.goalId ?? null}
+          />
+        )
       )}
     </div>
   );

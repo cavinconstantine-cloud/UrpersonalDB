@@ -15,6 +15,7 @@ import { LiabPickStep } from "./steps/liab-pick-step";
 import { LiabInputStep } from "./steps/liab-input-step";
 import { CashflowStep } from "./steps/cashflow-step";
 import { GoalsStep } from "./steps/goals-step";
+import type { StockPriceInfo } from "@/components/finance/saham-holding-modal";
 
 const STEP_NUMBER: Record<OnboardingStep, number> = {
   account: 1,
@@ -30,7 +31,15 @@ const STEP_NUMBER: Record<OnboardingStep, number> = {
 };
 const TOTAL_STEPS = 6;
 
-export function OnboardingWizard({ userId, initialName }: { userId: string; initialName: string }) {
+export function OnboardingWizard({
+  userId,
+  initialName,
+  stockPrices,
+}: {
+  userId: string;
+  initialName: string;
+  stockPrices: Record<string, StockPriceInfo>;
+}) {
   const router = useRouter();
   const [draft, setDraft] = useState<OnboardingDraft>(() => {
     if (typeof window === "undefined") return emptyDraft(initialName);
@@ -72,7 +81,7 @@ export function OnboardingWizard({ userId, initialName }: { userId: string; init
         {draft.step === "karyawanPayday" && <KaryawanPaydayStep draft={draft} update={update} />}
         {draft.step === "pengusahaIntro" && <PengusahaIntroStep draft={draft} update={update} />}
         {draft.step === "assetPick" && <AssetPickStep draft={draft} update={update} />}
-        {draft.step === "assetInput" && <AssetInputStep draft={draft} update={update} />}
+        {draft.step === "assetInput" && <AssetInputStep draft={draft} update={update} stockPrices={stockPrices} />}
         {draft.step === "liabPick" && <LiabPickStep draft={draft} update={update} />}
         {draft.step === "liabInput" && <LiabInputStep draft={draft} update={update} />}
         {draft.step === "cashflow" && <CashflowStep draft={draft} update={update} />}

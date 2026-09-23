@@ -358,6 +358,28 @@ export interface Database {
           created_at: string;
         }> & { headline: string; summary: string }
       >;
+      stock_prices: Table<
+        {
+          ticker: string;
+          company_name: string;
+          price: number;
+          prev_close: number;
+          change_pct: number;
+          currency: string;
+          as_of: string;
+          updated_at: string;
+        },
+        Partial<{
+          ticker: string;
+          company_name: string;
+          price: number;
+          prev_close: number;
+          change_pct: number;
+          currency: string;
+          as_of: string;
+          updated_at: string;
+        }> & { ticker: string }
+      >;
       bill_splits: Table<
         {
           id: string;

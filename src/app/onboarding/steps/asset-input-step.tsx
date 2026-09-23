@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ProgressDots } from "@/components/ui/chip";
 import { HoldingModal } from "@/components/finance/holding-modal";
+import { SahamHoldingModal, type StockPriceInfo } from "@/components/finance/saham-holding-modal";
 import { ASSET_SCHEMAS } from "@/lib/finance/schemas";
 import { fmtRp } from "@/lib/finance/format";
 import type { HoldingData } from "@/lib/finance/types";
@@ -12,9 +13,11 @@ import type { OnboardingDraft } from "@/lib/onboarding/draft";
 export function AssetInputStep({
   draft,
   update,
+  stockPrices = {},
 }: {
   draft: OnboardingDraft;
   update: (patch: Partial<OnboardingDraft>) => void;
+  stockPrices?: Record<string, StockPriceInfo>;
 }) {
   const cat = draft.assetCats[draft.assetIdx];
   const schema = ASSET_SCHEMAS[cat];
@@ -144,18 +147,30 @@ export function AssetInputStep({
         </Button>
       </div>
 
-      {modal.open && (
-        <HoldingModal
+      {modal.open && cat === "Saham" ? (
+        <SahamHoldingModal
           key={modal.index ?? "new"}
           open={modal.open}
           onClose={() => setModal({ open: false })}
-          title={cat}
-          fields={schema.fields}
           initial={modal.index !== undefined ? holdings[modal.index] : undefined}
-          note={schema.note}
-          onSave={saveHolding}
+          stockPrices={stockPrices}
+          onSave={(data) => saveHolding(data)}
           onDelete={modal.index !== undefined ? () => deleteHolding(modal.index!) : undefined}
         />
+      ) : (
+        modal.open && (
+          <HoldingModal
+            key={modal.index ?? "new"}
+            open={modal.open}
+            onClose={() => setModal({ open: false })}
+            title={cat}
+            fields={schema.fields}
+            initial={modal.index !== undefined ? holdings[modal.index] : undefined}
+            note={schema.note}
+            onSave={saveHolding}
+            onDelete={modal.index !== undefined ? () => deleteHolding(modal.index!) : undefined}
+          />
+        )
       )}
     </div>
   );

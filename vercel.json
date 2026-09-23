@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/goal-linked-assets",
       "schedule": "30 2 * * *"
+    },
+    {
+      "path": "/api/cron/stock-prices",
+      "schedule": "30 9 * * 1-5"
     }
   ]
 }
