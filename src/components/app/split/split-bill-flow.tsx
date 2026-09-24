@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Camera, Image as ImageIcon, Minus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -101,7 +101,17 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
   const [accountHoldingId, setAccountHoldingId] = useState<string | null>(null);
   const [shareToken, setShareToken] = useState<string | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Revoke the object URL whenever it's replaced or the component unmounts —
+  // otherwise each photo picked leaks the previous preview's memory.
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const result = useMemo(() => allocateSplit(items, participants, assignments, tax, service), [items, participants, assignments, tax, service]);
   const fullyAssigned = useMemo(() => isFullyAssigned(items, assignments), [items, assignments]);
@@ -119,6 +129,7 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
     e.target.value = "";
     if (!file) return;
     setError("");
+    setPreviewUrl(URL.createObjectURL(file));
     startTransition(async () => {
       const { base64, mediaType } = await readFileAsBase64(file);
       const res = await extractReceipt(base64, mediaType);
@@ -257,22 +268,57 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
           <p className="text-[13px] text-text-dim leading-relaxed mb-1">
             Foto atau upload struknya, Uangku baca item &amp; harganya otomatis. Hasilnya tetap bisa kamu koreksi sebelum disimpan.
           </p>
-          <input ref={fileInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-brand bg-bg-raised py-8 px-5 disabled:opacity-60"
-          >
-            <span className="w-12 h-12 rounded-full bg-brand/14 flex items-center justify-center">
-              <Camera size={22} className="text-brand-strong" />
-            </span>
-            <span className="text-sm font-medium text-text">{isPending ? "Membaca struk…" : "Foto / Upload Struk"}</span>
-          </button>
+          <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFile} />
+          <input ref={galleryInputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+
+          {isPending && previewUrl ? (
+            <div className="relative rounded-2xl border-[1.5px] border-brand overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element -- transient client-side object URL, not a served asset */}
+              <img src={previewUrl} alt="Struk yang sedang dipindai" className="w-full max-h-72 object-contain bg-bg-sunken" />
+              <div className="absolute inset-0 bg-brand/10" />
+              <div
+                className="absolute inset-x-0 h-1/3 animate-scan-sweep pointer-events-none"
+                style={{ background: "linear-gradient(180deg, transparent, rgba(124,110,242,0.55), transparent)" }}
+              />
+              <div className="absolute inset-0 flex items-end justify-center pb-4">
+                <span className="flex items-center gap-2 rounded-full bg-bg/90 border border-brand/40 px-3.5 py-1.5 text-xs font-medium text-brand-strong animate-scan-pulse">
+                  <Camera size={13} /> Membaca struk…
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-brand bg-bg-raised py-7 px-3 disabled:opacity-60"
+              >
+                <span className="w-12 h-12 rounded-full bg-brand/14 flex items-center justify-center">
+                  <Camera size={22} className="text-brand-strong" />
+                </span>
+                <span className="text-sm font-medium text-text">Ambil Foto</span>
+              </button>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => galleryInputRef.current?.click()}
+                className="flex flex-col items-center justify-center gap-2 rounded-2xl border-[1.5px] border-brand bg-bg-raised py-7 px-3 disabled:opacity-60"
+              >
+                <span className="w-12 h-12 rounded-full bg-brand/14 flex items-center justify-center">
+                  <ImageIcon size={22} className="text-brand-strong" />
+                </span>
+                <span className="text-sm font-medium text-text">Upload dari Galeri</span>
+              </button>
+            </div>
+          )}
+
           {error && <div className="text-xs text-critical">{error}</div>}
-          <button type="button" onClick={skipToManual} className="text-xs text-text-dim underline self-center mt-1">
-            Isi manual tanpa foto
-          </button>
+          {!isPending && (
+            <button type="button" onClick={skipToManual} className="text-xs text-text-dim underline self-center mt-1">
+              Isi manual tanpa foto
+            </button>
+          )}
         </div>
       )}
 
