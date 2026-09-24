@@ -30,6 +30,7 @@ interface TransactionModalProps {
   open: boolean;
   onClose: () => void;
   defaultType?: TransactionType;
+  defaultSplitMode?: boolean;
   customExpenseCategories: string[];
   customIncomeCategories: string[];
   cashAccounts: CashAccount[];
@@ -40,6 +41,7 @@ export function TransactionModal({
   open,
   onClose,
   defaultType = "expense",
+  defaultSplitMode = false,
   customExpenseCategories,
   customIncomeCategories,
   cashAccounts,
@@ -58,7 +60,7 @@ export function TransactionModal({
   const [localExpenseCats, setLocalExpenseCats] = useState<string[]>([]);
   const [localIncomeCats, setLocalIncomeCats] = useState<string[]>([]);
   const [error, setError] = useState("");
-  const [splitMode, setSplitMode] = useState(false);
+  const [splitMode, setSplitMode] = useState(defaultSplitMode);
   const [taxOn, setTaxOn] = useState(true);
   const [taxType, setTaxType] = useState<"umkm" | "jasa">("umkm");
 

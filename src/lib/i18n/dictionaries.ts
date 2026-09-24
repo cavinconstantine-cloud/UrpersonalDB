@@ -15,6 +15,8 @@ const id = {
     addIncome: "Catat Pemasukan",
     addExpenseAria: "Catat pengeluaran",
     addExpense: "Catat Pengeluaran",
+    splitBillAria: "Split bill",
+    splitBill: "Split Bill",
   },
   theme: {
     title: "Tampilan",
@@ -62,6 +64,8 @@ const en: typeof id = {
     addIncome: "Log Income",
     addExpenseAria: "Add expense",
     addExpense: "Log Expense",
+    splitBillAria: "Split bill",
+    splitBill: "Split Bill",
   },
   theme: {
     title: "Appearance",

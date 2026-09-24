@@ -29,9 +29,10 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const { dict } = useLanguage();
-  const [modal, setModal] = useState<{ open: boolean; type: TransactionType }>({
+  const [modal, setModal] = useState<{ open: boolean; type: TransactionType; split: boolean }>({
     open: false,
     type: "expense",
+    split: false,
   });
 
   return (
@@ -41,20 +42,24 @@ export function AppShell({
         <div className="max-w-[560px] w-full mx-auto flex-1 pb-28">{children}</div>
 
         <CatatToggle
-          onOpen={(type) => setModal({ open: true, type })}
+          onOpen={(type) => setModal({ open: true, type, split: false })}
+          onOpenSplit={() => setModal({ open: true, type: "expense", split: true })}
           expenseLabel={dict.shell.addExpense}
           incomeLabel={dict.shell.addIncome}
           expenseAria={dict.shell.addExpenseAria}
           incomeAria={dict.shell.addIncomeAria}
+          splitLabel={dict.shell.splitBill}
+          splitAria={dict.shell.splitBillAria}
         />
 
         <BottomNav />
         <WhatsNewSlideshow userId={userId} hasProfileType={hasProfileType} />
         <TransactionModal
-          key={modal.type}
+          key={`${modal.type}-${modal.split}`}
           open={modal.open}
           defaultType={modal.type}
-          onClose={() => setModal((m) => ({ ...m, open: false }))}
+          defaultSplitMode={modal.split}
+          onClose={() => setModal((m) => ({ ...m, open: false, split: false }))}
           customExpenseCategories={customExpenseCategories}
           customIncomeCategories={customIncomeCategories}
           cashAccounts={cashAccounts}
