@@ -24,8 +24,37 @@ Alasan (LTV, asumsi eksplisit — perlu divalidasi dengan data real):
 ## Revenue Stream 2 — Referral/affiliate produk investasi
 
 **Ide 1: Affiliate ke platform reksadana/obligasi** (Bibit, Bareksa, Ajaib, Pluang)
-- Realistis & bisa jalan duluan — program affiliate publik, self-service, tidak perlu BD meeting besar
-- **Catatan regulasi**: OJK mewajibkan lisensi (APERD/WAPERD) untuk siapa pun yang *merekomendasikan produk investasi spesifik*. Selama Uangku cuma jadi affiliate link (bukan eksekusi transaksi, bahasa edukatif bukan "beli produk X sekarang"), ini lebih aman secara hukum — tapi tetap perlu dicek ke legal/konsultan sebelum ship.
+
+Koreksi setelah riset lebih detail (search + fetch ke halaman resmi masing-masing platform) —
+awalnya diasumsikan "program affiliate publik self-service", ternyata realitanya lebih
+dekat ke program referral konsumen biasa, bukan program affiliate B2B/CPA formal:
+
+| Platform | Status program | Komisi/reward |
+|---|---|---|
+| **Ajaib Ambassador** | Paling konkret — ada halaman daftar resmi, tapi tetap "PIC Ajaib akan menghubungi" buat bahas detail (bukan API self-service) | Maks **Rp 30.000/user** (registrasi + verifikasi KYC + transaksi pertama) |
+| **Bibit** | Ada "Program Afiliasi" dengan 3 jenis komisi — rincian nominal per tier tidak berhasil diakses penuh (situs mereka block dari fetch otomatis) | Referral biasa: cashback Rp 25.000 ke kedua pihak. Detail tier affiliate perlu dicek manual |
+| **Bareksa** | Invite-only via email ke customer terpilih — **bukan** open enrollment untuk bisnis | Voucher Rp 25.000–50.000 |
+| **Pluang** | Belum ketemu struktur komisi publik yang jelas, cuma promo referral musiman | Tidak diketahui |
+
+**Temuan penting**: semua yang berhasil dikonfirmasi itu **komisi flat one-time per konversi**
+(~Rp 25.000–30.000), BUKAN trailing/recurring commission berdasarkan AUM yang mengendap di
+platform partner. Ini beda dari asumsi awal — model bisnisnya lebih ke "bounty per referral
+berhasil", bukan revenue share berkelanjutan. Reset ekspektasi: stream ini realistis jadi
+bonus kecil, bukan revenue utama.
+
+**Cara "connect" teknisnya**: bukan integrasi API — cukup daftar sebagai affiliate/ambassador
+(pakai identitas bisnis), dapat kode/link referral unik, taruh link itu di CTA insight card
+di app. User klik → diarahkan ke halaman signup partner dengan kode ter-embed → konversi
+ke-track otomatis di sistem partner, komisi masuk ke akun yang daftar. Tidak butuh backend
+tracking sendiri untuk versi paling sederhana ini.
+
+**Catatan regulasi**: OJK mewajibkan lisensi (APERD/WAPERD) untuk siapa pun yang
+*merekomendasikan produk investasi spesifik*. Selama Uangku cuma jadi affiliate link (bukan
+eksekusi transaksi, bahasa edukatif bukan "beli produk X sekarang"), ini lebih aman secara
+hukum — tapi tetap perlu dicek ke legal/konsultan sebelum ship.
+
+**Mockup UI insight card** (nge-hit user dengan AUM ≥50% di Cash) sudah dibuat:
+https://claude.ai/artifact/A9wzErA5DxMNMcJ3DuscSt
 
 **Ide 2: Referral ke bank private banking** (untuk AUM > 1M, model "member get member")
 - Valid (bank memang bayar referral fee untuk lead HNW), tapi ini kerjaan BD manusia — butuh ngobrol langsung ke unit wealth/priority banking tiap bank, tidak bisa auto-jalan tanpa kontak partner.
