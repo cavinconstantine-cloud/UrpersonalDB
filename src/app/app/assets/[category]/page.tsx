@@ -85,7 +85,7 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       </p>
       {category === "Saham" && ihsg && (
         <>
-          <IhsgWidget price={ihsg.price} changePct={ihsg.changePct} asOf={ihsg.asOf} />
+          <IhsgWidget price={ihsg.price} asOf={ihsg.asOf} />
           <div className="text-xs font-medium text-text-dim mb-2.5">📊 Portofolio Saham Kamu</div>
         </>
       )}
