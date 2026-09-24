@@ -16,7 +16,7 @@ export function CashflowStep({
   const [newLabel, setNewLabel] = useState("");
   const [newAmount, setNewAmount] = useState(0);
 
-  function set(key: "income" | "lifestyleExpense" | "invest", value: number) {
+  function set(key: "income", value: number) {
     update({ cashflow: { ...draft.cashflow, [key]: value ? String(value) : "" } });
   }
 
@@ -152,18 +152,6 @@ export function CashflowStep({
         </div>
       </div>
 
-      <NumberField
-        label="Lifestyle expense — belanja, hiburan (Rp/bulan)"
-        placeholder="0"
-        value={Number(draft.cashflow.lifestyleExpense) || 0}
-        onValueChange={(n) => set("lifestyleExpense", n)}
-      />
-      <NumberField
-        label="Investasi rutin (Rp/bulan)"
-        placeholder="0"
-        value={Number(draft.cashflow.invest) || 0}
-        onValueChange={(n) => set("invest", n)}
-      />
       <div className="flex gap-2.5 mt-2">
         <Button variant="ghost" onClick={back} className="w-[90px] flex-none">
           Kembali

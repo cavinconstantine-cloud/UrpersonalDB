@@ -21,9 +21,8 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, cashflowRes, budgetsRes, customExpCatRes] = await Promise.all([
+  const [profileRes, budgetsRes, customExpCatRes] = await Promise.all([
     supabase.from("profiles").select("name, profile_type, payday_day").eq("id", user.id).single(),
-    supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
     supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
   ]);
@@ -52,13 +51,7 @@ export default async function SettingsPage() {
         <LanguageToggle />
       </div>
 
-      <SettingsForm
-        initialName={profileRes.data?.name || ""}
-        initialOtherCashflow={{
-          lifestyleExpense: Number(cashflowRes.data?.lifestyle_expense || 0),
-          invest: Number(cashflowRes.data?.invest || 0),
-        }}
-      />
+      <SettingsForm initialName={profileRes.data?.name || ""} />
 
       <ProfileTypeSettings
         initialProfileType={(profileRes.data?.profile_type as "karyawan" | "pengusaha" | null) || ""}

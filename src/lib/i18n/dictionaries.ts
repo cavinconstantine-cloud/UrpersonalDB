@@ -37,10 +37,6 @@ const id = {
     nameLabel: "Nama",
     saveName: "Simpan nama",
     saved: "Tersimpan ✓",
-    otherCashflow: "Arus kas lainnya",
-    lifestyleLabel: "Lifestyle expense (Rp/bulan)",
-    investLabel: "Investasi rutin (Rp/bulan)",
-    save: "Simpan",
   },
   budget: {
     title: "Budget bulanan per kategori",
@@ -88,10 +84,6 @@ const en: typeof id = {
     nameLabel: "Name",
     saveName: "Save name",
     saved: "Saved ✓",
-    otherCashflow: "Other cash flow",
-    lifestyleLabel: "Lifestyle expense (Rp/month)",
-    investLabel: "Recurring investment (Rp/month)",
-    save: "Save",
   },
   budget: {
     title: "Monthly budget per category",

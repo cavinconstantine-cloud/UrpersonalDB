@@ -19,17 +19,6 @@ export async function updateProfileName(name: string) {
   revalidatePath("/app/settings");
 }
 
-export async function updateCashflow(input: { lifestyleExpense: number; invest: number }) {
-  const { supabase, user } = await requireUser();
-  await supabase.from("cashflow").upsert({
-    user_id: user.id,
-    lifestyle_expense: input.lifestyleExpense,
-    invest: input.invest,
-  });
-  revalidatePath("/app");
-  revalidatePath("/app/settings");
-}
-
 export async function updateProfileType(input: { profileType: "karyawan" | "pengusaha"; paydayDay: number | null }) {
   const { supabase, user } = await requireUser();
   await supabase
