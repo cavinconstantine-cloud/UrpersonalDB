@@ -18,41 +18,51 @@ interface FetchedPrice {
 }
 
 /**
- * Yahoo Finance's public quote endpoint — unofficial (no key, no SLA; the
- * same one the `yfinance` library wraps). Unlike the chart/candle endpoint
- * (built for rendering charts, not day-over-day change), this one returns
- * `regularMarketPrice` and `regularMarketPreviousClose` directly — Yahoo
- * computes "yesterday's close" itself, the same way every finance app does,
- * so there's no need to infer it from a daily-candle array. Takes a batch
- * of symbols in one request. A symbol missing from the response (delisted,
- * no data) is simply absent from the returned map — not fatal to the run.
+ * Yahoo Finance's public chart endpoint — unofficial (no key, no SLA). The
+ * batched v7 `finance/quote` endpoint this used to call now requires a
+ * "crumb" + cookie handshake for non-browser callers (Yahoo locked it down
+ * against scraping in 2024) and simply rejects a plain server-side request —
+ * which is why every ticker was coming back empty. The per-symbol v8
+ * `finance/chart` endpoint (what most chart widgets use) has stayed open
+ * without that handshake, at the cost of one request per symbol instead of
+ * one batched call — fired in parallel here, well within the route's 60s
+ * budget for ~50 tickers.
  */
-async function fetchYahooQuotes(symbols: string[]): Promise<Map<string, FetchedPrice>> {
-  const out = new Map<string, FetchedPrice>();
-  if (symbols.length === 0) return out;
+async function fetchYahooQuote(symbol: string): Promise<{ ticker: string; result?: FetchedPrice; error?: string }> {
   try {
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`;
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`;
     const res = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; UangkuBot/1.0)" },
       signal: AbortSignal.timeout(10_000),
     });
-    if (!res.ok) return out;
+    if (!res.ok) return { ticker: symbol, error: `HTTP ${res.status}` };
     const json = await res.json();
-    const quotes: unknown[] = json?.quoteResponse?.result ?? [];
-    for (const q of quotes) {
-      const quote = q as Record<string, unknown>;
-      const symbol = typeof quote.symbol === "string" ? quote.symbol : null;
-      const price = typeof quote.regularMarketPrice === "number" ? quote.regularMarketPrice : null;
-      const prevClose =
-        typeof quote.regularMarketPreviousClose === "number" ? quote.regularMarketPreviousClose : null;
-      if (symbol && price !== null && prevClose !== null) {
-        out.set(symbol, { ticker: symbol, price, prevClose });
-      }
+    const meta = json?.chart?.result?.[0]?.meta;
+    const price = typeof meta?.regularMarketPrice === "number" ? meta.regularMarketPrice : null;
+    const prevClose =
+      typeof meta?.previousClose === "number"
+        ? meta.previousClose
+        : typeof meta?.chartPreviousClose === "number"
+          ? meta.chartPreviousClose
+          : null;
+    if (price === null || prevClose === null) {
+      return { ticker: symbol, error: `missing price/prevClose in response (keys: ${Object.keys(meta || {}).join(",")})` };
     }
-  } catch {
-    // leave out empty/partial — a failed batch is skipped, not fatal
+    return { ticker: symbol, result: { ticker: symbol, price, prevClose } };
+  } catch (err) {
+    return { ticker: symbol, error: err instanceof Error ? err.message : "fetch failed" };
   }
-  return out;
+}
+
+async function fetchYahooQuotes(symbols: string[]): Promise<{ quotes: Map<string, FetchedPrice>; sampleErrors: string[] }> {
+  const quotes = new Map<string, FetchedPrice>();
+  const sampleErrors: string[] = [];
+  const settled = await Promise.all(symbols.map((s) => fetchYahooQuote(s)));
+  for (const r of settled) {
+    if (r.result) quotes.set(r.ticker, r.result);
+    else if (r.error && sampleErrors.length < 3) sampleErrors.push(`${r.ticker}: ${r.error}`);
+  }
+  return { quotes, sampleErrors };
 }
 
 export async function GET(request: Request) {
@@ -77,7 +87,7 @@ export async function GET(request: Request) {
   const results = new Map<string, FetchedPrice>();
 
   const symbols = [...IDX_TICKERS.map((t) => `${t.ticker}.JK`), IHSG_TICKER];
-  const quotes = await fetchYahooQuotes(symbols);
+  const { quotes, sampleErrors } = await fetchYahooQuotes(symbols);
 
   for (const t of IDX_TICKERS) {
     const fetched = quotes.get(`${t.ticker}.JK`);
@@ -161,5 +171,6 @@ export async function GET(request: Request) {
     holdingsUpdated,
     holdingsBackfilled,
     ihsg: ihsg ? { price: ihsg.price, prevClose: ihsg.prevClose } : null,
+    ...(results.size === 0 ? { sampleErrors } : {}),
   });
 }
