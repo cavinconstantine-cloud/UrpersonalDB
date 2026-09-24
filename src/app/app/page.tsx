@@ -219,6 +219,11 @@ export default async function DashboardPage() {
         current={netWorthVal}
         name={data.profile.name}
       />
+      <AssetSection
+        assetCats={data.profile.asset_categories}
+        holdings={data.holdings}
+        snapshots={data.assetHoldingSnapshots}
+      />
       <DailyRecapCard recap={dailyRecap} />
 
       <MissingAccountReminder count={missingAccountCount} />
@@ -254,11 +259,6 @@ export default async function DashboardPage() {
         />
       )}
       <MarketNewsCard news={data.marketNews} />
-      <AssetSection
-        assetCats={data.profile.asset_categories}
-        holdings={data.holdings}
-        snapshots={data.assetHoldingSnapshots}
-      />
       <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
       <GoalsPreview goals={data.goals} fcf={cf.fcf} />
       <ExpenseSplitCard slices={expenseSlices} total={monthExpTotal} />
