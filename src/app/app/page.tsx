@@ -28,6 +28,7 @@ import {
 import { currentYmInTz, fmtRp, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from "@/lib/finance/format";
 import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import { HeroCard } from "@/components/dashboard/hero-card";
+import { GreetingHeader } from "@/components/dashboard/greeting-header";
 import { NetWorthTrend } from "@/components/dashboard/net-worth-trend";
 import { DbrCard } from "@/components/dashboard/dbr-card";
 import { LiquidAssetsCard } from "@/components/dashboard/liquid-assets-card";
@@ -198,6 +199,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="pt-1">
+      <GreetingHeader name={data.profile.name} />
       <LiquidAssetsCard total={liquidAssetsVal} todayNet={dailyRecap.net} />
       {paydayReminder && (
         <PaydayReminderCard
@@ -208,7 +210,6 @@ export default async function DashboardPage() {
         />
       )}
       <HeroCard
-        name={data.profile.name}
         netWorthVal={netWorthVal}
         totalAssetsVal={totalAssetsVal}
         totalLiabilitiesVal={totalLiabVal}

@@ -119,11 +119,3 @@ export function monthsAgoFirstOfMonthIsoInTz(months: number, tz: string): string
   const mm = String(base.getUTCMonth() + 1).padStart(2, "0");
   return `${base.getUTCFullYear()}-${mm}-01`;
 }
-
-export function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 11) return "Selamat pagi";
-  if (h < 15) return "Selamat siang";
-  if (h < 19) return "Selamat sore";
-  return "Selamat malam";
-}
