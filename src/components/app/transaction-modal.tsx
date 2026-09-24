@@ -33,6 +33,7 @@ interface TransactionModalProps {
   customExpenseCategories: string[];
   customIncomeCategories: string[];
   cashAccounts: CashAccount[];
+  userName?: string | null;
 }
 
 export function TransactionModal({
@@ -42,6 +43,7 @@ export function TransactionModal({
   customExpenseCategories,
   customIncomeCategories,
   cashAccounts,
+  userName,
 }: TransactionModalProps) {
   const router = useRouter();
   const toast = useToast();
@@ -222,7 +224,7 @@ export function TransactionModal({
       )}
 
       {isExpense && SPLIT_BILL_ENABLED && splitMode ? (
-        <SplitBillFlow cashAccounts={cashAccounts} onDone={() => { router.refresh(); handleClose(); }} />
+        <SplitBillFlow cashAccounts={cashAccounts} userName={userName} onDone={() => { router.refresh(); handleClose(); }} />
       ) : (
         <>
           <div className="flex flex-wrap gap-2 mb-4">

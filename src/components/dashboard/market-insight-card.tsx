@@ -1,13 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { fmtRp } from "@/lib/finance/format";
+import { fmtRp, capNameOrKamu } from "@/lib/finance/format";
 import { InvestmentEducationModal } from "./investment-education-modal";
 
 /** IHSG drop worth surfacing — small daily wiggles aren't. */
 export const IHSG_DROP_THRESHOLD_PCT = -2.5;
 
-export function MarketInsightCard({ ihsgChangePct, idleCash }: { ihsgChangePct: number; idleCash: number }) {
+export function MarketInsightCard({
+  ihsgChangePct,
+  idleCash,
+  name,
+}: {
+  ihsgChangePct: number;
+  idleCash: number;
+  name?: string | null;
+}) {
   const [modalOpen, setModalOpen] = useState(false);
   if (ihsgChangePct > IHSG_DROP_THRESHOLD_PCT || idleCash <= 0) return null;
 
@@ -22,7 +30,7 @@ export function MarketInsightCard({ ihsgChangePct, idleCash }: { ihsgChangePct: 
       <p className="text-[14.5px] font-medium leading-snug mb-1">IHSG turun {Math.abs(ihsgChangePct).toFixed(1)}% hari ini</p>
       <p className="text-[12px] text-text-dim leading-relaxed mb-2">
         Historisnya, penurunan seperti ini kadang jadi entry point yang lebih menarik buat rencana investasi
-        jangka panjang. Kamu punya {fmtRp(idleCash)} nganggur di Cash.
+        jangka panjang. {capNameOrKamu(name)} punya {fmtRp(idleCash)} nganggur di Cash.
       </p>
       <p className="text-[10.5px] text-text-muted leading-relaxed mb-3">
         Bukan ajakan beli sekarang — harga bisa terus turun. Timing pasar sulit diprediksi; sesuaikan dengan
@@ -37,7 +45,7 @@ export function MarketInsightCard({ ihsgChangePct, idleCash }: { ihsgChangePct: 
         Pelajari opsi investasi →
       </button>
 
-      <InvestmentEducationModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <InvestmentEducationModal open={modalOpen} onClose={() => setModalOpen(false)} name={name} />
     </div>
   );
 }

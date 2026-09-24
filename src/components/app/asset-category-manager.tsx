@@ -27,12 +27,14 @@ export function AssetCategoryManager({
   snapshots = [],
   goals = [],
   stockPrices = {},
+  userName,
 }: {
   category: string;
   holdings: Holding[];
   snapshots?: AssetSnapshotRow[];
   goals?: GoalOption[];
   stockPrices?: Record<string, StockPriceInfo>;
+  userName?: string;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -159,6 +161,7 @@ export function AssetCategoryManager({
           stockPrices={stockPrices}
           onSave={save}
           onDelete={modal.holding ? () => remove(modal.holding!.id) : undefined}
+          userName={userName}
         />
       ) : (
         modal.open && (

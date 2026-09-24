@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { fmtRp, currentYm } from "@/lib/finance/format";
+import { fmtRp, currentYm, nameOrKamu } from "@/lib/finance/format";
 
 export interface FcfMonthPoint {
   month: string; // ISO date, 1st of month
@@ -17,7 +17,15 @@ function monthLabel(iso: string): string {
   return MONTH_LABEL.format(new Date(iso));
 }
 
-export function FcfTrend({ points, current }: { points: FcfMonthPoint[]; current: number }) {
+export function FcfTrend({
+  points,
+  current,
+  name,
+}: {
+  points: FcfMonthPoint[];
+  current: number;
+  name?: string | null;
+}) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   // currentYm() reads the viewer's own local device date (see format.ts),
@@ -31,7 +39,7 @@ export function FcfTrend({ points, current }: { points: FcfMonthPoint[]; current
   if (series.length < 2) {
     return (
       <div className="mx-5 mb-4 p-4 rounded-2xl border border-hairline bg-bg-raised text-xs text-text-dim leading-relaxed shadow-[var(--shadow-card)]">
-        Tren FCF bulanan akan muncul di sini setelah kamu membuka dashboard di lebih dari satu bulan kalender.
+        Tren FCF bulanan akan muncul di sini setelah {nameOrKamu(name)} membuka dashboard di lebih dari satu bulan kalender.
       </div>
     );
   }

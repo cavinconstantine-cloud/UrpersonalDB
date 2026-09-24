@@ -1,10 +1,27 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { getBillSplitByToken } from "@/app/app/split/actions";
 import { fmtRp } from "@/lib/finance/format";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const { token } = await params;
+  const split = await getBillSplitByToken(token);
+  if (!split) return { title: "Split Bill tidak ditemukan" };
+
+  const { result } = split;
+  const names = result.perParticipant.map((p) => p.name);
+  const namesLabel =
+    names.length > 3 ? `${names.slice(0, 3).join(", ")}, +${names.length - 3} lainnya` : names.join(", ");
+
+  return {
+    title: `Split Bill: ${split.title} — ${fmtRp(result.grandTotal)} dibagi ${result.perParticipant.length} orang`,
+    description: `${namesLabel} — cek rincian & bagian masing-masing di Uangku.`,
+  };
+}
 
 export default async function SplitPublicPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;

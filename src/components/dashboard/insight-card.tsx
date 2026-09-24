@@ -1,10 +1,21 @@
-import { fmtRp } from "@/lib/finance/format";
+import { fmtRp, nameOrKamu } from "@/lib/finance/format";
 
-export function InsightCard({ hasGoals, totalNeed, fcf }: { hasGoals: boolean; totalNeed: number; fcf: number }) {
+export function InsightCard({
+  hasGoals,
+  totalNeed,
+  fcf,
+  name,
+}: {
+  hasGoals: boolean;
+  totalNeed: number;
+  fcf: number;
+  name?: string | null;
+}) {
+  const who = nameOrKamu(name);
   if (!hasGoals) {
     return (
       <div className="mx-5 mb-4 p-4 rounded-2xl border border-hairline bg-bg-raised text-sm leading-relaxed shadow-[var(--shadow-card)]">
-        Tambahkan goals untuk melihat berapa yang perlu kamu sisihkan tiap bulan agar tercapai tepat waktu.
+        Tambahkan goals untuk melihat berapa yang perlu {who} sisihkan tiap bulan agar tercapai tepat waktu.
       </div>
     );
   }
@@ -16,13 +27,13 @@ export function InsightCard({ hasGoals, totalNeed, fcf }: { hasGoals: boolean; t
     >
       {good ? (
         <>
-          Untuk mencapai semua goals tepat waktu, kamu perlu menabung <strong>{fmtRp(totalNeed)}/bulan</strong>. Free
-          cash flow kamu saat ini <strong>{fmtRp(fcf)}/bulan</strong> — cukup, dengan sisa {fmtRp(fcf - totalNeed)}.
+          Untuk mencapai semua goals tepat waktu, {who} perlu menabung <strong>{fmtRp(totalNeed)}/bulan</strong>. Free
+          cash flow {who} saat ini <strong>{fmtRp(fcf)}/bulan</strong> — cukup, dengan sisa {fmtRp(fcf - totalNeed)}.
         </>
       ) : (
         <>
-          Untuk mencapai semua goals tepat waktu, kamu perlu menabung <strong>{fmtRp(totalNeed)}/bulan</strong>, tapi
-          free cash flow kamu hanya <strong>{fmtRp(fcf)}/bulan</strong>. Pertimbangkan menggeser target tanggal atau
+          Untuk mencapai semua goals tepat waktu, {who} perlu menabung <strong>{fmtRp(totalNeed)}/bulan</strong>, tapi
+          free cash flow {who} hanya <strong>{fmtRp(fcf)}/bulan</strong>. Pertimbangkan menggeser target tanggal atau
           meninjau lifestyle expense.
         </>
       )}

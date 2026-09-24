@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { TextField } from "@/components/ui/field";
 import { NumberInput } from "@/components/ui/number-field";
-import { fmtRp } from "@/lib/finance/format";
+import { fmtRp, nameOrKamu } from "@/lib/finance/format";
 import { cn } from "@/lib/utils";
 import {
   allocateSplit,
@@ -23,6 +23,7 @@ type Step = "photo" | "review" | "assign" | "result" | "shared";
 
 interface SplitBillFlowProps {
   cashAccounts: CashAccount[];
+  userName?: string | null;
   onDone: () => void;
 }
 
@@ -78,7 +79,7 @@ async function readFileAsBase64(file: File): Promise<{ base64: string; mediaType
   }
 }
 
-export function SplitBillFlow({ cashAccounts, onDone }: SplitBillFlowProps) {
+export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowProps) {
   const [step, setStep] = useState<Step>("photo");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -91,7 +92,9 @@ export function SplitBillFlow({ cashAccounts, onDone }: SplitBillFlowProps) {
   const [tax, setTax] = useState(0);
   const [service, setService] = useState(0);
 
-  const [participants, setParticipants] = useState<SplitParticipant[]>([{ id: "creator", name: "Kamu", isCreator: true }]);
+  const [participants, setParticipants] = useState<SplitParticipant[]>([
+    { id: "creator", name: userName?.trim() || "Kamu", isCreator: true },
+  ]);
   const [newParticipantName, setNewParticipantName] = useState("");
 
   const [assignments, setAssignments] = useState<SplitAssignments>({});
@@ -487,8 +490,8 @@ export function SplitBillFlow({ cashAccounts, onDone }: SplitBillFlowProps) {
             </div>
           )}
           <div className="text-[11px] text-text-dim leading-relaxed mb-3">
-            Cuma <b className="text-good">bagian kamu ({fmtRp(result.perParticipant.find((p) => p.isCreator)?.total ?? 0)})</b> yang tercatat sebagai
-            pengeluaranmu. Bagian orang lain tidak mengurangi saldo/aset kamu.
+            Cuma <b className="text-good">bagian {nameOrKamu(userName)} ({fmtRp(result.perParticipant.find((p) => p.isCreator)?.total ?? 0)})</b> yang tercatat sebagai
+            pengeluaranmu. Bagian orang lain tidak mengurangi saldo/aset {nameOrKamu(userName)}.
           </div>
           {error && <div className="mb-3 text-xs text-critical">{error}</div>}
           <Button fullWidth onClick={handleCreate} disabled={isPending}>

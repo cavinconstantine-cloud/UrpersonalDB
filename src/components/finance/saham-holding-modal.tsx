@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/ui/number-field";
 import { TextField } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import { fmtRp } from "@/lib/finance/format";
+import { fmtRp, nameOrKamu } from "@/lib/finance/format";
 import { STOCK_LOT_SIZE } from "@/lib/finance/constants";
 import { IDX_TICKERS, searchIdxTickers } from "@/lib/finance/idx-tickers";
 import type { HoldingData } from "@/lib/finance/types";
@@ -26,6 +26,7 @@ interface SahamHoldingModalProps {
   stockPrices: Record<string, StockPriceInfo>;
   onSave: (data: HoldingData, goalId: null) => Promise<void>;
   onDelete?: () => Promise<void>;
+  userName?: string;
 }
 
 function fmtAsOf(asOf: string): string {
@@ -36,7 +37,8 @@ function fmtAsOf(asOf: string): string {
   }
 }
 
-export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave, onDelete }: SahamHoldingModalProps) {
+export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave, onDelete, userName }: SahamHoldingModalProps) {
+  const who = nameOrKamu(userName);
   // Holdings added before ticker search existed only ever stored a free-text
   // `label` (the old field was literally "mis. BBCA") — no `ticker` key at
   // all. Recover it from the label so those users never have to re-enter
@@ -206,7 +208,7 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
                   <span className="text-xs shrink-0">🕒</span>
                   <span className="text-[11.5px] text-text-dim leading-relaxed">
                     Harga penutupan <b className="text-text">{fmtAsOf(picked.asOf)}</b> — <b className="text-text">bukan harga real-time/live</b>,
-                    cuma diperbarui tiap hari kerja. Kamu nggak perlu update manual.
+                    cuma diperbarui tiap hari kerja. {who[0].toUpperCase() + who.slice(1)} nggak perlu update manual.
                   </span>
                 </div>
               )}
@@ -222,7 +224,7 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
                 <span className="text-base leading-tight shrink-0">⚠️</span>
                 <p className="text-xs text-text-dim leading-relaxed">
                   Harga otomatis nggak ketemu buat kode ini &mdash; mungkin belum ada di daftar kami. Isi harga
-                  manual di bawah; kalau nanti kodenya kedetek otomatis kamu bisa ganti lewat &quot;Cari lagi&quot;.
+                  manual di bawah; kalau nanti kodenya kedetek otomatis {who} bisa ganti lewat &quot;Cari lagi&quot;.
                 </p>
               </div>
               <TextField label="Nama saham" value={manualLabel} onChange={(e) => setManualLabel(e.target.value)} />

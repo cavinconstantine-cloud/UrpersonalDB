@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { fmtRp, fmtDateLong, todayIso } from "@/lib/finance/format";
+import { fmtRp, fmtDateLong, todayIso, nameOrKamu } from "@/lib/finance/format";
 
 export interface TrendPoint {
   date: string;
@@ -12,7 +12,15 @@ const WIDTH = 100; // viewBox units — scales responsively
 const HEIGHT = 44;
 const PAD_Y = 4;
 
-export function NetWorthTrend({ points, current }: { points: TrendPoint[]; current: number }) {
+export function NetWorthTrend({
+  points,
+  current,
+  name,
+}: {
+  points: TrendPoint[];
+  current: number;
+  name?: string | null;
+}) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
@@ -43,7 +51,7 @@ export function NetWorthTrend({ points, current }: { points: TrendPoint[]; curre
   if (series.length < 2) {
     return (
       <div className="mx-5 mb-4 p-4 rounded-2xl border border-hairline bg-bg-raised text-xs text-text-dim leading-relaxed shadow-[var(--shadow-card)]">
-        Grafik tren net worth akan muncul di sini setelah kamu membuka dashboard beberapa hari berturut-turut.
+        Grafik tren net worth akan muncul di sini setelah {nameOrKamu(name)} membuka dashboard beberapa hari berturut-turut.
       </div>
     );
   }

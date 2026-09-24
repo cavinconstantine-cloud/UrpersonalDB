@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal } from "@/components/ui/modal";
+import { nameOrKamu } from "@/lib/finance/format";
 
 interface InstrumentInfo {
   icon: string;
@@ -30,12 +31,20 @@ const INSTRUMENTS: InstrumentInfo[] = [
   },
 ];
 
-export function InvestmentEducationModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function InvestmentEducationModal({
+  open,
+  onClose,
+  name,
+}: {
+  open: boolean;
+  onClose: () => void;
+  name?: string | null;
+}) {
   return (
     <Modal open={open} onClose={onClose} title="Kenalan sama Opsi Investasi">
       <p className="text-[13px] text-text-dim leading-relaxed mb-4">
         Ini gambaran umum, bukan rekomendasi beli produk tertentu — Uangku belum bekerja sama resmi dengan
-        platform manapun. Sesuaikan pilihan dengan profil risiko &amp; kebutuhan likuiditas kamu sendiri.
+        platform manapun. Sesuaikan pilihan dengan profil risiko &amp; kebutuhan likuiditas {nameOrKamu(name)} sendiri.
       </p>
 
       <div className="flex flex-col gap-3 mb-4">

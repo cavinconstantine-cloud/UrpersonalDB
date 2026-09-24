@@ -236,9 +236,14 @@ export default async function DashboardPage() {
     <div className="pt-1">
       <LiquidAssetsCard total={liquidAssetsVal} todayNet={dailyRecap.net} />
       {paydayReminder && (
-        <PaydayReminderCard label={paydayReminder.label} fcf={paydayReminder.fcf} savingRate={paydayReminder.savingRate} />
+        <PaydayReminderCard
+          label={paydayReminder.label}
+          fcf={paydayReminder.fcf}
+          savingRate={paydayReminder.savingRate}
+          name={data.profile.name}
+        />
       )}
-      {diversificationInsight && <DiversificationInsightCard insight={diversificationInsight} />}
+      {diversificationInsight && <DiversificationInsightCard insight={diversificationInsight} name={data.profile.name} />}
       <HeroCard
         name={data.profile.name}
         netWorthVal={netWorthVal}
@@ -248,9 +253,10 @@ export default async function DashboardPage() {
       <NetWorthTrend
         points={data.snapshots.map((s) => ({ date: s.snapshot_date, netWorth: Number(s.net_worth) }))}
         current={netWorthVal}
+        name={data.profile.name}
       />
       <DailyRecapCard recap={dailyRecap} />
-      <InsightCard hasGoals={data.goals.length > 0} totalNeed={totalNeed} fcf={cf.fcf} />
+      <InsightCard hasGoals={data.goals.length > 0} totalNeed={totalNeed} fcf={cf.fcf} name={data.profile.name} />
 
       <MissingAccountReminder count={missingAccountCount} />
       <RecurringCashflowPreview incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
@@ -271,6 +277,7 @@ export default async function DashboardPage() {
       <FcfTrend
         points={data.fcfSnapshots.map((s) => ({ month: s.snapshot_month, fcf: Number(s.fcf) }))}
         current={cf.fcf}
+        name={data.profile.name}
       />
       <DbrCard dbr={dbr} hasFixedExpense={cf.fixedExpense > 0} />
       <UpcomingBillingCard installments={installments} />
@@ -278,7 +285,11 @@ export default async function DashboardPage() {
       <GoalMaturityCard items={goalMaturities} goalNameById={goalNameById} />
       <AiInsightCard available={aiAvailable} />
       {data.ihsgChangePct !== null && (
-        <MarketInsightCard ihsgChangePct={data.ihsgChangePct} idleCash={idleCash?.idleSurplus ?? 0} />
+        <MarketInsightCard
+          ihsgChangePct={data.ihsgChangePct}
+          idleCash={idleCash?.idleSurplus ?? 0}
+          name={data.profile.name}
+        />
       )}
       <MarketNewsCard news={data.marketNews} />
       <AssetSection

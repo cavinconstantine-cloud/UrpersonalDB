@@ -15,6 +15,7 @@ interface AppShellProps {
   cashAccounts: CashAccount[];
   userId: string;
   hasProfileType: boolean;
+  userName?: string | null;
   children: ReactNode;
 }
 
@@ -24,6 +25,7 @@ export function AppShell({
   cashAccounts,
   userId,
   hasProfileType,
+  userName,
   children,
 }: AppShellProps) {
   const { dict } = useLanguage();
@@ -56,6 +58,7 @@ export function AppShell({
           customExpenseCategories={customExpenseCategories}
           customIncomeCategories={customIncomeCategories}
           cashAccounts={cashAccounts}
+          userName={userName}
         />
       </div>
     </ToastProvider>

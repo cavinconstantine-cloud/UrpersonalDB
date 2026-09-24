@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { fmtRp } from "@/lib/finance/format";
+import { fmtRp, nameOrKamu } from "@/lib/finance/format";
 import { InvestmentEducationModal } from "./investment-education-modal";
 
 export type DiversificationInsight =
@@ -10,10 +10,17 @@ export type DiversificationInsight =
   | { kind: "windfall"; increaseAmount: number; priorCash: number; currentCash: number }
   | { kind: "first-timer" };
 
-export function DiversificationInsightCard({ insight }: { insight: DiversificationInsight }) {
+export function DiversificationInsightCard({
+  insight,
+  name,
+}: {
+  insight: DiversificationInsight;
+  name?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const isFirstTimer = insight.kind === "first-timer";
+  const who = nameOrKamu(name);
 
   const eyebrow =
     insight.kind === "first-timer"
@@ -28,7 +35,7 @@ export function DiversificationInsightCard({ insight }: { insight: Diversificati
     insight.kind === "first-timer"
       ? "100% asetmu masih di Cash"
       : insight.kind === "goal-linked"
-        ? `Goal "${insight.goalName}" perlu ${fmtRp(insight.monthlyNeed)}/bln, FCF kamu ${fmtRp(insight.fcf)}`
+        ? `Goal "${insight.goalName}" perlu ${fmtRp(insight.monthlyNeed)}/bln, FCF ${who} ${fmtRp(insight.fcf)}`
         : insight.kind === "windfall"
           ? `${fmtRp(insight.increaseAmount)} baru masuk ke Cash dalam sebulan terakhir`
           : `${fmtRp(insight.idleSurplus)} lebih dari dana darurat idealmu`;
@@ -39,8 +46,8 @@ export function DiversificationInsightCard({ insight }: { insight: Diversificati
       : insight.kind === "goal-linked"
         ? `Ada ${fmtRp(insight.idleSurplus)} nganggur di Cash. Dialokasikan ke instrumen yang cocok sama timeline goal ini bisa bantu kejar target lebih cepat — nggak cuma ngandelin nabung manual.`
         : insight.kind === "windfall"
-          ? "Belum keliatan rencana buat dana ini di goals kamu. Sebelum kepakai buat hal lain, mau dipertimbangkan buat instrumen yang lebih efektif dulu?"
-          : `Dana darurat ideal kamu sekitar ${fmtRp(insight.emergencyFundTarget)}. Saldo Cash kamu ${fmtRp(insight.cashBalance)} — ada ${fmtRp(insight.idleSurplus)} yang bisa dialokasikan tanpa ganggu safety net.`;
+          ? `Belum keliatan rencana buat dana ini di goals ${who}. Sebelum kepakai buat hal lain, mau dipertimbangkan buat instrumen yang lebih efektif dulu?`
+          : `Dana darurat ideal ${who} sekitar ${fmtRp(insight.emergencyFundTarget)}. Saldo Cash ${who} ${fmtRp(insight.cashBalance)} — ada ${fmtRp(insight.idleSurplus)} yang bisa dialokasikan tanpa ganggu safety net.`;
 
   const ctaLabel = isFirstTimer ? "Pelajari, nggak buru-buru" : "Lihat opsi lain";
 
@@ -67,7 +74,7 @@ export function DiversificationInsightCard({ insight }: { insight: Diversificati
         <div className="pt-3 mt-3 border-t border-hairline">
           <div className="flex flex-col gap-1.5 mb-2">
             <div className="flex justify-between items-baseline text-[12px]">
-              <span className="font-medium">Tabungan biasa (posisi kamu)</span>
+              <span className="font-medium">Tabungan biasa (posisi {who})</span>
               <span className="text-text-dim">~0–2%/thn</span>
             </div>
             <div className="flex justify-between items-baseline text-[12px]">
@@ -94,7 +101,7 @@ export function DiversificationInsightCard({ insight }: { insight: Diversificati
         {ctaLabel} →
       </button>
 
-      <InvestmentEducationModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <InvestmentEducationModal open={modalOpen} onClose={() => setModalOpen(false)} name={name} />
     </div>
   );
 }

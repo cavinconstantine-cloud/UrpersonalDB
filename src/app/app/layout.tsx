@@ -16,7 +16,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
     supabase.from("custom_income_categories").select("name").eq("user_id", user.id),
     supabase.from("asset_holdings").select("id, data").eq("user_id", user.id).eq("category", "Cash"),
-    supabase.from("profiles").select("profile_type").eq("id", user.id).single(),
+    supabase.from("profiles").select("profile_type, name").eq("id", user.id).single(),
     getLang(),
   ]);
 
@@ -33,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         cashAccounts={cashAccounts}
         userId={user.id}
         hasProfileType={Boolean(profileRes.data?.profile_type)}
+        userName={profileRes.data?.name || null}
       >
         {children}
       </AppShell>

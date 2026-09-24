@@ -3,6 +3,18 @@ export function fmtRp(n: number | string | undefined | null): string {
   return "Rp " + Math.round(num).toLocaleString("id-ID");
 }
 
+/** Mid-sentence address — the user's name, or lowercase "kamu" when none is set yet. */
+export function nameOrKamu(name: string | null | undefined): string {
+  const trimmed = name?.trim();
+  return trimmed || "kamu";
+}
+
+/** Sentence-start address — the user's name, or capitalized "Kamu" when none is set yet. */
+export function capNameOrKamu(name: string | null | undefined): string {
+  const label = nameOrKamu(name);
+  return label === "kamu" ? "Kamu" : label;
+}
+
 export function fmtNumber(n: number | string | undefined | null): string {
   const num = Number(n) || 0;
   return num.toLocaleString("id-ID");
