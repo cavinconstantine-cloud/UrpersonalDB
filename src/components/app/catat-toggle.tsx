@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, ArrowDownLeft, Receipt } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { TransactionType } from "./transaction-modal";
+
+/** How long after the last scroll event before the toggle reappears. */
+const SCROLL_IDLE_MS = 500;
 
 interface CatatToggleProps {
   onOpen: (type: TransactionType) => void;
@@ -33,6 +37,23 @@ export function CatatToggle({
   splitAria,
 }: CatatToggleProps) {
   const [active, setActive] = useState<TransactionType>("expense");
+  const [scrolling, setScrolling] = useState(false);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Tucks the toggle away while the user is actively scrolling so it doesn't
+  // sit over content, then brings it back once scrolling settles.
+  useEffect(() => {
+    function handleScroll() {
+      setScrolling(true);
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      idleTimer.current = setTimeout(() => setScrolling(false), SCROLL_IDLE_MS);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
+  }, []);
 
   function tap(type: TransactionType) {
     if (active === type) onOpen(type);
@@ -43,7 +64,12 @@ export function CatatToggle({
   const incomeActive = active === "income";
 
   return (
-    <div className="fixed bottom-[76px] right-5 z-30 flex flex-col items-end gap-2">
+    <div
+      className={cn(
+        "fixed bottom-[76px] right-5 z-30 flex flex-col items-end gap-2 transition-all duration-300 ease-out",
+        scrolling ? "translate-y-3 opacity-0 pointer-events-none" : "translate-y-0 opacity-100",
+      )}
+    >
       <button
         onClick={onOpenSplit}
         aria-label={splitAria}
