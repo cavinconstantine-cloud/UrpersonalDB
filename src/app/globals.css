@@ -25,6 +25,7 @@
 
   /* status (fixed across themes, from dataviz status palette) */
   --good: #0f7a3d;
+  --good-ink: #ffffff;
   --good-wash: rgba(15, 122, 61, 0.12);
   --warning: #b5790a;
   --warning-wash: rgba(181, 121, 10, 0.12);
@@ -67,6 +68,7 @@
     --brand-soft: #241f42;
 
     --good: #3fbf72;
+    --good-ink: #0a0a10;
     --good-wash: rgba(63, 191, 114, 0.14);
     --warning: #e0a838;
     --warning-wash: rgba(224, 168, 56, 0.14);
@@ -108,6 +110,7 @@
   --brand-soft: #241f42;
 
   --good: #3fbf72;
+  --good-ink: #0a0a10;
   --good-wash: rgba(63, 191, 114, 0.14);
   --warning: #e0a838;
   --warning-wash: rgba(224, 168, 56, 0.14);
@@ -145,6 +148,7 @@
   --color-brand-soft: var(--brand-soft);
 
   --color-good: var(--good);
+  --color-good-ink: var(--good-ink);
   --color-warning: var(--warning);
   --color-critical: var(--critical);
 

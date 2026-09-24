@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Plus, ArrowDownLeft } from "lucide-react";
 import { BottomNav } from "./bottom-nav";
+import { CatatToggle } from "./catat-toggle";
 import { TransactionModal, type CashAccount, type TransactionType } from "./transaction-modal";
 import { WhatsNewSlideshow } from "./whats-new-slideshow";
 import { useLanguage } from "./language-provider";
@@ -34,24 +34,13 @@ export function AppShell({
     <div className="min-h-full flex flex-col">
       <div className="max-w-[560px] w-full mx-auto flex-1 pb-28">{children}</div>
 
-      <div className="fixed bottom-[76px] right-5 z-30 flex flex-col items-end gap-2.5">
-        <button
-          onClick={() => setModal({ open: true, type: "income" })}
-          className="flex items-center gap-1.5 rounded-full bg-bg-raised border border-hairline text-good pl-3.5 pr-4 py-2.5 text-[13px] font-medium shadow-[var(--shadow-pop)]"
-          aria-label={dict.shell.addIncomeAria}
-        >
-          <ArrowDownLeft size={15} strokeWidth={2.5} />
-          {dict.shell.addIncome}
-        </button>
-        <button
-          onClick={() => setModal({ open: true, type: "expense" })}
-          className="flex items-center gap-2 rounded-full bg-brand text-brand-ink pl-4 pr-5 py-3.5 text-sm font-medium shadow-[var(--shadow-pop)]"
-          aria-label={dict.shell.addExpenseAria}
-        >
-          <Plus size={18} strokeWidth={2.5} />
-          {dict.shell.addExpense}
-        </button>
-      </div>
+      <CatatToggle
+        onOpen={(type) => setModal({ open: true, type })}
+        expenseLabel={dict.shell.addExpense}
+        incomeLabel={dict.shell.addIncome}
+        expenseAria={dict.shell.addExpenseAria}
+        incomeAria={dict.shell.addIncomeAria}
+      />
 
       <BottomNav />
       <WhatsNewSlideshow userId={userId} hasProfileType={hasProfileType} />

@@ -12,9 +12,9 @@ const id = {
   },
   shell: {
     addIncomeAria: "Catat pemasukan",
-    addIncome: "Pemasukan",
+    addIncome: "Catat Pemasukan",
     addExpenseAria: "Catat pengeluaran",
-    addExpense: "Catat",
+    addExpense: "Catat Pengeluaran",
   },
   theme: {
     title: "Tampilan",
@@ -63,9 +63,9 @@ const en: typeof id = {
   },
   shell: {
     addIncomeAria: "Add income",
-    addIncome: "Income",
+    addIncome: "Log Income",
     addExpenseAria: "Add expense",
-    addExpense: "Add",
+    addExpense: "Log Expense",
   },
   theme: {
     title: "Appearance",
