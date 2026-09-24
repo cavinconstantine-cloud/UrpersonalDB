@@ -123,12 +123,13 @@ Setelah itu dibenarkan, estimasi kasar (perlu divalidasi dengan load test real):
 ## Status: diversification insight cards — SUDAH DI-SHIP ke kode (commit d79e8f1)
 
 - [x] `idleCashSurplus()` + `hasNoNonCashAssets()` di `calculations.ts`
-- [x] `DiversificationInsightCard` — Segmen 1 (dana darurat berlebih), Segmen 2 (goal-linked), Segmen 4 (first-timer), otomatis pilih prioritas tertinggi yang berlaku
+- [x] `DiversificationInsightCard` — Segmen 1 (dana darurat berlebih), Segmen 2 (goal-linked), Segmen 3 (windfall), Segmen 4 (first-timer), otomatis pilih prioritas tertinggi yang berlaku (goal-linked > windfall > idle-cash > first-timer)
 - [x] `MarketInsightCard` — IHSG turun >2,5%/hari, ditaro dekat Berita Pasar
 - [x] Fetch `ihsgChangePct` (dari `stock_prices` yang sudah ada) di `dashboard.ts`
-- [ ] **CTA masih di-disable** (`AFFILIATE_CTA_ENABLED = false` di kedua komponen) — nunggu kalian beneran daftar affiliate (Ajaib Ambassador paling konkret) dan dapat link tracking asli. Begitu ada, tinggal flip 1 baris + isi URL-nya.
-- [ ] **Belum di-build**: Segmen 3 (windfall — butuh snapshot table baru), insight yield obligasi (belum ada sumber data sama sekali)
-- [ ] **Legal review OJK (APERD/WAPERD)** belum dilakukan — copy sudah ditulis hati-hati (edukatif, ada disclaimer, bukan "beli sekarang") tapi ini tetap perlu di-review profesional sebelum benar-benar nge-drive traffic ke partner nantinya
+- [x] **Keputusan diubah**: CTA tidak lagi nunggu affiliate. `AFFILIATE_CTA_ENABLED` flag dihapus — CTA sekarang aktif dan buka `InvestmentEducationModal` (edukasi umum, nggak nge-push produk/partner tertentu, sebut nama platform OJK secara netral tanpa favoritism). Ini justru lebih aman secara regulasi dibanding versi affiliate.
+- [x] **Segmen 3 (windfall) sudah di-build juga** — ternyata nggak butuh tabel baru, `asset_holding_snapshots` sudah nyimpen history harian sejak lama (PK per hari per holding), tinggal query lebih jauh ke belakang (~30 hari). Koreksi dari catatan sebelumnya yang bilang ini butuh infra baru.
+- [ ] **Masih belum di-build**: insight yield obligasi (beneran belum ada sumber data sama sekali, beda dari windfall)
+- [ ] **Legal review OJK (APERD/WAPERD)** — belum dilakukan, tapi risikonya sudah lebih rendah karena CTA sekarang murni edukasi umum, bukan affiliate ke platform tertentu. Tetap worth direview profesional sebelum ada rencana kerja sama affiliate beneran ke depannya.
 
 ## Status bagian lain
 
