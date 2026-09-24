@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
 const inputBase =
   "w-full px-[14px] py-[13px] rounded-lg border bg-bg-input text-text text-[16px] font-sans placeholder:text-text-muted focus:outline-2 focus:outline-offset-1 focus:outline-brand transition-colors";
@@ -43,6 +43,29 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
         ref={ref}
         id={id}
         className={cn(inputBase, error && "border-critical", !error && "border-hairline", className)}
+        {...props}
+      />
+    </FieldWrap>
+  );
+});
+
+interface TextareaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
+  hint?: ReactNode;
+}
+
+export const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>(function TextareaField(
+  { label, error, hint, className, id, rows = 5, ...props },
+  ref,
+) {
+  return (
+    <FieldWrap label={label} error={error} hint={hint} htmlFor={id}>
+      <textarea
+        ref={ref}
+        id={id}
+        rows={rows}
+        className={cn(inputBase, "resize-y", error && "border-critical", !error && "border-hairline", className)}
         {...props}
       />
     </FieldWrap>

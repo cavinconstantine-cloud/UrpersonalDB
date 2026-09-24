@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/app/(auth)/actions";
@@ -10,6 +11,7 @@ import { LiveClock } from "@/components/app/live-clock";
 import { Button } from "@/components/ui/button";
 import { getLang } from "@/lib/i18n/lang";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import { isAdminEmail } from "@/lib/admin";
 
 export const metadata: Metadata = { title: "Pengaturan" };
 
@@ -51,6 +53,18 @@ export default async function SettingsPage() {
         initialProfileType={(profileRes.data?.profile_type as "karyawan" | "pengusaha" | null) || ""}
         initialPaydayDay={profileRes.data?.payday_day ?? null}
       />
+
+      {isAdminEmail(user.email) && (
+        <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
+          <div className="serif text-[15px] mb-1">🌐 Berita Pasar</div>
+          <p className="text-xs text-text-dim mb-3 leading-relaxed">Kelola berita yang tampil di dashboard.</p>
+          <Link href="/app/admin/market-news">
+            <Button variant="ghost" fullWidth type="button">
+              Buka pengelola berita
+            </Button>
+          </Link>
+        </div>
+      )}
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
         <div className="serif text-[15px] mb-1">{dict.settings.account}</div>

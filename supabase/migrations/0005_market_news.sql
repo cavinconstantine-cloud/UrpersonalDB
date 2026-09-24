@@ -1,10 +1,11 @@
 -- Uangku — AI-analyzed market news ("Berita Pasar").
 --
--- Refreshed periodically by a cron route (service-role client, using Claude's
--- web search tool restricted to trusted financial news domains) rather than
--- on every dashboard view. Content is global — not per-user — so regular
--- users get read-only access; only the service-role key (which bypasses RLS)
--- may insert/update/delete.
+-- Curated manually via /app/admin/market-news (admin-only, service-role
+-- client) — an admin drops in news they've already picked, and Claude only
+-- writes the headline/impact analysis from that text; it never searches or
+-- sources anything on its own. Content is global — not per-user — so
+-- regular users get read-only access; only the service-role key (which
+-- bypasses RLS) may insert/update/delete.
 
 create table if not exists public.market_news (
   id uuid primary key default gen_random_uuid(),

@@ -122,6 +122,24 @@ Setelah aktif, limit bawaan Supabase hilang — kalian ikut limit Resend (100
 email/hari / 3.000/bulan di tier gratis, mencakup konfirmasi + reset password +
 reminder billing sekaligus karena satu akun Resend yang sama).
 
+## 7. (Opsional) Kelola "Berita Pasar" secara manual
+
+Kartu "Berita Pasar" di dashboard **tidak menarik berita otomatis** — bukan cron job,
+bukan AI web search. Isinya dikontrol manual lewat `/app/admin/market-news`: admin
+paste berita/isu yang sudah dipilih (+ link sumbernya), AI cuma bantu tulis
+judul & analisa dampaknya ke pasar Indonesia dari teks itu, tidak pernah mencari
+atau mengutip apa pun sendiri.
+
+Untuk mengaktifkan halaman itu, isi 2 env var (sama seperti `SUPABASE_SERVICE_ROLE_KEY`
+di atas — dibutuhkan juga di sini karena tabel `market_news` hanya bisa ditulis lewat
+service-role key):
+
+- `ADMIN_EMAILS` — email akun kamu (bisa lebih dari satu, dipisah koma) yang boleh
+  buka halaman itu. Kosongkan untuk menonaktifkan halaman ini sepenuhnya.
+- `SUPABASE_SERVICE_ROLE_KEY` — lihat langkah 5 di atas.
+- `ANTHROPIC_API_KEY` — sama seperti langkah 2, dipakai untuk menulis analisa
+  dampaknya, bukan untuk mencari berita.
+
 ## Struktur proyek
 
 ```
