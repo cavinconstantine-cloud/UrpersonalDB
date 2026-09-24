@@ -46,12 +46,28 @@ export function fmtMonthYear(iso: string): string {
   return new Date(iso).toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 }
 
+/**
+ * This app is single-region (Indonesian users, WIB). "Today"/"this month"
+ * must mean the same calendar day everywhere they're computed — but this
+ * runs both server-side (Vercel, UTC) and client-side (the viewer's actual
+ * browser, effectively WIB) via `new Date()`, whose local timezone differs
+ * between those two. Anchoring to a fixed WIB (UTC+7) offset instead of the
+ * ambient environment's timezone keeps every caller in agreement, and
+ * avoids the day/month rolling over up to 7 hours early relative to WIB
+ * wall-clock time when this runs on the UTC server.
+ */
+const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
+
+function wibNow(): Date {
+  return new Date(Date.now() + WIB_OFFSET_MS);
+}
+
 export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return wibNow().toISOString().slice(0, 10);
 }
 
 export function currentYm(): string {
-  return new Date().toISOString().slice(0, 7);
+  return wibNow().toISOString().slice(0, 7);
 }
 
 export function greeting(): string {

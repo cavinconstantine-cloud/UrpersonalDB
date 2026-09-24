@@ -1,14 +1,17 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { fmtRp } from "@/lib/finance/format";
+import { fmtRp, currentYm } from "@/lib/finance/format";
 
 export interface FcfMonthPoint {
   month: string; // ISO date, 1st of month
   fcf: number;
 }
 
-const MONTH_LABEL = new Intl.DateTimeFormat("id-ID", { month: "short" });
+// timeZone: "UTC" — these month strings are calendar labels ("2026-09-01"),
+// not real instants; parsing+formatting them in the viewer's local timezone
+// can shift the displayed label a day/month off from what was stored.
+const MONTH_LABEL = new Intl.DateTimeFormat("id-ID", { month: "short", timeZone: "UTC" });
 
 function monthLabel(iso: string): string {
   return MONTH_LABEL.format(new Date(iso));
@@ -17,9 +20,13 @@ function monthLabel(iso: string): string {
 export function FcfTrend({ points, current }: { points: FcfMonthPoint[]; current: number }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
+  // currentYm() is WIB-anchored (see format.ts) so this always matches the
+  // "this month" a stored fcf_snapshots row would use — computing it any
+  // other way here (this ran client-side, in the viewer's own timezone)
+  // used to land on the wrong calendar day for anyone ahead of UTC, which
+  // then failed to replace the stale stored value with the live one below.
   const series = useMemo(() => {
-    const now = new Date();
-    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const thisMonth = `${currentYm()}-01`;
     const withoutThisMonth = points.filter((p) => p.month !== thisMonth);
     return [...withoutThisMonth, { month: thisMonth, fcf: current }].sort((a, b) => a.month.localeCompare(b.month));
   }, [points, current]);

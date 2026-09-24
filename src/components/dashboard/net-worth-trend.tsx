@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { fmtRp, fmtDateLong } from "@/lib/finance/format";
+import { fmtRp, fmtDateLong, todayIso } from "@/lib/finance/format";
 
 export interface TrendPoint {
   date: string;
@@ -16,9 +16,12 @@ export function NetWorthTrend({ points, current }: { points: TrendPoint[]; curre
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
-  // Always include "today" as the last point so the line reaches the current value.
+  // Always include "today" as the last point so the line reaches the current
+  // value. todayIso() is WIB-anchored (see format.ts) so it always matches
+  // the calendar day a stored snapshot would use, regardless of the
+  // viewer's own browser timezone.
   const series = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayIso();
     const withoutToday = points.filter((p) => p.date !== today);
     return [...withoutToday, { date: today, netWorth: current }];
   }, [points, current]);
