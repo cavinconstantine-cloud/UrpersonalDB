@@ -9,13 +9,9 @@ import {
 import {
   budgetProgress,
   cashflowNums,
-  cashWindfall,
-  catValue,
   computeDailyRecap,
   computeDBR,
   expenseByCategory,
-  goalMonthlyNeed,
-  hasNoNonCashAssets,
   idleCashSurplus,
   investmentIncomeMonthly,
   liquidAssets,
@@ -33,13 +29,11 @@ import { currentYmInTz, fmtRp, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from
 import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import { HeroCard } from "@/components/dashboard/hero-card";
 import { NetWorthTrend } from "@/components/dashboard/net-worth-trend";
-import { InsightCard } from "@/components/dashboard/insight-card";
 import { DbrCard } from "@/components/dashboard/dbr-card";
 import { LiquidAssetsCard } from "@/components/dashboard/liquid-assets-card";
 import { PaydayReminderCard } from "@/components/dashboard/payday-reminder-card";
 import { MissingAccountReminder } from "@/components/dashboard/missing-account-reminder";
 import { DailyRecapCard } from "@/components/dashboard/daily-recap-card";
-import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { AssetSection } from "@/components/dashboard/asset-section";
 import { LiabilitySection } from "@/components/dashboard/liability-section";
 import { GoalsPreview } from "@/components/dashboard/goals-preview";
@@ -49,7 +43,6 @@ import { UpcomingInvestmentIncomeCard } from "@/components/dashboard/upcoming-in
 import { GoalMaturityCard } from "@/components/dashboard/goal-maturity-card";
 import { FcfTrend } from "@/components/dashboard/fcf-trend";
 import { MarketNewsCard } from "@/components/dashboard/market-news-card";
-import { DiversificationInsightCard, type DiversificationInsight } from "@/components/dashboard/diversification-insight-card";
 import { MarketInsightCard } from "@/components/dashboard/market-insight-card";
 import { ExpenseSplitCard } from "@/components/dashboard/expense-split-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
@@ -142,8 +135,6 @@ export default async function DashboardPage() {
     ]),
   );
 
-  const totalNeed = data.goals.reduce((s, g) => s + goalMonthlyNeed(g), 0);
-
   const accountLabelById = new Map(
     data.holdings
       .filter((h) => h.category === "Cash")
@@ -174,8 +165,6 @@ export default async function DashboardPage() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 6);
 
-  const aiAvailable = Boolean(process.env.ANTHROPIC_API_KEY);
-
   const missingAccountCount = [...data.recurringIncomes, ...data.recurringExpenses].filter(
     (r) => !r.accountHoldingId,
   ).length;
@@ -204,33 +193,8 @@ export default async function DashboardPage() {
     }
   }
 
-  // Diversification insight — which segment (if any) applies, highest priority first:
-  // an idle-cash surplus tied to a goal that needs it beats a plain idle-cash surplus
-  // beats "hasn't invested in anything yet". monthExpTotal is a same-month proxy for
-  // "average" monthly expense, not a true rolling average — good enough for a reserve
-  // estimate, not exact.
+  // Still feeds MarketInsightCard's "you have idle cash to consider investing" copy.
   const idleCash = idleCashSurplus(data.holdings, monthExpTotal, data.profile.profile_type);
-  const offTrackGoal = data.goals.find((g) => goalMonthlyNeed(g) > Math.max(0, cf.fcf));
-  const windfall = cashWindfall(
-    catValue("Cash", data.holdings),
-    data.priorCashSnapshots,
-  );
-  let diversificationInsight: DiversificationInsight | null = null;
-  if (idleCash && offTrackGoal) {
-    diversificationInsight = {
-      kind: "goal-linked",
-      idleSurplus: idleCash.idleSurplus,
-      goalName: offTrackGoal.name,
-      monthlyNeed: goalMonthlyNeed(offTrackGoal),
-      fcf: cf.fcf,
-    };
-  } else if (windfall) {
-    diversificationInsight = { kind: "windfall", ...windfall };
-  } else if (idleCash) {
-    diversificationInsight = { kind: "idle-cash", ...idleCash };
-  } else if (hasNoNonCashAssets(data.holdings)) {
-    diversificationInsight = { kind: "first-timer" };
-  }
 
   return (
     <div className="pt-1">
@@ -243,7 +207,6 @@ export default async function DashboardPage() {
           name={data.profile.name}
         />
       )}
-      {diversificationInsight && <DiversificationInsightCard insight={diversificationInsight} name={data.profile.name} />}
       <HeroCard
         name={data.profile.name}
         netWorthVal={netWorthVal}
@@ -256,7 +219,6 @@ export default async function DashboardPage() {
         name={data.profile.name}
       />
       <DailyRecapCard recap={dailyRecap} />
-      <InsightCard hasGoals={data.goals.length > 0} totalNeed={totalNeed} fcf={cf.fcf} name={data.profile.name} />
 
       <MissingAccountReminder count={missingAccountCount} />
       <RecurringCashflowPreview incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
@@ -283,7 +245,6 @@ export default async function DashboardPage() {
       <UpcomingBillingCard installments={installments} />
       <UpcomingInvestmentIncomeCard items={investIncomeItems} />
       <GoalMaturityCard items={goalMaturities} goalNameById={goalNameById} />
-      <AiInsightCard available={aiAvailable} />
       {data.ihsgChangePct !== null && (
         <MarketInsightCard
           ihsgChangePct={data.ihsgChangePct}
