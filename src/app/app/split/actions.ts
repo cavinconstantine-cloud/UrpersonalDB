@@ -79,8 +79,12 @@ export async function extractReceipt(base64: string, mediaType: string): Promise
       ? (mediaType as "image/jpeg" | "image/png" | "image/webp" | "image/gif")
       : "image/jpeg";
     const response = await anthropic.messages.parse({
-      model: "claude-opus-5-5",
-      max_tokens: 4000,
+      // Sonnet instead of Opus — struk-reading is a bounded OCR/extraction
+      // task, not deep reasoning, and every extraction already goes through
+      // a mandatory user review step before it's saved, so Sonnet's vision
+      // accuracy is more than enough here at a fraction of the cost.
+      model: "claude-sonnet-5",
+      max_tokens: 2000,
       messages: [
         {
           role: "user",

@@ -36,7 +36,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
   }
 
   const { result } = split;
-  const shown = result.perParticipant.slice(0, 4);
+  const shown = result.perParticipant.slice(0, 6);
   const overflowCount = result.perParticipant.length - shown.length;
 
   return new ImageResponse(
@@ -61,32 +61,27 @@ export default async function Image({ params }: { params: Promise<{ token: strin
           {split.merchant && <span style={{ fontSize: 22, color: "#b8afe8" }}>{split.merchant}</span>}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 44 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 40 }}>
           {shown.map((p, i) => (
-            <div key={p.participantId} style={{ display: "flex", alignItems: "center", gap: 18 }}>
+            <div key={p.participantId} style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div
                 style={{
-                  width: 50,
-                  height: 50,
+                  width: 42,
+                  height: 42,
                   borderRadius: 999,
                   background: p.isCreator ? "#7c6ef2" : AVATAR_COLORS[i % AVATAR_COLORS.length],
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 20,
+                  fontSize: 17,
                   fontWeight: 700,
                   color: "#ffffff",
                 }}
               >
                 {p.name.charAt(0).toUpperCase()}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", flexGrow: 1 }}>
-                <span style={{ fontSize: 22, color: "#f2f0f7" }}>{p.name}</span>
-                <span style={{ fontSize: 17, color: "#a49ec2" }}>
-                  {p.itemLines.length > 0 ? p.itemLines.map((l) => `${l.units} ${l.name}`).join(", ") : "tidak ada item"}
-                </span>
-              </div>
-              <span style={{ fontSize: 24, fontWeight: 700, color: "#ffffff" }}>{fmtRp(p.total)}</span>
+              <span style={{ fontSize: 23, color: "#f2f0f7", flexGrow: 1 }}>{p.name}</span>
+              <span style={{ fontSize: 25, fontWeight: 700, color: "#ffffff" }}>{fmtRp(p.total)}</span>
             </div>
           ))}
           {overflowCount > 0 && <span style={{ fontSize: 18, color: "#8b84c4" }}>+{overflowCount} orang lainnya</span>}
