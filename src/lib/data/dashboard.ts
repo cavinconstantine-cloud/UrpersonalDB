@@ -103,13 +103,21 @@ export async function getDashboardData() {
       .limit(5),
     supabase
       .from("fcf_snapshots")
-      .select("snapshot_month, fcf")
+      .select("snapshot_month, fcf, saving_rate")
       .eq("user_id", user.id)
       .gte("snapshot_month", monthsAgoFirstOfMonthIso(11))
       .order("snapshot_month"),
     supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
-    supabase.from("recurring_incomes").select("id, label, amount").eq("user_id", user.id).order("created_at"),
-    supabase.from("recurring_expenses").select("id, label, amount").eq("user_id", user.id).order("created_at"),
+    supabase
+      .from("recurring_incomes")
+      .select("id, label, amount, account_holding_id")
+      .eq("user_id", user.id)
+      .order("created_at"),
+    supabase
+      .from("recurring_expenses")
+      .select("id, label, amount, account_holding_id")
+      .eq("user_id", user.id)
+      .order("created_at"),
     supabase
       .from("asset_holding_snapshots")
       .select("snapshot_date, holding_id, category, label, value")
@@ -171,8 +179,18 @@ export async function getDashboardData() {
     })),
     fcfSnapshots: fcfSnapshotsRes.data || [],
     budgets: (budgetsRes.data || []).map((b) => ({ category: b.category, monthlyLimit: Number(b.monthly_limit) })),
-    recurringIncomes: (recurringIncomeRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) })),
-    recurringExpenses: (recurringExpenseRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) })),
+    recurringIncomes: (recurringIncomeRes.data || []).map((r) => ({
+      id: r.id,
+      label: r.label,
+      amount: Number(r.amount),
+      accountHoldingId: r.account_holding_id,
+    })),
+    recurringExpenses: (recurringExpenseRes.data || []).map((r) => ({
+      id: r.id,
+      label: r.label,
+      amount: Number(r.amount),
+      accountHoldingId: r.account_holding_id,
+    })),
     assetHoldingSnapshots: (assetHoldingSnapshotsRes.data || []).map((s) => ({
       date: s.snapshot_date,
       holdingId: s.holding_id,

@@ -35,23 +35,50 @@ export async function completeOnboarding(draft: OnboardingDraft) {
     invest: Number(draft.cashflow.invest) || 0,
   });
 
+  // Cash holdings go in first, and separately from the rest — recurring
+  // income/expense items below need their real asset_holdings ids to link
+  // to (the draft only ever tracked them by array index, since nothing has
+  // a database row yet while onboarding is in progress).
+  const cashHoldings = draft.assetHoldings["Cash"] || [];
+  let cashRealIds: string[] = [];
+  if (cashHoldings.length > 0) {
+    const { data: insertedCash } = await supabase
+      .from("asset_holdings")
+      .insert(cashHoldings.map((h) => ({ user_id: user.id, category: "Cash", data: holdingDataToJson(h) })))
+      .select("id");
+    cashRealIds = (insertedCash || []).map((r) => r.id);
+  }
+  function resolveAccountId(idx: number | null): string | null {
+    return idx !== null ? (cashRealIds[idx] ?? null) : null;
+  }
+
   // Seed the "Pemasukan/Pengeluaran tetap" lists in Arus Kas Tetap with
   // exactly what was entered here, so nothing needs to be re-entered.
   // fixed_expense above is a cache of SUM(recurring_expenses.amount),
   // kept in sync the same way settings/cashflow-actions.ts does on every
   // future add/edit/delete there.
   if (income > 0) {
-    await supabase.from("recurring_incomes").insert({ user_id: user.id, label: "Pemasukan", amount: income });
+    await supabase.from("recurring_incomes").insert({
+      user_id: user.id,
+      label: "Pemasukan",
+      amount: income,
+      account_holding_id: resolveAccountId(draft.incomeAccountIdx),
+    });
   }
   if (draft.fixedExpenseItems.length > 0) {
     await supabase.from("recurring_expenses").insert(
-      draft.fixedExpenseItems.map((it) => ({ user_id: user.id, label: it.label, amount: it.amount })),
+      draft.fixedExpenseItems.map((it) => ({
+        user_id: user.id,
+        label: it.label,
+        amount: it.amount,
+        account_holding_id: resolveAccountId(it.accountIdx),
+      })),
     );
   }
 
-  const holdingsRows = Object.entries(draft.assetHoldings).flatMap(([category, holdings]) =>
-    holdings.map((h) => ({ user_id: user.id, category, data: holdingDataToJson(h) })),
-  );
+  const holdingsRows = Object.entries(draft.assetHoldings)
+    .filter(([category]) => category !== "Cash")
+    .flatMap(([category, holdings]) => holdings.map((h) => ({ user_id: user.id, category, data: holdingDataToJson(h) })));
   if (holdingsRows.length) {
     await supabase.from("asset_holdings").insert(holdingsRows);
   }

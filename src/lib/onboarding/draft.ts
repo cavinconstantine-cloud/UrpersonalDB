@@ -18,6 +18,8 @@ export interface FixedExpenseItem {
   id: string;
   label: string;
   amount: number;
+  /** Index into assetHoldings["Cash"] — the account this expense is paid from. Resolved to a real asset_holdings id on submit. */
+  accountIdx: number | null;
 }
 
 export interface OnboardingDraft {
@@ -32,6 +34,8 @@ export interface OnboardingDraft {
   liabHoldings: Record<string, HoldingData[]>;
   liabIdx: number;
   cashflow: { income: string; lifestyleExpense: string; invest: string };
+  /** Index into assetHoldings["Cash"] — the account the monthly gaji lands in. */
+  incomeAccountIdx: number | null;
   fixedExpenseItems: FixedExpenseItem[];
   goals: Goal[];
 }
@@ -49,6 +53,7 @@ export function emptyDraft(name = ""): OnboardingDraft {
     liabHoldings: {},
     liabIdx: 0,
     cashflow: { income: "", lifestyleExpense: "", invest: "" },
+    incomeAccountIdx: null,
     fixedExpenseItems: [],
     goals: [],
   };
@@ -65,6 +70,12 @@ export function loadDraft(userId: string): OnboardingDraft | null {
     const parsed = JSON.parse(raw) as OnboardingDraft & { liabData?: Record<string, HoldingData> };
     // Defensive fallback for a draft saved before fixedExpenseItems existed.
     if (!parsed.fixedExpenseItems) parsed.fixedExpenseItems = [];
+    // Defensive fallback for a draft saved before items required a linked
+    // account — backfill the field so old items don't crash the picker.
+    for (const item of parsed.fixedExpenseItems) {
+      if (item.accountIdx === undefined) item.accountIdx = null;
+    }
+    if (parsed.incomeAccountIdx === undefined) parsed.incomeAccountIdx = null;
     // Defensive fallback for a draft saved before liabilities became
     // multi-holding: the old shape was `liabData: Record<string,
     // HoldingData>` (one holding per category), renamed to `liabHoldings:

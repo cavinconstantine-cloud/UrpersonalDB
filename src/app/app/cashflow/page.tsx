@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { RecurringCashflowSections } from "@/components/app/recurring-cashflow-sections";
 import { BudgetManager } from "@/components/app/budget-manager";
 import { EXPENSE_CATS } from "@/lib/finance/constants";
+import type { HoldingData } from "@/lib/finance/types";
 
 export const metadata: Metadata = { title: "Arus Kas Tetap" };
 
@@ -14,15 +15,38 @@ export default async function CashflowPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [recurringIncomeRes, recurringExpenseRes, budgetsRes, customExpCatRes] = await Promise.all([
-    supabase.from("recurring_incomes").select("id, label, amount").eq("user_id", user.id).order("created_at"),
-    supabase.from("recurring_expenses").select("id, label, amount").eq("user_id", user.id).order("created_at"),
+  const [recurringIncomeRes, recurringExpenseRes, budgetsRes, customExpCatRes, cashRes] = await Promise.all([
+    supabase
+      .from("recurring_incomes")
+      .select("id, label, amount, account_holding_id")
+      .eq("user_id", user.id)
+      .order("created_at"),
+    supabase
+      .from("recurring_expenses")
+      .select("id, label, amount, account_holding_id")
+      .eq("user_id", user.id)
+      .order("created_at"),
     supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
     supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
+    supabase.from("asset_holdings").select("id, data").eq("user_id", user.id).eq("category", "Cash"),
   ]);
 
-  const incomeItems = (recurringIncomeRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) }));
-  const expenseItems = (recurringExpenseRes.data || []).map((r) => ({ id: r.id, label: r.label, amount: Number(r.amount) }));
+  const incomeItems = (recurringIncomeRes.data || []).map((r) => ({
+    id: r.id,
+    label: r.label,
+    amount: Number(r.amount),
+    accountHoldingId: r.account_holding_id,
+  }));
+  const expenseItems = (recurringExpenseRes.data || []).map((r) => ({
+    id: r.id,
+    label: r.label,
+    amount: Number(r.amount),
+    accountHoldingId: r.account_holding_id,
+  }));
+  const cashAccounts = (cashRes.data || []).map((h) => ({
+    id: h.id,
+    label: String((h.data as HoldingData)?.label || "Rekening"),
+  }));
 
   const expenseCats = [...EXPENSE_CATS, ...(customExpCatRes.data || []).map((c) => c.name)];
   const budgetByCategory = new Map((budgetsRes.data || []).map((b) => [b.category, Number(b.monthly_limit)]));
@@ -39,7 +63,7 @@ export default async function CashflowPage() {
           Pemasukan & pengeluaran rutin (bulanan) — dasar hitungan Free Cash Flow di Dashboard.
         </p>
       </div>
-      <RecurringCashflowSections incomeItems={incomeItems} expenseItems={expenseItems} />
+      <RecurringCashflowSections incomeItems={incomeItems} expenseItems={expenseItems} cashAccounts={cashAccounts} />
       <BudgetManager rows={budgetRows} />
     </div>
   );

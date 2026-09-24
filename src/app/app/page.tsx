@@ -31,6 +31,7 @@ import { NetWorthTrend } from "@/components/dashboard/net-worth-trend";
 import { InsightCard } from "@/components/dashboard/insight-card";
 import { DbrCard } from "@/components/dashboard/dbr-card";
 import { LiquidAssetsCard } from "@/components/dashboard/liquid-assets-card";
+import { PaydayReminderCard } from "@/components/dashboard/payday-reminder-card";
 import { DailyRecapCard } from "@/components/dashboard/daily-recap-card";
 import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { AssetSection } from "@/components/dashboard/asset-section";
@@ -160,9 +161,35 @@ export default async function DashboardPage() {
 
   const aiAvailable = Boolean(process.env.ANTHROPIC_API_KEY);
 
+  // "Ada sisa dana" reminder — karyawan: shown on their payday (this
+  // month's running FCF, since a fixed payday falls close to when that
+  // cycle's income/expenses have mostly landed). Pengusaha: shown on the
+  // 1st (a fresh month has ~nothing tracked yet, so it reports last
+  // month's already-recorded snapshot instead of a near-zero live number).
+  const today = new Date();
+  const isPayday = data.profile.profile_type === "karyawan" && data.profile.payday_day === today.getDate();
+  const isMonthStart = data.profile.profile_type === "pengusaha" && today.getDate() === 1;
+  let paydayReminder: { label: string; fcf: number; savingRate: number } | null = null;
+  if (isPayday) {
+    paydayReminder = { label: "Gajian hari ini!", fcf: cf.fcf, savingRate: cf.savingRate };
+  } else if (isMonthStart) {
+    const prevMonthIso = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().slice(0, 10);
+    const prevSnapshot = data.fcfSnapshots.find((s) => s.snapshot_month === prevMonthIso);
+    if (prevSnapshot) {
+      paydayReminder = {
+        label: "Bulan baru dimulai!",
+        fcf: Number(prevSnapshot.fcf),
+        savingRate: Number(prevSnapshot.saving_rate),
+      };
+    }
+  }
+
   return (
     <div className="pt-1">
       <LiquidAssetsCard total={liquidAssetsVal} todayNet={dailyRecap.net} />
+      {paydayReminder && (
+        <PaydayReminderCard label={paydayReminder.label} fcf={paydayReminder.fcf} savingRate={paydayReminder.savingRate} />
+      )}
       <HeroCard
         name={data.profile.name}
         netWorthVal={netWorthVal}

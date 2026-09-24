@@ -58,6 +58,7 @@ export interface Database {
           user_id: string;
           label: string;
           amount: number;
+          account_holding_id: string | null;
           created_at: string;
           updated_at: string;
         },
@@ -66,6 +67,7 @@ export interface Database {
           user_id: string;
           label: string;
           amount: number;
+          account_holding_id: string | null;
           created_at: string;
           updated_at: string;
         }> & { user_id: string }
@@ -76,6 +78,7 @@ export interface Database {
           user_id: string;
           label: string;
           amount: number;
+          account_holding_id: string | null;
           created_at: string;
           updated_at: string;
         },
@@ -84,6 +87,7 @@ export interface Database {
           user_id: string;
           label: string;
           amount: number;
+          account_holding_id: string | null;
           created_at: string;
           updated_at: string;
         }> & { user_id: string }

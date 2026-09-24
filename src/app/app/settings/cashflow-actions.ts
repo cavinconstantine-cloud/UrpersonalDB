@@ -24,17 +24,23 @@ async function syncFixedExpenseTotal(supabase: Awaited<ReturnType<typeof createC
   await supabase.from("cashflow").upsert({ user_id: userId, fixed_expense: total });
 }
 
-export async function addRecurringIncome(label: string, amount: number) {
+export async function addRecurringIncome(label: string, amount: number, accountHoldingId: string) {
   const { supabase, user } = await requireUser();
-  await supabase.from("recurring_incomes").insert({ user_id: user.id, label, amount });
+  await supabase
+    .from("recurring_incomes")
+    .insert({ user_id: user.id, label, amount, account_holding_id: accountHoldingId });
   await syncIncomeTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
 }
 
-export async function updateRecurringIncome(id: string, label: string, amount: number) {
+export async function updateRecurringIncome(id: string, label: string, amount: number, accountHoldingId: string) {
   const { supabase, user } = await requireUser();
-  await supabase.from("recurring_incomes").update({ label, amount }).eq("id", id).eq("user_id", user.id);
+  await supabase
+    .from("recurring_incomes")
+    .update({ label, amount, account_holding_id: accountHoldingId })
+    .eq("id", id)
+    .eq("user_id", user.id);
   await syncIncomeTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
@@ -48,17 +54,23 @@ export async function deleteRecurringIncome(id: string) {
   revalidatePath("/app/settings");
 }
 
-export async function addRecurringExpense(label: string, amount: number) {
+export async function addRecurringExpense(label: string, amount: number, accountHoldingId: string) {
   const { supabase, user } = await requireUser();
-  await supabase.from("recurring_expenses").insert({ user_id: user.id, label, amount });
+  await supabase
+    .from("recurring_expenses")
+    .insert({ user_id: user.id, label, amount, account_holding_id: accountHoldingId });
   await syncFixedExpenseTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
 }
 
-export async function updateRecurringExpense(id: string, label: string, amount: number) {
+export async function updateRecurringExpense(id: string, label: string, amount: number, accountHoldingId: string) {
   const { supabase, user } = await requireUser();
-  await supabase.from("recurring_expenses").update({ label, amount }).eq("id", id).eq("user_id", user.id);
+  await supabase
+    .from("recurring_expenses")
+    .update({ label, amount, account_holding_id: accountHoldingId })
+    .eq("id", id)
+    .eq("user_id", user.id);
   await syncFixedExpenseTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
