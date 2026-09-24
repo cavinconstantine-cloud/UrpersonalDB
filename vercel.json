@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/payday-automation",
       "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/daily-reminder",
+      "schedule": "0 13 * * *"
     }
   ]
 }

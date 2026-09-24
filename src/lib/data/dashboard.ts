@@ -34,10 +34,13 @@ export async function getDashboardData(tz: string) {
     assetHoldingSnapshotsRes,
     ihsgRes,
     priorCashSnapshotsRes,
+    streakRes,
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("name, onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
+      .select(
+        "name, onboarding_step, asset_categories, liability_categories, profile_type, payday_day, whatsapp_number, whatsapp_pairing_code, push_enabled",
+      )
       .eq("id", user.id)
       .single(),
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
@@ -122,6 +125,11 @@ export async function getDashboardData(tz: string) {
       .lte("snapshot_date", daysAgoIsoInTz(30, tz))
       .order("snapshot_date", { ascending: false })
       .limit(20),
+    supabase
+      .from("logging_streaks")
+      .select("current_streak, longest_streak, last_logged_date")
+      .eq("user_id", user.id)
+      .maybeSingle(),
   ]);
 
   const profile = profileRes.data;
@@ -202,6 +210,13 @@ export async function getDashboardData(tz: string) {
       snapshotDate: r.snapshot_date,
       value: Number(r.value),
     })),
+    streak: streakRes.data
+      ? {
+          current: streakRes.data.current_streak,
+          longest: streakRes.data.longest_streak,
+          lastLoggedDate: streakRes.data.last_logged_date,
+        }
+      : { current: 0, longest: 0, lastLoggedDate: null },
   };
 }
 

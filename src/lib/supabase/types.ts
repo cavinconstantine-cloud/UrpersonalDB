@@ -19,6 +19,10 @@ export interface Database {
           liability_categories: string[];
           profile_type: string | null;
           payday_day: number | null;
+          whatsapp_number: string | null;
+          whatsapp_pairing_code: string | null;
+          whatsapp_linked_at: string | null;
+          push_enabled: boolean;
           created_at: string;
           updated_at: string;
         },
@@ -30,6 +34,10 @@ export interface Database {
           liability_categories: string[];
           profile_type: string | null;
           payday_day: number | null;
+          whatsapp_number: string | null;
+          whatsapp_pairing_code: string | null;
+          whatsapp_linked_at: string | null;
+          push_enabled: boolean;
           created_at: string;
           updated_at: string;
         }> & { id: string }
@@ -109,6 +117,40 @@ export interface Database {
           expenses_created: number;
           created_at: string;
         }> & { user_id: string; execution_month: string }
+      >;
+      push_subscriptions: Table<
+        {
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          endpoint: string;
+          p256dh: string;
+          auth: string;
+          created_at: string;
+        }> & { user_id: string; endpoint: string; p256dh: string; auth: string }
+      >;
+      logging_streaks: Table<
+        {
+          user_id: string;
+          current_streak: number;
+          longest_streak: number;
+          last_logged_date: string | null;
+          updated_at: string;
+        },
+        Partial<{
+          user_id: string;
+          current_streak: number;
+          longest_streak: number;
+          last_logged_date: string | null;
+          updated_at: string;
+        }> & { user_id: string }
       >;
       budgets: Table<
         {

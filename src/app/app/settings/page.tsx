@@ -8,6 +8,8 @@ import { ProfileTypeSettings } from "@/components/app/profile-type-settings";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { LanguageToggle } from "@/components/app/language-toggle";
 import { LiveClock } from "@/components/app/live-clock";
+import { PushToggle } from "@/components/app/push-toggle";
+import { WhatsappLink } from "@/components/app/whatsapp-link";
 import { Button } from "@/components/ui/button";
 import { getLang } from "@/lib/i18n/lang";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -24,7 +26,7 @@ export default async function SettingsPage() {
 
   const profileRes = await supabase
     .from("profiles")
-    .select("name, profile_type, payday_day")
+    .select("name, profile_type, payday_day, whatsapp_number, whatsapp_pairing_code, push_enabled")
     .eq("id", user.id)
     .single();
 
@@ -46,6 +48,23 @@ export default async function SettingsPage() {
       </div>
 
       <LiveClock />
+
+      <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
+        <div className="serif text-[15px] mb-3">🔔 Notifikasi</div>
+        <PushToggle
+          initialEnabled={profileRes.data?.push_enabled || false}
+          vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || null}
+        />
+      </div>
+
+      <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
+        <div className="serif text-[15px] mb-3">💬 Catat via WhatsApp</div>
+        <WhatsappLink
+          linkedNumber={profileRes.data?.whatsapp_number || null}
+          pairingCode={profileRes.data?.whatsapp_pairing_code || null}
+          whatsappNumber={process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || null}
+        />
+      </div>
 
       <SettingsForm initialName={profileRes.data?.name || ""} />
 

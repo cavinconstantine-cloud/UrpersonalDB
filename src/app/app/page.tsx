@@ -225,7 +225,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="pt-1">
-      <GreetingHeader name={data.profile.name} />
+      <GreetingHeader name={data.profile.name} streak={data.streak.current} />
       <LiquidAssetsCard total={liquidAssetsVal} todayNet={dailyRecap.net} />
       {paydayReminder && (
         <PaydayReminderCard

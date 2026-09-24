@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { EXPENSE_CATS } from "@/lib/finance/constants";
 import { adjustCashBalance } from "@/app/app/assets/account-sync";
 import { throwIfError } from "@/lib/supabase/db-error";
+import { touchStreak } from "@/lib/finance/streak-sync";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -36,6 +37,7 @@ export async function addExpense(input: {
   });
   throwIfError(error, "menyimpan pengeluaran");
   await adjustCashBalance(supabase, user.id, input.accountHoldingId, -input.amount);
+  await touchStreak(supabase, user.id);
 
   revalidatePath("/app");
   revalidatePath("/app/expenses");
