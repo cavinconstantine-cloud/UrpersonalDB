@@ -41,16 +41,22 @@ export function CatatToggle({
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Tucks the toggle away while the user is actively scrolling so it doesn't
-  // sit over content, then brings it back once scrolling settles.
+  // sit over content, then brings it back once scrolling settles. touchmove
+  // is included alongside scroll because on some mobile browsers a "scroll"
+  // event lags behind an upward finger-drag near the top of the page (the
+  // address bar animating back in) — touchmove fires the instant the finger
+  // moves, in either direction, so the toggle never gets caught mid-drag.
   useEffect(() => {
-    function handleScroll() {
+    function handleActivity() {
       setScrolling(true);
       if (idleTimer.current) clearTimeout(idleTimer.current);
       idleTimer.current = setTimeout(() => setScrolling(false), SCROLL_IDLE_MS);
     }
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("scroll", handleActivity, { passive: true });
+    window.addEventListener("touchmove", handleActivity, { passive: true });
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", handleActivity);
+      window.removeEventListener("touchmove", handleActivity);
       if (idleTimer.current) clearTimeout(idleTimer.current);
     };
   }, []);
@@ -66,7 +72,7 @@ export function CatatToggle({
   return (
     <div
       className={cn(
-        "fixed bottom-[76px] right-5 z-30 flex flex-col items-end gap-2 transition-all duration-300 ease-out",
+        "fixed bottom-[76px] right-5 z-30 flex flex-col items-end gap-2 transition-[transform,opacity] duration-300 ease-out",
         scrolling ? "translate-y-3 opacity-0 pointer-events-none" : "translate-y-0 opacity-100",
       )}
     >
