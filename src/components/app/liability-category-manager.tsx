@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { HoldingModal } from "@/components/finance/holding-modal";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/components/ui/toast";
 import { LIAB_SCHEMAS, liabValue } from "@/lib/finance/schemas";
 import { fmtRp } from "@/lib/finance/format";
 import {
@@ -21,6 +23,7 @@ interface Holding {
 
 export function LiabilityCategoryManager({ category, holdings }: { category: string; holdings: Holding[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [modal, setModal] = useState<{ open: boolean; holding?: Holding }>({ open: false });
   const schema = LIAB_SCHEMAS[category];
@@ -28,26 +31,28 @@ export function LiabilityCategoryManager({ category, holdings }: { category: str
   const total = holdings.reduce((s, h) => s + liabValue(h.data), 0);
   const monthlyTotal = holdings.reduce((s, h) => s + schema.monthlyPayment(h.data), 0);
 
-  function save(data: HoldingData) {
-    startTransition(async () => {
-      if (modal.holding) await updateLiabilityHolding(modal.holding.id, data);
-      else await addLiabilityHolding(category, data);
-      router.refresh();
-    });
+  async function save(data: HoldingData) {
+    if (modal.holding) await updateLiabilityHolding(modal.holding.id, data);
+    else await addLiabilityHolding(category, data);
+    router.refresh();
+    toast.success("Utang tersimpan");
   }
 
-  function remove(id: string) {
-    startTransition(async () => {
-      await deleteLiabilityHolding(id, category);
-      router.refresh();
-    });
+  async function remove(id: string) {
+    await deleteLiabilityHolding(id, category);
+    router.refresh();
+    toast.success("Utang dihapus");
   }
 
   function removeCategory() {
     if (!confirm(`Hapus kategori "${category}" beserta semua datanya?`)) return;
     startTransition(async () => {
-      await removeLiabilityCategory(category);
-      router.push("/app");
+      try {
+        await removeLiabilityCategory(category);
+        router.push("/app");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal menghapus kategori — coba lagi.");
+      }
     });
   }
 
@@ -101,7 +106,7 @@ export function LiabilityCategoryManager({ category, holdings }: { category: str
       )}
 
       <Button variant="danger" fullWidth onClick={removeCategory} disabled={isPending}>
-        Hapus kategori ini
+        {isPending ? <Spinner size={14} /> : "Hapus kategori ini"}
       </Button>
 
       {modal.open && (

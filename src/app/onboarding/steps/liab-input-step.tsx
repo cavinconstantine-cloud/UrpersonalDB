@@ -28,14 +28,14 @@ export function LiabInputStep({
     update({ liabHoldings: { ...draft.liabHoldings, [cat]: next } });
   }
 
-  function saveHolding(data: HoldingData) {
+  async function saveHolding(data: HoldingData) {
     const next = [...holdings];
     if (modal.index !== undefined) next[modal.index] = data;
     else next.push(data);
     setHoldings(next);
   }
 
-  function deleteHolding(idx: number) {
+  async function deleteHolding(idx: number) {
     setHoldings(holdings.filter((_, i) => i !== idx));
   }
 

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { throwIfError } from "@/lib/supabase/db-error";
 
 export async function addCategory(kind: "asset" | "liability", category: string) {
   const supabase = await createClient();
@@ -14,7 +15,11 @@ export async function addCategory(kind: "asset" | "liability", category: string)
     const { data: profile } = await supabase.from("profiles").select("asset_categories").eq("id", user.id).single();
     const current = profile?.asset_categories || [];
     if (current.includes(category)) return;
-    await supabase.from("profiles").update({ asset_categories: [...current, category] }).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ asset_categories: [...current, category] })
+      .eq("id", user.id);
+    throwIfError(error, "menambah kategori");
   } else {
     const { data: profile } = await supabase
       .from("profiles")
@@ -23,7 +28,11 @@ export async function addCategory(kind: "asset" | "liability", category: string)
       .single();
     const current = profile?.liability_categories || [];
     if (current.includes(category)) return;
-    await supabase.from("profiles").update({ liability_categories: [...current, category] }).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ liability_categories: [...current, category] })
+      .eq("id", user.id);
+    throwIfError(error, "menambah kategori");
   }
 
   revalidatePath("/app");

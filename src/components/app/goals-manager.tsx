@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { NumberInput } from "@/components/ui/number-field";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/components/ui/toast";
 import { GOAL_PRESETS, goalPresetIcon } from "@/lib/finance/constants";
 import { goalMonthlySavingsPlan } from "@/lib/finance/calculations";
 import { fmtRp } from "@/lib/finance/format";
@@ -51,11 +53,13 @@ export function GoalsManager({
   linked?: Record<string, GoalLinkedSummary>;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [local, setLocal] = useState(goals);
   const [syncedGoals, setSyncedGoals] = useState(goals);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [savingId, setSavingId] = useState<string | null>(null);
   if (goals !== syncedGoals) {
     setSyncedGoals(goals);
     setLocal(goals);
@@ -73,8 +77,12 @@ export function GoalsManager({
   function create(name: string) {
     setPickerOpen(false);
     startTransition(async () => {
-      await addGoal(name, twoYearsFromNow());
-      router.refresh();
+      try {
+        await addGoal(name, twoYearsFromNow());
+        router.refresh();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal menambah goal — coba lagi.");
+      }
     });
   }
 
@@ -83,17 +91,32 @@ export function GoalsManager({
   }
 
   function commit(id: string, patch: { name?: string; target?: number; current?: number; targetDate?: string }) {
+    setSavingId(id);
     startTransition(async () => {
-      await updateGoal(id, patch);
-      router.refresh();
+      try {
+        await updateGoal(id, patch);
+        router.refresh();
+        toast.success("Goal tersimpan");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal menyimpan goal — coba lagi.");
+      } finally {
+        setSavingId(null);
+      }
     });
   }
 
   function remove(id: string) {
+    const removed = local.find((g) => g.id === id);
     setLocal((prev) => prev.filter((g) => g.id !== id));
     startTransition(async () => {
-      await deleteGoal(id);
-      router.refresh();
+      try {
+        await deleteGoal(id);
+        router.refresh();
+        toast.success("Goal dihapus");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal menghapus goal — coba lagi.");
+        if (removed) setLocal((prev) => [...prev, removed]);
+      }
     });
   }
 
@@ -280,13 +303,19 @@ export function GoalsManager({
             {dirty && (
               <div className="flex gap-2.5 mt-3">
                 <button
-                  className="flex-1 text-sm font-medium rounded-lg bg-brand text-brand-ink py-2 disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-1.5 text-sm font-medium rounded-lg bg-brand text-brand-ink py-2 disabled:opacity-50"
                   disabled={isPending}
                   onClick={() =>
                     commit(g.id, { name: g.name, target: g.target, current: g.current, targetDate: g.targetDate })
                   }
                 >
-                  Simpan
+                  {isPending && savingId === g.id ? (
+                    <>
+                      <Spinner size={14} /> Menyimpan…
+                    </>
+                  ) : (
+                    "Simpan"
+                  )}
                 </button>
                 <button
                   className="flex-1 text-sm font-medium rounded-lg border border-hairline text-text-dim py-2 disabled:opacity-50"
@@ -307,7 +336,15 @@ export function GoalsManager({
           disabled={isPending}
           className="w-full flex items-center justify-center gap-2 rounded-2xl bg-brand text-brand-ink py-3.5 text-sm font-semibold mb-10 disabled:opacity-50"
         >
-          <span className="text-base leading-none">+</span> Tambah Goal
+          {isPending ? (
+            <>
+              <Spinner size={14} /> Menambah…
+            </>
+          ) : (
+            <>
+              <span className="text-base leading-none">+</span> Tambah Goal
+            </>
+          )}
         </button>
       )}
 

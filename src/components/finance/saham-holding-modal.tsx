@@ -5,6 +5,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/ui/number-field";
 import { TextField } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
 import { fmtRp } from "@/lib/finance/format";
 import { STOCK_LOT_SIZE } from "@/lib/finance/constants";
 import { IDX_TICKERS, searchIdxTickers } from "@/lib/finance/idx-tickers";
@@ -23,8 +24,8 @@ interface SahamHoldingModalProps {
   initial?: HoldingData;
   /** Ticker -> latest price info, from the daily stock-prices cron. */
   stockPrices: Record<string, StockPriceInfo>;
-  onSave: (data: HoldingData, goalId: null) => void;
-  onDelete?: () => void;
+  onSave: (data: HoldingData, goalId: null) => Promise<void>;
+  onDelete?: () => Promise<void>;
 }
 
 function fmtAsOf(asOf: string): string {
@@ -53,6 +54,8 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
   const [manualPrice, setManualPrice] = useState(Number(initial?.curPrice) || 0);
   const [lots, setLots] = useState(Number(initial?.qty) || 0);
   const [buyPrice, setBuyPrice] = useState(Number(initial?.buyPrice) || 0);
+  const [pending, setPending] = useState<"save" | "delete" | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const results = searchIdxTickers(query);
   const picked = ticker ? stockPrices[ticker] : null;
@@ -75,7 +78,7 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
     setStep("form");
   }
 
-  function save() {
+  async function save() {
     const label = manualMode ? manualLabel.trim() || "Saham" : ticker || "";
     const data: HoldingData = {
       label,
@@ -87,8 +90,30 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
       data.ticker = ticker;
       data.priceAsOf = picked?.asOf ?? "";
     }
-    onSave(data, null);
-    onClose();
+    setError(null);
+    setPending("save");
+    try {
+      await onSave(data, null);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menyimpan — coba lagi.");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function remove() {
+    if (!onDelete) return;
+    setError(null);
+    setPending("delete");
+    try {
+      await onDelete();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal menghapus — coba lagi.");
+    } finally {
+      setPending(null);
+    }
   }
 
   return (
@@ -239,23 +264,32 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
             </div>
           )}
 
-          <Button fullWidth onClick={save} className="mt-1">
-            Simpan
+          {error && (
+            <div className="mb-3 text-[12.5px] text-critical bg-critical/10 border border-critical/30 rounded-lg px-3 py-2.5 leading-relaxed">
+              ⚠️ {error}
+            </div>
+          )}
+          <Button fullWidth onClick={save} className="mt-1" disabled={pending !== null}>
+            {pending === "save" ? (
+              <>
+                <Spinner size={14} /> Menyimpan…
+              </>
+            ) : (
+              "Simpan"
+            )}
           </Button>
           {onDelete && (
-            <Button
-              fullWidth
-              variant="ghost"
-              className="mt-2.5 text-critical"
-              onClick={() => {
-                onDelete();
-                onClose();
-              }}
-            >
-              Hapus
+            <Button fullWidth variant="ghost" className="mt-2.5 text-critical" onClick={remove} disabled={pending !== null}>
+              {pending === "delete" ? (
+                <>
+                  <Spinner size={14} /> Menghapus…
+                </>
+              ) : (
+                "Hapus"
+              )}
             </Button>
           )}
-          <Button fullWidth variant="ghost" className="mt-2.5" onClick={onClose}>
+          <Button fullWidth variant="ghost" className="mt-2.5" onClick={onClose} disabled={pending !== null}>
             Batal
           </Button>
         </div>

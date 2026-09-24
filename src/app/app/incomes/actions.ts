@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { INCOME_CATS } from "@/lib/finance/constants";
 import { adjustCashBalance } from "@/app/app/assets/account-sync";
+import { throwIfError } from "@/lib/supabase/db-error";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -25,7 +26,7 @@ export async function addIncome(input: {
   if (input.amount <= 0) throw new Error("Jumlah harus lebih dari 0.");
   if (!input.category) throw new Error("Pilih kategori dulu.");
 
-  await supabase.from("incomes").insert({
+  const { error } = await supabase.from("incomes").insert({
     user_id: user.id,
     income_date: input.date,
     category: input.category,
@@ -33,6 +34,7 @@ export async function addIncome(input: {
     description: input.description,
     account_holding_id: input.accountHoldingId ?? null,
   });
+  throwIfError(error, "menyimpan pemasukan");
   await adjustCashBalance(supabase, user.id, input.accountHoldingId, input.amount);
 
   revalidatePath("/app");
@@ -58,7 +60,7 @@ export async function updateIncome(
     .eq("user_id", user.id)
     .maybeSingle();
 
-  await supabase
+  const { error } = await supabase
     .from("incomes")
     .update({
       income_date: input.date,
@@ -69,6 +71,7 @@ export async function updateIncome(
     })
     .eq("id", id)
     .eq("user_id", user.id);
+  throwIfError(error, "menyimpan perubahan pemasukan");
 
   if (existing) {
     // undo the old credit, then apply the new one — handles amount changes,
@@ -91,7 +94,8 @@ export async function deleteIncome(id: string) {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  await supabase.from("incomes").delete().eq("id", id).eq("user_id", user.id);
+  const { error } = await supabase.from("incomes").delete().eq("id", id).eq("user_id", user.id);
+  throwIfError(error, "menghapus pemasukan");
 
   if (existing) {
     await adjustCashBalance(supabase, user.id, existing.account_holding_id, -Number(existing.amount));
@@ -106,7 +110,8 @@ export async function addCustomIncomeCategory(name: string) {
   const trimmed = name.trim();
   if (!trimmed || (INCOME_CATS as readonly string[]).includes(trimmed)) return;
 
-  await supabase.from("custom_income_categories").upsert({ user_id: user.id, name: trimmed });
+  const { error } = await supabase.from("custom_income_categories").upsert({ user_id: user.id, name: trimmed });
+  throwIfError(error, "menambah kategori");
   revalidatePath("/app");
   revalidatePath("/app/expenses");
 }

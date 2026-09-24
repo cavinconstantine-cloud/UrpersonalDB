@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { TextField } from "@/components/ui/field";
 import { NumberField } from "@/components/ui/number-field";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { BUSINESS_INCOME_CAT, EXPENSE_CATS, INCOME_CATS, expenseCatIcon, incomeCatIcon } from "@/lib/finance/constants";
 import { fmtRp, todayIso } from "@/lib/finance/format";
@@ -42,6 +44,7 @@ export function TransactionModal({
   cashAccounts,
 }: TransactionModalProps) {
   const router = useRouter();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [type, setType] = useState<TransactionType>(defaultType);
   const [category, setCategory] = useState<string>("");
@@ -101,10 +104,22 @@ export function TransactionModal({
     if (!allCats.includes(name)) {
       if (isExpense) {
         setLocalExpenseCats((c) => [...c, name]);
-        startTransition(() => addCustomExpenseCategory(name));
+        startTransition(async () => {
+          try {
+            await addCustomExpenseCategory(name);
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Gagal menyimpan kategori baru.");
+          }
+        });
       } else {
         setLocalIncomeCats((c) => [...c, name]);
-        startTransition(() => addCustomIncomeCategory(name));
+        startTransition(async () => {
+          try {
+            await addCustomIncomeCategory(name);
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Gagal menyimpan kategori baru.");
+          }
+        });
       }
     }
     setCategory(name);
@@ -121,24 +136,30 @@ export function TransactionModal({
       setError("Isi jumlah yang valid");
       return;
     }
+    setError("");
     startTransition(async () => {
-      if (isExpense) {
-        await addExpense({ date: todayIso(), category, amount, description, accountHoldingId });
-      } else if (isBusinessIncome && taxOn) {
-        const taxLabel = taxType === "umkm" ? "PPh Final UMKM 0,5%" : "PPh Non-Karyawan/Jasa ~2,5%";
-        const taxNote = `Kotor ${fmtRp(amount)}, dipotong ${taxLabel} (${fmtRp(taxAmount)})`;
-        await addIncome({
-          date: todayIso(),
-          category,
-          amount: netAmount,
-          description: description ? `${description} — ${taxNote}` : taxNote,
-          accountHoldingId,
-        });
-      } else {
-        await addIncome({ date: todayIso(), category, amount, description, accountHoldingId });
+      try {
+        if (isExpense) {
+          await addExpense({ date: todayIso(), category, amount, description, accountHoldingId });
+        } else if (isBusinessIncome && taxOn) {
+          const taxLabel = taxType === "umkm" ? "PPh Final UMKM 0,5%" : "PPh Non-Karyawan/Jasa ~2,5%";
+          const taxNote = `Kotor ${fmtRp(amount)}, dipotong ${taxLabel} (${fmtRp(taxAmount)})`;
+          await addIncome({
+            date: todayIso(),
+            category,
+            amount: netAmount,
+            description: description ? `${description} — ${taxNote}` : taxNote,
+            accountHoldingId,
+          });
+        } else {
+          await addIncome({ date: todayIso(), category, amount, description, accountHoldingId });
+        }
+        router.refresh();
+        toast.success(isExpense ? "Pengeluaran tersimpan" : "Pemasukan tersimpan");
+        handleClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Gagal menyimpan — coba lagi.");
       }
-      router.refresh();
-      handleClose();
     });
   }
 
@@ -341,11 +362,15 @@ export function TransactionModal({
             onChange={(e) => setDescription(e.target.value)}
           />
           <Button fullWidth onClick={save} disabled={isPending}>
-            {isPending
-              ? "Menyimpan…"
-              : isBusinessIncome && taxOn
-                ? `Simpan (${fmtRp(netAmount)})`
-                : "Simpan"}
+            {isPending ? (
+              <>
+                <Spinner size={14} /> Menyimpan…
+              </>
+            ) : isBusinessIncome && taxOn ? (
+              `Simpan (${fmtRp(netAmount)})`
+            ) : (
+              "Simpan"
+            )}
           </Button>
           <Button fullWidth variant="ghost" className="mt-2.5" onClick={handleClose}>
             Batal

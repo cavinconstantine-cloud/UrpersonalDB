@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { HoldingModal, type GoalOption } from "@/components/finance/holding-modal";
 import { SahamHoldingModal, type StockPriceInfo } from "@/components/finance/saham-holding-modal";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { MovementBadge } from "@/components/ui/movement-badge";
+import { useToast } from "@/components/ui/toast";
 import { ASSET_SCHEMAS } from "@/lib/finance/schemas";
 import { GOAL_LINKABLE_CATS } from "@/lib/finance/constants";
 import { fmtRp } from "@/lib/finance/format";
@@ -33,6 +35,7 @@ export function AssetCategoryManager({
   stockPrices?: Record<string, StockPriceInfo>;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [modal, setModal] = useState<{ open: boolean; holding?: Holding }>({ open: false });
   const schema = ASSET_SCHEMAS[category];
@@ -47,26 +50,28 @@ export function AssetCategoryManager({
   const totalMovement = categoryDailyMovement(category, snapshots, holdingsWithCategory);
   const movementByHolding = dailyMovementByHolding(snapshots, holdingsWithCategory);
 
-  function save(data: HoldingData, goalId: string | null) {
-    startTransition(async () => {
-      if (modal.holding) await updateHolding(modal.holding.id, data, goalId);
-      else await addHolding(category, data, goalId);
-      router.refresh();
-    });
+  async function save(data: HoldingData, goalId: string | null) {
+    if (modal.holding) await updateHolding(modal.holding.id, data, goalId);
+    else await addHolding(category, data, goalId);
+    router.refresh();
+    toast.success("Aset tersimpan");
   }
 
-  function remove(id: string) {
-    startTransition(async () => {
-      await deleteHolding(id, category);
-      router.refresh();
-    });
+  async function remove(id: string) {
+    await deleteHolding(id, category);
+    router.refresh();
+    toast.success("Aset dihapus");
   }
 
   function removeCategory() {
     if (!confirm(`Hapus kategori "${category}" beserta semua datanya?`)) return;
     startTransition(async () => {
-      await removeAssetCategory(category);
-      router.push("/app");
+      try {
+        await removeAssetCategory(category);
+        router.push("/app");
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal menghapus kategori — coba lagi.");
+      }
     });
   }
 
@@ -142,7 +147,7 @@ export function AssetCategoryManager({
       )}
 
       <Button variant="danger" fullWidth onClick={removeCategory} disabled={isPending}>
-        Hapus kategori ini
+        {isPending ? <Spinner size={14} /> : "Hapus kategori ini"}
       </Button>
 
       {modal.open && category === "Saham" ? (

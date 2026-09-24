@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { OnboardingDraft } from "@/lib/onboarding/draft";
 import { holdingDataToJson } from "@/lib/finance/types";
+import { throwIfError } from "@/lib/supabase/db-error";
 
 export async function completeOnboarding(draft: OnboardingDraft) {
   const supabase = await createClient();
@@ -12,7 +13,7 @@ export async function completeOnboarding(draft: OnboardingDraft) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  await supabase
+  const { error: profileError } = await supabase
     .from("profiles")
     .update({
       name: draft.name,
@@ -23,17 +24,19 @@ export async function completeOnboarding(draft: OnboardingDraft) {
       onboarding_step: "done",
     })
     .eq("id", user.id);
+  throwIfError(profileError, "menyimpan profil");
 
   const income = Number(draft.cashflow.income) || 0;
   const fixedExpense = draft.fixedExpenseItems.reduce((s, it) => s + it.amount, 0);
 
-  await supabase.from("cashflow").upsert({
+  const { error: cashflowError } = await supabase.from("cashflow").upsert({
     user_id: user.id,
     income,
     fixed_expense: fixedExpense,
     lifestyle_expense: Number(draft.cashflow.lifestyleExpense) || 0,
     invest: Number(draft.cashflow.invest) || 0,
   });
+  throwIfError(cashflowError, "menyimpan arus kas");
 
   // Cash holdings go in first, and separately from the rest — recurring
   // income/expense items below need their real asset_holdings ids to link
@@ -42,10 +45,11 @@ export async function completeOnboarding(draft: OnboardingDraft) {
   const cashHoldings = draft.assetHoldings["Cash"] || [];
   let cashRealIds: string[] = [];
   if (cashHoldings.length > 0) {
-    const { data: insertedCash } = await supabase
+    const { data: insertedCash, error: cashError } = await supabase
       .from("asset_holdings")
       .insert(cashHoldings.map((h) => ({ user_id: user.id, category: "Cash", data: holdingDataToJson(h) })))
       .select("id");
+    throwIfError(cashError, "menyimpan rekening");
     cashRealIds = (insertedCash || []).map((r) => r.id);
   }
   function resolveAccountId(idx: number | null): string | null {
@@ -58,15 +62,16 @@ export async function completeOnboarding(draft: OnboardingDraft) {
   // kept in sync the same way settings/cashflow-actions.ts does on every
   // future add/edit/delete there.
   if (income > 0) {
-    await supabase.from("recurring_incomes").insert({
+    const { error } = await supabase.from("recurring_incomes").insert({
       user_id: user.id,
       label: "Pemasukan",
       amount: income,
       account_holding_id: resolveAccountId(draft.incomeAccountIdx),
     });
+    throwIfError(error, "menyimpan pemasukan tetap");
   }
   if (draft.fixedExpenseItems.length > 0) {
-    await supabase.from("recurring_expenses").insert(
+    const { error } = await supabase.from("recurring_expenses").insert(
       draft.fixedExpenseItems.map((it) => ({
         user_id: user.id,
         label: it.label,
@@ -74,24 +79,27 @@ export async function completeOnboarding(draft: OnboardingDraft) {
         account_holding_id: resolveAccountId(it.accountIdx),
       })),
     );
+    throwIfError(error, "menyimpan pengeluaran tetap");
   }
 
   const holdingsRows = Object.entries(draft.assetHoldings)
     .filter(([category]) => category !== "Cash")
     .flatMap(([category, holdings]) => holdings.map((h) => ({ user_id: user.id, category, data: holdingDataToJson(h) })));
   if (holdingsRows.length) {
-    await supabase.from("asset_holdings").insert(holdingsRows);
+    const { error } = await supabase.from("asset_holdings").insert(holdingsRows);
+    throwIfError(error, "menyimpan aset");
   }
 
   const liabRows = Object.entries(draft.liabHoldings).flatMap(([category, holdings]) =>
     holdings.map((h) => ({ user_id: user.id, category, data: holdingDataToJson(h) })),
   );
   if (liabRows.length) {
-    await supabase.from("liabilities").insert(liabRows);
+    const { error } = await supabase.from("liabilities").insert(liabRows);
+    throwIfError(error, "menyimpan utang");
   }
 
   if (draft.goals.length) {
-    await supabase.from("goals").insert(
+    const { error } = await supabase.from("goals").insert(
       draft.goals.map((g) => ({
         user_id: user.id,
         name: g.name,
@@ -100,6 +108,7 @@ export async function completeOnboarding(draft: OnboardingDraft) {
         target_date: g.targetDate,
       })),
     );
+    throwIfError(error, "menyimpan goals");
   }
 
   redirect("/app");

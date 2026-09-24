@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Chip } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { updateProfileType } from "@/app/app/settings/actions";
 import type { ProfileType } from "@/lib/onboarding/draft";
@@ -15,6 +17,7 @@ interface ProfileTypeSettingsProps {
 
 export function ProfileTypeSettings({ initialProfileType, initialPaydayDay }: ProfileTypeSettingsProps) {
   const router = useRouter();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [profileType, setProfileType] = useState<ProfileType>(initialProfileType);
   const [paydayDay, setPaydayDay] = useState(initialPaydayDay ?? 25);
@@ -23,10 +26,14 @@ export function ProfileTypeSettings({ initialProfileType, initialPaydayDay }: Pr
   function save() {
     if (!profileType) return;
     startTransition(async () => {
-      await updateProfileType({ profileType, paydayDay: profileType === "karyawan" ? paydayDay : null });
-      setSaved(true);
-      router.refresh();
-      setTimeout(() => setSaved(false), 2000);
+      try {
+        await updateProfileType({ profileType, paydayDay: profileType === "karyawan" ? paydayDay : null });
+        setSaved(true);
+        router.refresh();
+        setTimeout(() => setSaved(false), 2000);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Gagal menyimpan — coba lagi.");
+      }
     });
   }
 
@@ -70,7 +77,7 @@ export function ProfileTypeSettings({ initialProfileType, initialPaydayDay }: Pr
       )}
 
       <Button size="sm" onClick={save} disabled={isPending || !profileType}>
-        {saved ? "Tersimpan" : "Simpan"}
+        {isPending ? <Spinner size={14} /> : saved ? "Tersimpan" : "Simpan"}
       </Button>
     </div>
   );

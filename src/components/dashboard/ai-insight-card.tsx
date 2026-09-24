@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { SectionCard } from "@/components/ui/section-card";
+import { Spinner } from "@/components/ui/spinner";
 import { generateAiInsight } from "@/app/app/ai-actions";
 
 /** Flip to true once Anthropic credit is topped up — see the Split Bill "Kartu ditolak / credit" thread. */
@@ -51,7 +52,9 @@ export function AiInsightCard({ available }: { available: boolean }) {
       }
     >
       {isPending ? (
-        <div className="text-sm text-text-dim text-center py-6">Menganalisa data keuanganmu…</div>
+        <div className="flex items-center justify-center gap-2 text-sm text-text-dim py-6">
+          <Spinner size={15} /> Menganalisa data keuanganmu…
+        </div>
       ) : text ? (
         <div className="text-sm leading-relaxed whitespace-pre-wrap pb-4">{text}</div>
       ) : error ? (

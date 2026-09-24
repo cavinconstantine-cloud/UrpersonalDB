@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { throwIfError } from "@/lib/supabase/db-error";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -10,11 +11,6 @@ async function requireUser() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("Sesi berakhir — silakan masuk kembali.");
   return { supabase, user };
-}
-
-/** Postgres errors surface with a `code`/`message`; anything else (network, etc.) still gets rethrown as-is. */
-function throwIfError(error: { message: string } | null, action: string) {
-  if (error) throw new Error(`Gagal ${action}: ${error.message}`);
 }
 
 async function syncIncomeTotal(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {

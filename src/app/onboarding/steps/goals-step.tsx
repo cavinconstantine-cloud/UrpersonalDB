@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { NumberInput } from "@/components/ui/number-field";
+import { Spinner } from "@/components/ui/spinner";
 import { GOAL_PRESETS, goalPresetIcon } from "@/lib/finance/constants";
 import type { OnboardingDraft } from "@/lib/onboarding/draft";
 import type { Goal } from "@/lib/finance/types";
@@ -18,11 +19,13 @@ export function GoalsStep({
   update,
   onFinish,
   finishing,
+  finishError,
 }: {
   draft: OnboardingDraft;
   update: (patch: Partial<OnboardingDraft>) => void;
   onFinish: () => void;
   finishing: boolean;
+  finishError?: string | null;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -126,12 +129,23 @@ export function GoalsStep({
         </div>
       )}
 
+      {finishError && (
+        <div className="text-[12.5px] text-critical bg-critical/10 border border-critical/30 rounded-lg px-3 py-2.5 mb-3 leading-relaxed">
+          ⚠️ {finishError}
+        </div>
+      )}
       <div className="flex gap-2.5">
-        <Button variant="ghost" onClick={back} className="w-[90px] flex-none">
+        <Button variant="ghost" onClick={back} className="w-[90px] flex-none" disabled={finishing}>
           Kembali
         </Button>
         <Button onClick={onFinish} disabled={finishing} className="flex-1">
-          {finishing ? "Menyimpan…" : "Selesai — Lihat Dashboard"}
+          {finishing ? (
+            <>
+              <Spinner size={14} /> Menyimpan…
+            </>
+          ) : (
+            "Selesai — Lihat Dashboard"
+          )}
         </Button>
       </div>
     </div>

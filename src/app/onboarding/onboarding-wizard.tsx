@@ -16,6 +16,7 @@ import { LiabInputStep } from "./steps/liab-input-step";
 import { CashflowStep } from "./steps/cashflow-step";
 import { GoalsStep } from "./steps/goals-step";
 import type { StockPriceInfo } from "@/components/finance/saham-holding-modal";
+import { ToastProvider } from "@/components/ui/toast";
 
 const STEP_NUMBER: Record<OnboardingStep, number> = {
   account: 1,
@@ -51,6 +52,7 @@ export function OnboardingWizard({
     () => false,
   );
   const [isPending, startTransition] = useTransition();
+  const [finishError, setFinishError] = useState<string | null>(null);
 
   useEffect(() => {
     if (hydrated) saveDraft(userId, draft);
@@ -61,32 +63,47 @@ export function OnboardingWizard({
   }
 
   function finish() {
+    setFinishError(null);
     startTransition(async () => {
-      await completeOnboarding(draft);
-      clearDraft(userId);
-      router.push("/app");
+      try {
+        await completeOnboarding(draft);
+        clearDraft(userId);
+        router.push("/app");
+      } catch (err) {
+        setFinishError(err instanceof Error ? err.message : "Gagal menyimpan — coba lagi.");
+      }
     });
   }
 
   if (!hydrated) return null;
 
   return (
-    <div className="max-w-[520px] mx-auto min-h-full px-5 py-7">
-      {draft.step !== "assetInput" && draft.step !== "liabInput" && (
-        <ProgressDots current={STEP_NUMBER[draft.step]} total={TOTAL_STEPS} />
-      )}
-      <div className="animate-fade-up" key={draft.step + draft.assetIdx + draft.liabIdx}>
-        {draft.step === "account" && <AccountStep draft={draft} update={update} />}
-        {draft.step === "profileType" && <ProfileTypeStep draft={draft} update={update} />}
-        {draft.step === "karyawanPayday" && <KaryawanPaydayStep draft={draft} update={update} />}
-        {draft.step === "pengusahaIntro" && <PengusahaIntroStep draft={draft} update={update} />}
-        {draft.step === "assetPick" && <AssetPickStep draft={draft} update={update} />}
-        {draft.step === "assetInput" && <AssetInputStep draft={draft} update={update} stockPrices={stockPrices} />}
-        {draft.step === "liabPick" && <LiabPickStep draft={draft} update={update} />}
-        {draft.step === "liabInput" && <LiabInputStep draft={draft} update={update} />}
-        {draft.step === "cashflow" && <CashflowStep draft={draft} update={update} />}
-        {draft.step === "goals" && <GoalsStep draft={draft} update={update} onFinish={finish} finishing={isPending} />}
+    <ToastProvider>
+      <div className="max-w-[520px] mx-auto min-h-full px-5 py-7">
+        {draft.step !== "assetInput" && draft.step !== "liabInput" && (
+          <ProgressDots current={STEP_NUMBER[draft.step]} total={TOTAL_STEPS} />
+        )}
+        <div className="animate-fade-up" key={draft.step + draft.assetIdx + draft.liabIdx}>
+          {draft.step === "account" && <AccountStep draft={draft} update={update} />}
+          {draft.step === "profileType" && <ProfileTypeStep draft={draft} update={update} />}
+          {draft.step === "karyawanPayday" && <KaryawanPaydayStep draft={draft} update={update} />}
+          {draft.step === "pengusahaIntro" && <PengusahaIntroStep draft={draft} update={update} />}
+          {draft.step === "assetPick" && <AssetPickStep draft={draft} update={update} />}
+          {draft.step === "assetInput" && <AssetInputStep draft={draft} update={update} stockPrices={stockPrices} />}
+          {draft.step === "liabPick" && <LiabPickStep draft={draft} update={update} />}
+          {draft.step === "liabInput" && <LiabInputStep draft={draft} update={update} />}
+          {draft.step === "cashflow" && <CashflowStep draft={draft} update={update} />}
+          {draft.step === "goals" && (
+            <GoalsStep
+              draft={draft}
+              update={update}
+              onFinish={finish}
+              finishing={isPending}
+              finishError={finishError}
+            />
+          )}
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }
