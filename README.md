@@ -95,6 +95,33 @@ lalu isi `REMINDER_FROM_EMAIL` dengan alamat dari domain tsb.
 Kosongkan salah satu env var ini kapan saja untuk mematikan fitur reminder — sisanya
 tetap jalan normal.
 
+## 6. (Penting sebelum ada user asli) Custom SMTP untuk email konfirmasi & reset password
+
+Secara default, email konfirmasi signup dan reset password dikirim lewat email bawaan
+Supabase Auth (bukan Resend) — dan itu dibatasi sangat ketat (kira-kira 2-4 email/jam)
+selama belum diarahkan ke SMTP sendiri. Ini akan jadi bottleneck signup jauh sebelum
+server kewalahan, jadi wajib dibenahi sebelum promosi ke user asli.
+
+**Prasyarat**: domain sendiri sudah diverifikasi di Resend (lihat bagian 5 di atas —
+tanpa ini, email cuma bisa terkirim ke alamat pemilik akun Resend sendiri).
+
+Langkahnya (dashboard-only, tidak ada perubahan kode/env var):
+
+1. Kredensial SMTP dari Resend — pakai API key yang sama dengan `RESEND_API_KEY`:
+   - Host: `smtp.resend.com`
+   - Port: `465` (SSL) atau `587` (STARTTLS)
+   - Username: `resend` (literal, bukan username akun)
+   - Password: Resend API key kalian
+2. Supabase Dashboard → project → **Authentication → Emails** (atau **Project
+   Settings → Auth**) → cari **SMTP Settings** → aktifkan **Enable Custom SMTP** →
+   isi sender email (dari domain terverifikasi, mis. `noreply@domainkamu.com`),
+   sender name (`Uangku`), dan kredensial dari langkah 1.
+3. Test dengan signup akun baru — pastikan email konfirmasi masuk & link-nya jalan.
+
+Setelah aktif, limit bawaan Supabase hilang — kalian ikut limit Resend (100
+email/hari / 3.000/bulan di tier gratis, mencakup konfirmasi + reset password +
+reminder billing sekaligus karena satu akun Resend yang sama).
+
 ## Struktur proyek
 
 ```
