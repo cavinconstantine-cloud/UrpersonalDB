@@ -460,6 +460,40 @@ export function goalMonthlyNeed(g: Pick<Goal, "target" | "current" | "targetDate
   return goalMonthlySavingsPlan(g, monthlyRate).monthlyNeed;
 }
 
+export interface IdleCashInsight {
+  cashBalance: number;
+  emergencyFundTarget: number;
+  idleSurplus: number;
+}
+
+/** Below this, an idle-cash surplus isn't worth surfacing — avoids nagging users over trivial amounts. */
+const MIN_IDLE_CASH_SURPLUS = 3_000_000;
+
+/**
+ * How much of a user's Cash holdings sits above their ideal emergency-fund
+ * reserve — a multiple of their average monthly expense, thicker for
+ * pengusaha (variable income needs a bigger buffer than a fixed karyawan
+ * salary). Returns null when there's nothing worth flagging (surplus at or
+ * below the reserve target, or below MIN_IDLE_CASH_SURPLUS).
+ */
+export function idleCashSurplus(
+  holdings: HoldingRow[],
+  avgMonthlyExpense: number,
+  profileType: string | null,
+): IdleCashInsight | null {
+  const cashBalance = catValue("Cash", holdings);
+  const multiplier = profileType === "pengusaha" ? 9 : 6;
+  const emergencyFundTarget = avgMonthlyExpense * multiplier;
+  const idleSurplus = cashBalance - emergencyFundTarget;
+  if (idleSurplus < MIN_IDLE_CASH_SURPLUS) return null;
+  return { cashBalance, emergencyFundTarget, idleSurplus };
+}
+
+/** True when every asset holding the user has is Cash (or they have none) — a "hasn't started investing yet" signal, distinct from "has idle cash". */
+export function hasNoNonCashAssets(holdings: HoldingRow[]): boolean {
+  return holdings.length > 0 && holdings.every((h) => h.category === "Cash");
+}
+
 /** A Cash/Deposito/Obligasi/Reksadana holding, optionally linked to a goal via `goalId`. */
 export type HoldingRowWithGoal = HoldingRowWithId & { goalId: string | null };
 

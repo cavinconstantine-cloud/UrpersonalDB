@@ -32,6 +32,7 @@ export async function getDashboardData(tz: string) {
     recurringIncomeRes,
     recurringExpenseRes,
     assetHoldingSnapshotsRes,
+    ihsgRes,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -108,6 +109,7 @@ export async function getDashboardData(tz: string) {
       .select("snapshot_date, holding_id, category, label, value")
       .eq("user_id", user.id)
       .gte("snapshot_date", daysAgoIsoInTz(4, tz)),
+    supabase.from("stock_prices").select("change_pct").eq("ticker", "^JKSE").maybeSingle(),
   ]);
 
   const profile = profileRes.data;
@@ -183,6 +185,7 @@ export async function getDashboardData(tz: string) {
       label: s.label,
       value: Number(s.value),
     })),
+    ihsgChangePct: ihsgRes.data ? Number(ihsgRes.data.change_pct) : null,
   };
 }
 

@@ -13,6 +13,8 @@ import {
   computeDBR,
   expenseByCategory,
   goalMonthlyNeed,
+  hasNoNonCashAssets,
+  idleCashSurplus,
   investmentIncomeMonthly,
   liquidAssets,
   monthExpenseTotal,
@@ -45,6 +47,8 @@ import { UpcomingInvestmentIncomeCard } from "@/components/dashboard/upcoming-in
 import { GoalMaturityCard } from "@/components/dashboard/goal-maturity-card";
 import { FcfTrend } from "@/components/dashboard/fcf-trend";
 import { MarketNewsCard } from "@/components/dashboard/market-news-card";
+import { DiversificationInsightCard, type DiversificationInsight } from "@/components/dashboard/diversification-insight-card";
+import { MarketInsightCard } from "@/components/dashboard/market-insight-card";
 import { ExpenseSplitCard } from "@/components/dashboard/expense-split-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import { RecurringCashflowPreview } from "@/components/dashboard/recurring-cashflow-preview";
@@ -198,12 +202,35 @@ export default async function DashboardPage() {
     }
   }
 
+  // Diversification insight — which segment (if any) applies, highest priority first:
+  // an idle-cash surplus tied to a goal that needs it beats a plain idle-cash surplus
+  // beats "hasn't invested in anything yet". monthExpTotal is a same-month proxy for
+  // "average" monthly expense, not a true rolling average — good enough for a reserve
+  // estimate, not exact.
+  const idleCash = idleCashSurplus(data.holdings, monthExpTotal, data.profile.profile_type);
+  const offTrackGoal = data.goals.find((g) => goalMonthlyNeed(g) > Math.max(0, cf.fcf));
+  let diversificationInsight: DiversificationInsight | null = null;
+  if (idleCash && offTrackGoal) {
+    diversificationInsight = {
+      kind: "goal-linked",
+      idleSurplus: idleCash.idleSurplus,
+      goalName: offTrackGoal.name,
+      monthlyNeed: goalMonthlyNeed(offTrackGoal),
+      fcf: cf.fcf,
+    };
+  } else if (idleCash) {
+    diversificationInsight = { kind: "idle-cash", ...idleCash };
+  } else if (hasNoNonCashAssets(data.holdings)) {
+    diversificationInsight = { kind: "first-timer" };
+  }
+
   return (
     <div className="pt-1">
       <LiquidAssetsCard total={liquidAssetsVal} todayNet={dailyRecap.net} />
       {paydayReminder && (
         <PaydayReminderCard label={paydayReminder.label} fcf={paydayReminder.fcf} savingRate={paydayReminder.savingRate} />
       )}
+      {diversificationInsight && <DiversificationInsightCard insight={diversificationInsight} />}
       <HeroCard
         name={data.profile.name}
         netWorthVal={netWorthVal}
@@ -242,6 +269,9 @@ export default async function DashboardPage() {
       <UpcomingInvestmentIncomeCard items={investIncomeItems} />
       <GoalMaturityCard items={goalMaturities} goalNameById={goalNameById} />
       <AiInsightCard available={aiAvailable} />
+      {data.ihsgChangePct !== null && (
+        <MarketInsightCard ihsgChangePct={data.ihsgChangePct} idleCash={idleCash?.idleSurplus ?? 0} />
+      )}
       <MarketNewsCard news={data.marketNews} />
       <AssetSection
         assetCats={data.profile.asset_categories}
