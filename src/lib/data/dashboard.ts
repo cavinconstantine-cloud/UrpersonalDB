@@ -38,9 +38,7 @@ export async function getDashboardData(tz: string) {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select(
-        "name, onboarding_step, asset_categories, liability_categories, profile_type, payday_day, whatsapp_number, whatsapp_pairing_code, push_enabled",
-      )
+      .select("name, onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
       .eq("id", user.id)
       .single(),
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
