@@ -7,6 +7,7 @@ import { TransactionModal, type CashAccount, type TransactionType } from "./tran
 import { WhatsNewSlideshow } from "./whats-new-slideshow";
 import { useLanguage } from "./language-provider";
 import { ToastProvider } from "@/components/ui/toast";
+import { TimezoneSync } from "./timezone-sync";
 
 interface AppShellProps {
   customExpenseCategories: string[];
@@ -33,6 +34,7 @@ export function AppShell({
 
   return (
     <ToastProvider>
+      <TimezoneSync />
       <div className="min-h-full flex flex-col">
         <div className="max-w-[560px] w-full mx-auto flex-1 pb-28">{children}</div>
 

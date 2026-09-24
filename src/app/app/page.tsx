@@ -25,7 +25,8 @@ import {
   upcomingInstallments,
   upcomingInvestmentIncome,
 } from "@/lib/finance/calculations";
-import { fmtRp } from "@/lib/finance/format";
+import { currentYmInTz, fmtRp, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from "@/lib/finance/format";
+import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import { HeroCard } from "@/components/dashboard/hero-card";
 import { NetWorthTrend } from "@/components/dashboard/net-worth-trend";
 import { InsightCard } from "@/components/dashboard/insight-card";
@@ -54,9 +55,12 @@ import { getDictionary } from "@/lib/i18n/dictionaries";
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const data = await getDashboardData();
+  const tz = await getVisitorTimezone();
+  const data = await getDashboardData(tz);
   const lang = await getLang();
   const dict = getDictionary(lang);
+  const thisYm = currentYmInTz(tz);
+  const today = todayIsoInTz(tz);
 
   const monthExpensesMapped = data.monthExpenses.map((e) => ({
     id: e.id,
@@ -72,8 +76,8 @@ export default async function DashboardPage() {
     amount: Number(i.amount),
     description: i.description,
   }));
-  const monthExpTotal = monthExpenseTotal(monthExpensesMapped);
-  const monthIncTotal = monthIncomeTotal(monthIncomesMapped);
+  const monthExpTotal = monthExpenseTotal(monthExpensesMapped, thisYm);
+  const monthIncTotal = monthIncomeTotal(monthIncomesMapped, thisYm);
   const investIncomeMonthly = investmentIncomeMonthly(data.holdings);
   const isPengusaha = data.profile.profile_type === "pengusaha";
   const incomesLast3MonthsMapped = data.incomesLast3Months.map((i) => ({
@@ -102,10 +106,10 @@ export default async function DashboardPage() {
   const totalLiabVal = totalLiabilities(data.liabilities);
   const netWorthVal = netWorth(data.profile.asset_categories, data.holdings, data.liabilities);
   const liquidAssetsVal = liquidAssets(data.holdings);
-  const dailyRecap = computeDailyRecap(monthExpensesMapped, monthIncomesMapped);
+  const dailyRecap = computeDailyRecap(monthExpensesMapped, monthIncomesMapped, today);
   const installments = upcomingInstallments(data.liabilities);
   const investIncomeItems = upcomingInvestmentIncome(data.holdings);
-  const expenseSlices = expenseByCategory(monthExpensesMapped);
+  const expenseSlices = expenseByCategory(monthExpensesMapped, thisYm);
   const budgetItems = budgetProgress(monthExpensesMapped, data.budgets);
   const goalMaturities = upcomingGoalMaturities(data.holdings);
   const goalNameById = new Map(data.goals.map((g) => [g.id, g.name] as const));
@@ -115,16 +119,20 @@ export default async function DashboardPage() {
   // so it shouldn't make the user wait for the dashboard to appear.
   after(() =>
     Promise.all([
-      recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal),
-      recordFcfSnapshot(data.user.id, {
-        incomeTotal: cf.incomeTotal,
-        fixedExpense: cf.fixedExpense,
-        lifestyleTotal: cf.lifestyleTotal,
-        invest: cf.invest,
-        fcf: cf.fcf,
-        savingRate: cf.savingRate,
-      }),
-      recordAssetHoldingSnapshots(data.user.id, data.holdings),
+      recordNetWorthSnapshot(data.user.id, netWorthVal, totalAssetsVal, totalLiabVal, tz),
+      recordFcfSnapshot(
+        data.user.id,
+        {
+          incomeTotal: cf.incomeTotal,
+          fixedExpense: cf.fixedExpense,
+          lifestyleTotal: cf.lifestyleTotal,
+          invest: cf.invest,
+          fcf: cf.fcf,
+          savingRate: cf.savingRate,
+        },
+        tz,
+      ),
+      recordAssetHoldingSnapshots(data.user.id, data.holdings, tz),
     ]),
   );
 
@@ -171,14 +179,15 @@ export default async function DashboardPage() {
   // cycle's income/expenses have mostly landed). Pengusaha: shown on the
   // 1st (a fresh month has ~nothing tracked yet, so it reports last
   // month's already-recorded snapshot instead of a near-zero live number).
-  const today = new Date();
-  const isPayday = data.profile.profile_type === "karyawan" && data.profile.payday_day === today.getDate();
-  const isMonthStart = data.profile.profile_type === "pengusaha" && today.getDate() === 1;
+  // "today" here is the visitor's own local calendar day (see getVisitorTimezone above).
+  const todayDay = Number(today.slice(8, 10));
+  const isPayday = data.profile.profile_type === "karyawan" && data.profile.payday_day === todayDay;
+  const isMonthStart = data.profile.profile_type === "pengusaha" && todayDay === 1;
   let paydayReminder: { label: string; fcf: number; savingRate: number } | null = null;
   if (isPayday) {
     paydayReminder = { label: "Gajian hari ini!", fcf: cf.fcf, savingRate: cf.savingRate };
   } else if (isMonthStart) {
-    const prevMonthIso = new Date(today.getFullYear(), today.getMonth() - 1, 1).toISOString().slice(0, 10);
+    const prevMonthIso = monthsAgoFirstOfMonthIsoInTz(1, tz);
     const prevSnapshot = data.fcfSnapshots.find((s) => s.snapshot_month === prevMonthIso);
     if (prevSnapshot) {
       paydayReminder = {

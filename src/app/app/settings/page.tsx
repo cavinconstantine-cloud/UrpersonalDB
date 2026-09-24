@@ -6,6 +6,7 @@ import { SettingsForm } from "@/components/app/settings-form";
 import { ProfileTypeSettings } from "@/components/app/profile-type-settings";
 import { ThemeToggle } from "@/components/app/theme-toggle";
 import { LanguageToggle } from "@/components/app/language-toggle";
+import { LiveClock } from "@/components/app/live-clock";
 import { Button } from "@/components/ui/button";
 import { getLang } from "@/lib/i18n/lang";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -41,6 +42,8 @@ export default async function SettingsPage() {
         <div className="serif text-[15px] mb-3">{dict.language.title}</div>
         <LanguageToggle />
       </div>
+
+      <LiveClock />
 
       <SettingsForm initialName={profileRes.data?.name || ""} />
 

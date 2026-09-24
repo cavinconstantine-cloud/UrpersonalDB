@@ -17,6 +17,7 @@ import { CashflowStep } from "./steps/cashflow-step";
 import { GoalsStep } from "./steps/goals-step";
 import type { StockPriceInfo } from "@/components/finance/saham-holding-modal";
 import { ToastProvider } from "@/components/ui/toast";
+import { TimezoneSync } from "@/components/app/timezone-sync";
 
 const STEP_NUMBER: Record<OnboardingStep, number> = {
   account: 1,
@@ -79,6 +80,7 @@ export function OnboardingWizard({
 
   return (
     <ToastProvider>
+      <TimezoneSync />
       <div className="max-w-[520px] mx-auto min-h-full px-5 py-7">
         {draft.step !== "assetInput" && draft.step !== "liabInput" && (
           <ProgressDots current={STEP_NUMBER[draft.step]} total={TOTAL_STEPS} />

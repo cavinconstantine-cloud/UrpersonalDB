@@ -2,25 +2,10 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { holdingValue } from "@/lib/finance/calculations";
+import { daysAgoIsoInTz, firstOfMonthIsoInTz, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from "@/lib/finance/format";
 import type { HoldingData } from "@/lib/finance/types";
 
-function firstOfMonthIso(): string {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
-}
-
-function daysAgoIso(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
-}
-
-function monthsAgoFirstOfMonthIso(months: number): string {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth() - months, 1).toISOString().slice(0, 10);
-}
-
-export async function getDashboardData() {
+export async function getDashboardData(tz: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -61,19 +46,19 @@ export async function getDashboardData() {
       .from("expenses")
       .select("id, expense_date, category, amount, description")
       .eq("user_id", user.id)
-      .gte("expense_date", firstOfMonthIso())
+      .gte("expense_date", firstOfMonthIsoInTz(tz))
       .order("expense_date", { ascending: false }),
     supabase
       .from("incomes")
       .select("id, income_date, category, amount, description")
       .eq("user_id", user.id)
-      .gte("income_date", firstOfMonthIso())
+      .gte("income_date", firstOfMonthIsoInTz(tz))
       .order("income_date", { ascending: false }),
     supabase
       .from("incomes")
       .select("id, income_date, category, amount, description")
       .eq("user_id", user.id)
-      .gte("income_date", monthsAgoFirstOfMonthIso(2))
+      .gte("income_date", monthsAgoFirstOfMonthIsoInTz(2, tz))
       .order("income_date", { ascending: false }),
     supabase
       .from("expenses")
@@ -93,7 +78,7 @@ export async function getDashboardData() {
       .from("net_worth_snapshots")
       .select("snapshot_date, net_worth")
       .eq("user_id", user.id)
-      .gte("snapshot_date", daysAgoIso(90))
+      .gte("snapshot_date", daysAgoIsoInTz(90, tz))
       .order("snapshot_date"),
     supabase
       .from("market_news")
@@ -105,7 +90,7 @@ export async function getDashboardData() {
       .from("fcf_snapshots")
       .select("snapshot_month, fcf, saving_rate")
       .eq("user_id", user.id)
-      .gte("snapshot_month", monthsAgoFirstOfMonthIso(11))
+      .gte("snapshot_month", monthsAgoFirstOfMonthIsoInTz(11, tz))
       .order("snapshot_month"),
     supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
     supabase
@@ -122,7 +107,7 @@ export async function getDashboardData() {
       .from("asset_holding_snapshots")
       .select("snapshot_date, holding_id, category, label, value")
       .eq("user_id", user.id)
-      .gte("snapshot_date", daysAgoIso(4)),
+      .gte("snapshot_date", daysAgoIsoInTz(4, tz)),
   ]);
 
   const profile = profileRes.data;
@@ -207,7 +192,7 @@ export async function getDashboardData() {
  * the full 17-query dashboard payload (market news, snapshots, budgets,
  * recurring items, recent transactions, etc. are irrelevant to the prompt).
  */
-export async function getFinancialSnapshotData() {
+export async function getFinancialSnapshotData(tz: string) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -229,19 +214,19 @@ export async function getFinancialSnapshotData() {
         .from("expenses")
         .select("id, expense_date, category, amount, description")
         .eq("user_id", user.id)
-        .gte("expense_date", firstOfMonthIso())
+        .gte("expense_date", firstOfMonthIsoInTz(tz))
         .order("expense_date", { ascending: false }),
       supabase
         .from("incomes")
         .select("id, income_date, category, amount, description")
         .eq("user_id", user.id)
-        .gte("income_date", firstOfMonthIso())
+        .gte("income_date", firstOfMonthIsoInTz(tz))
         .order("income_date", { ascending: false }),
       supabase
         .from("incomes")
         .select("id, income_date, category, amount, description")
         .eq("user_id", user.id)
-        .gte("income_date", monthsAgoFirstOfMonthIso(2))
+        .gte("income_date", monthsAgoFirstOfMonthIsoInTz(2, tz))
         .order("income_date", { ascending: false }),
     ]);
 
@@ -287,9 +272,10 @@ export async function recordNetWorthSnapshot(
   netWorthVal: number,
   totalAssetsVal: number,
   totalLiabilitiesVal: number,
+  tz: string,
 ) {
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIsoInTz(tz);
   await supabase.from("net_worth_snapshots").upsert({
     user_id: userId,
     snapshot_date: today,
@@ -315,10 +301,10 @@ export async function recordFcfSnapshot(
     fcf: number;
     savingRate: number;
   },
+  tz: string,
 ) {
   const supabase = await createClient();
-  const now = new Date();
-  const snapshotMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const snapshotMonth = firstOfMonthIsoInTz(tz);
   await supabase.from("fcf_snapshots").upsert({
     user_id: userId,
     snapshot_month: snapshotMonth,
@@ -346,10 +332,11 @@ export async function recordFcfSnapshot(
 export async function recordAssetHoldingSnapshots(
   userId: string,
   holdings: { id: string; category: string; data: HoldingData }[],
+  tz: string,
 ) {
   if (holdings.length === 0) return;
   const supabase = await createClient();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIsoInTz(tz);
   const rows = holdings.map((h) => ({
     user_id: userId,
     snapshot_date: today,

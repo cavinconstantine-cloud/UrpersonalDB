@@ -2,6 +2,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { getFinancialSnapshotData } from "@/lib/data/dashboard";
+import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import {
   cashflowNums,
   computeDBR,
@@ -32,7 +33,8 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
     return { ok: false, error: "Fitur AI belum dikonfigurasi. Tambahkan ANTHROPIC_API_KEY di environment." };
   }
 
-  const data = await getFinancialSnapshotData();
+  const tz = await getVisitorTimezone();
+  const data = await getFinancialSnapshotData(tz);
 
   const monthIncomeTracked = monthIncomeTotal(
     data.monthIncomes.map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),

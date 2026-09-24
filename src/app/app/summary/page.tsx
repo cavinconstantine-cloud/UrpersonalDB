@@ -7,16 +7,12 @@ import {
   monthExpenseTotal,
   monthIncomeTotal,
 } from "@/lib/finance/calculations";
-import { currentYm } from "@/lib/finance/format";
+import { currentYmInTz, monthsAgoFirstOfMonthIsoInTz } from "@/lib/finance/format";
+import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import type { Expense, HoldingData, Income } from "@/lib/finance/types";
 import { SummaryView } from "@/components/app/summary-view";
 
 export const metadata: Metadata = { title: "Summary" };
-
-function monthsAgoFirstOfMonthIso(months: number): string {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth() - months, 1).toISOString().slice(0, 10);
-}
 
 export default async function SummaryPage() {
   const supabase = await createClient();
@@ -25,7 +21,8 @@ export default async function SummaryPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const since = monthsAgoFirstOfMonthIso(12);
+  const tz = await getVisitorTimezone();
+  const since = monthsAgoFirstOfMonthIsoInTz(12, tz);
 
   const [cashflowRes, holdingsRes, expRes, incRes, fcfRes, assetSnapshotsRes] = await Promise.all([
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
@@ -86,6 +83,7 @@ export default async function SummaryPage() {
   // The current month's fcf_snapshots row can be stale (only refreshed when
   // the Home dashboard is viewed) — recompute it live here, same formula as
   // the dashboard, so Summary always agrees with what Home shows right now.
+  const thisYm = currentYmInTz(tz);
   const cfRow = cashflowRes.data;
   const investIncomeMonthly = investmentIncomeMonthly(holdings);
   const liveCf = cashflowNums(
@@ -95,11 +93,10 @@ export default async function SummaryPage() {
       lifestyleExpense: Number(cfRow?.lifestyle_expense || 0),
       invest: Number(cfRow?.invest || 0),
     },
-    monthExpenseTotal(expenses),
-    monthIncomeTotal(incomes) + investIncomeMonthly,
+    monthExpenseTotal(expenses, thisYm),
+    monthIncomeTotal(incomes, thisYm) + investIncomeMonthly,
   );
 
-  const thisYm = currentYm();
   const historicalFcf = (fcfRes.data || [])
     .map((r) => ({ ym: r.snapshot_month.slice(0, 7), fcf: Number(r.fcf), savingRate: Number(r.saving_rate) }))
     .filter((p) => p.ym !== thisYm);

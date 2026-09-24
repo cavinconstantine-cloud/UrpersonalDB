@@ -66,6 +66,48 @@ export function currentYm(): string {
   return `${d.getFullYear()}-${mm}`;
 }
 
+function ymdInTz(date: Date, tz: string): { y: string; m: string; d: string } {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(
+    date,
+  );
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return { y: get("year"), m: get("month"), d: get("day") };
+}
+
+/** Same as todayIso(), but for a request that has no ambient timezone of its own (a server render) and needs to follow a specific visitor's instead — see getVisitorTimezone(). */
+export function todayIsoInTz(tz: string): string {
+  const { y, m, d } = ymdInTz(new Date(), tz);
+  return `${y}-${m}-${d}`;
+}
+
+/** Same as currentYm(), but for a given IANA timezone (see todayIsoInTz). */
+export function currentYmInTz(tz: string): string {
+  const { y, m } = ymdInTz(new Date(), tz);
+  return `${y}-${m}`;
+}
+
+export function firstOfMonthIsoInTz(tz: string): string {
+  const { y, m } = ymdInTz(new Date(), tz);
+  return `${y}-${m}-01`;
+}
+
+/** `days` ago as a calendar date in `tz` — computed off that day's own Y/M/D so it isn't sensitive to DST shifts landing exactly on a day boundary. */
+export function daysAgoIsoInTz(days: number, tz: string): string {
+  const { y, m, d } = ymdInTz(new Date(), tz);
+  const base = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d)));
+  base.setUTCDate(base.getUTCDate() - days);
+  const mm = String(base.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(base.getUTCDate()).padStart(2, "0");
+  return `${base.getUTCFullYear()}-${mm}-${dd}`;
+}
+
+export function monthsAgoFirstOfMonthIsoInTz(months: number, tz: string): string {
+  const { y, m } = ymdInTz(new Date(), tz);
+  const base = new Date(Date.UTC(Number(y), Number(m) - 1 - months, 1));
+  const mm = String(base.getUTCMonth() + 1).padStart(2, "0");
+  return `${base.getUTCFullYear()}-${mm}-01`;
+}
+
 export function greeting(): string {
   const h = new Date().getHours();
   if (h < 11) return "Selamat pagi";
