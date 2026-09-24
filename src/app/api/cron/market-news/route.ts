@@ -87,21 +87,26 @@ export async function GET(request: Request) {
 
   let message;
   try {
-    message = await anthropic.messages.create({
-      model: "claude-sonnet-5",
-      max_tokens: 2000,
-      tools: [
-        {
-          type: "web_search_20260209",
-          name: "web_search",
-          max_uses: 6,
-          allowed_domains: TRUSTED_DOMAINS,
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content: `Cari berita ekonomi dan isu geopolitik TERBARU (dalam 48 jam terakhir jika memungkinkan) yang berdampak — langsung atau tidak langsung — terhadap pasar reksadana, saham, dan obligasi di Indonesia. Gunakan web search untuk menemukan berita nyata dari sumber-sumber yang diizinkan.
+    // Streamed rather than a plain create() — a handful of real web
+    // searches plus synthesis can take a while, and streaming avoids
+    // hitting an idle-connection timeout while nothing but the final
+    // response is being awaited.
+    message = await anthropic.messages
+      .stream({
+        model: "claude-sonnet-5",
+        max_tokens: 2000,
+        tools: [
+          {
+            type: "web_search_20260209",
+            name: "web_search",
+            max_uses: 4,
+            allowed_domains: TRUSTED_DOMAINS,
+          },
+        ],
+        messages: [
+          {
+            role: "user",
+            content: `Cari berita ekonomi dan isu geopolitik TERBARU (dalam 48 jam terakhir jika memungkinkan) yang berdampak — langsung atau tidak langsung — terhadap pasar reksadana, saham, dan obligasi di Indonesia. Gunakan web search untuk menemukan berita nyata dari sumber-sumber yang diizinkan.
 
 Pilih 3-5 berita paling relevan dan penting. Untuk masing-masing, tulis analisis singkat dalam Bahasa Indonesia (bukan sekadar terjemahan/ringkasan mentah) yang menjelaskan APA yang terjadi dan MENGAPA ini relevan untuk investor reksadana/saham/obligasi di Indonesia.
 
@@ -117,9 +122,10 @@ Setelah selesai mencari, balas HANYA dengan sebuah JSON array (tanpa markdown co
 ]
 
 Setiap item HARUS punya minimal satu source dengan url ASLI dari hasil web search (jangan pernah mengarang URL). Jangan sertakan penjelasan lain di luar JSON array ini.`,
-        },
-      ],
-    });
+          },
+        ],
+      })
+      .finalMessage();
   } catch (err) {
     return NextResponse.json({ ok: false, error: err instanceof Error ? err.message : "Anthropic request failed" }, { status: 500 });
   }
