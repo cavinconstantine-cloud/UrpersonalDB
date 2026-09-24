@@ -32,6 +32,7 @@ import { InsightCard } from "@/components/dashboard/insight-card";
 import { DbrCard } from "@/components/dashboard/dbr-card";
 import { LiquidAssetsCard } from "@/components/dashboard/liquid-assets-card";
 import { PaydayReminderCard } from "@/components/dashboard/payday-reminder-card";
+import { MissingAccountReminder } from "@/components/dashboard/missing-account-reminder";
 import { DailyRecapCard } from "@/components/dashboard/daily-recap-card";
 import { AiInsightCard } from "@/components/dashboard/ai-insight-card";
 import { AssetSection } from "@/components/dashboard/asset-section";
@@ -161,6 +162,10 @@ export default async function DashboardPage() {
 
   const aiAvailable = Boolean(process.env.ANTHROPIC_API_KEY);
 
+  const missingAccountCount = [...data.recurringIncomes, ...data.recurringExpenses].filter(
+    (r) => !r.accountHoldingId,
+  ).length;
+
   // "Ada sisa dana" reminder — karyawan: shown on their payday (this
   // month's running FCF, since a fixed payday falls close to when that
   // cycle's income/expenses have mostly landed). Pengusaha: shown on the
@@ -203,6 +208,7 @@ export default async function DashboardPage() {
       <DailyRecapCard recap={dailyRecap} />
       <InsightCard hasGoals={data.goals.length > 0} totalNeed={totalNeed} fcf={cf.fcf} />
 
+      <MissingAccountReminder count={missingAccountCount} />
       <RecurringCashflowPreview incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
 
       <div className="grid grid-cols-2 gap-2.5 mx-5 mb-4">

@@ -173,7 +173,7 @@ export function obligasiPayoutAmountThisMonth(h: HoldingData): number {
 export const ASSET_SCHEMAS: Record<string, AssetSchema> = {
   Cash: {
     fields: [
-      { key: "label", label: "Nama rekening", type: "text", placeholder: "mis. BCA Tabungan" },
+      { key: "label", label: "Nama rekening", type: "text", placeholder: "mis. BCA - 56581097810" },
       CURRENCY_FIELD,
       { key: "amount", label: "Saldo (dalam mata uang tsb)", type: "number", grouped: true },
       RATE_FIELD,
