@@ -94,7 +94,11 @@ export async function GET(request: Request) {
     message = await anthropic.messages
       .stream({
         model: "claude-sonnet-5",
-        max_tokens: 2000,
+        // Generous headroom — the web_search tool's own result blocks
+        // (search queries + returned snippets) count against this budget
+        // before the model ever gets to write its final JSON text, so a
+        // tight limit can exhaust it with zero text output.
+        max_tokens: 8000,
         tools: [
           {
             type: "web_search_20260209",
@@ -137,7 +141,16 @@ Setiap item HARUS punya minimal satu source dengan url ASLI dari hasil web searc
 
   const items = extractJson(finalText);
   if (!items || items.length === 0) {
-    return NextResponse.json({ ok: false, error: "AI did not return parseable news JSON.", raw: finalText.slice(0, 500) }, { status: 502 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "AI did not return parseable news JSON.",
+        raw: finalText.slice(0, 500),
+        stopReason: message.stop_reason,
+        contentBlockTypes: message.content.map((b) => b.type),
+      },
+      { status: 502 },
+    );
   }
 
   let upserted = 0;
