@@ -10,12 +10,14 @@ export const maxDuration = 60;
 // coverage relevant to reksadana/saham/obligasi in Indonesia — the model is
 // restricted to searching only these domains, so every citation it returns
 // can be traced back to a real, reputable source rather than fabricated.
+//
+// reuters.com, apnews.com, ft.com, and wsj.com block Anthropic's web-search
+// crawler via robots.txt — including any of them in `allowed_domains` makes
+// the ENTIRE web_search call fail with a 400 (not just those sites being
+// skipped), which was silently killing every cron run. Keep this list to
+// domains that are actually crawlable.
 const TRUSTED_DOMAINS = [
-  "reuters.com",
   "bloomberg.com",
-  "apnews.com",
-  "ft.com",
-  "wsj.com",
   "cnbcindonesia.com",
   "kontan.co.id",
   "bisnis.com",
