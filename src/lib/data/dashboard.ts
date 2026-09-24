@@ -46,19 +46,19 @@ export async function getDashboardData(tz: string) {
     supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
     supabase
       .from("expenses")
-      .select("id, expense_date, category, amount, description")
+      .select("id, expense_date, category, amount, description, is_auto_recurring")
       .eq("user_id", user.id)
       .gte("expense_date", firstOfMonthIsoInTz(tz))
       .order("expense_date", { ascending: false }),
     supabase
       .from("incomes")
-      .select("id, income_date, category, amount, description")
+      .select("id, income_date, category, amount, description, is_auto_recurring")
       .eq("user_id", user.id)
       .gte("income_date", firstOfMonthIsoInTz(tz))
       .order("income_date", { ascending: false }),
     supabase
       .from("incomes")
-      .select("id, income_date, category, amount, description")
+      .select("id, income_date, category, amount, description, is_auto_recurring")
       .eq("user_id", user.id)
       .gte("income_date", monthsAgoFirstOfMonthIsoInTz(2, tz))
       .order("income_date", { ascending: false }),
@@ -231,19 +231,19 @@ export async function getFinancialSnapshotData(tz: string) {
       supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
       supabase
         .from("expenses")
-        .select("id, expense_date, category, amount, description")
+        .select("id, expense_date, category, amount, description, is_auto_recurring")
         .eq("user_id", user.id)
         .gte("expense_date", firstOfMonthIsoInTz(tz))
         .order("expense_date", { ascending: false }),
       supabase
         .from("incomes")
-        .select("id, income_date, category, amount, description")
+        .select("id, income_date, category, amount, description, is_auto_recurring")
         .eq("user_id", user.id)
         .gte("income_date", firstOfMonthIsoInTz(tz))
         .order("income_date", { ascending: false }),
       supabase
         .from("incomes")
-        .select("id, income_date, category, amount, description")
+        .select("id, income_date, category, amount, description, is_auto_recurring")
         .eq("user_id", user.id)
         .gte("income_date", monthsAgoFirstOfMonthIsoInTz(2, tz))
         .order("income_date", { ascending: false }),

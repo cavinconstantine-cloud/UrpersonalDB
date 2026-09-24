@@ -92,6 +92,24 @@ export interface Database {
           updated_at: string;
         }> & { user_id: string }
       >;
+      payday_executions: Table<
+        {
+          id: string;
+          user_id: string;
+          execution_month: string;
+          incomes_created: number;
+          expenses_created: number;
+          created_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          execution_month: string;
+          incomes_created: number;
+          expenses_created: number;
+          created_at: string;
+        }> & { user_id: string; execution_month: string }
+      >;
       budgets: Table<
         {
           user_id: string;
@@ -187,6 +205,7 @@ export interface Database {
           amount: number;
           description: string;
           account_holding_id: string | null;
+          is_auto_recurring: boolean;
           created_at: string;
         },
         Partial<{
@@ -197,6 +216,7 @@ export interface Database {
           amount: number;
           description: string;
           account_holding_id: string | null;
+          is_auto_recurring: boolean;
           created_at: string;
         }> & { user_id: string }
       >;
@@ -221,6 +241,7 @@ export interface Database {
           amount: number;
           description: string;
           account_holding_id: string | null;
+          is_auto_recurring: boolean;
           created_at: string;
         },
         Partial<{
@@ -231,6 +252,7 @@ export interface Database {
           amount: number;
           description: string;
           account_holding_id: string | null;
+          is_auto_recurring: boolean;
           created_at: string;
         }> & { user_id: string }
       >;

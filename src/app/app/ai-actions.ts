@@ -36,14 +36,21 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
   const tz = await getVisitorTimezone();
   const data = await getFinancialSnapshotData(tz);
 
+  // Auto-generated payday transactions are excluded here — FCF is already
+  // fed by the flat planning totals (cf.income/cf.fixedExpense) below, so
+  // counting them again would double-count. See page.tsx for the same rule.
   const monthIncomeTracked = monthIncomeTotal(
-    data.monthIncomes.map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),
+    data.monthIncomes
+      .filter((i) => !i.is_auto_recurring)
+      .map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),
   );
   const investIncomeMonthly = investmentIncomeMonthly(data.holdings);
   const isPengusaha = data.profile.profile_type === "pengusaha";
   const trackedIncomeForCf = isPengusaha
     ? rollingAverageMonthlyIncome(
-        data.incomesLast3Months.map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),
+        data.incomesLast3Months
+          .filter((i) => !i.is_auto_recurring)
+          .map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),
       )
     : monthIncomeTracked;
 
@@ -55,7 +62,9 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
       invest: Number(data.cashflow.invest),
     },
     monthExpenseTotal(
-      data.monthExpenses.map((e) => ({ id: e.id, date: e.expense_date, category: e.category, amount: e.amount, description: e.description })),
+      data.monthExpenses
+        .filter((e) => !e.is_auto_recurring)
+        .map((e) => ({ id: e.id, date: e.expense_date, category: e.category, amount: e.amount, description: e.description })),
     ),
     trackedIncomeForCf + investIncomeMonthly,
   );

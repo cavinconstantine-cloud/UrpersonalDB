@@ -29,13 +29,13 @@ export default async function SummaryPage() {
     supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id),
     supabase
       .from("expenses")
-      .select("id, expense_date, category, amount, description")
+      .select("id, expense_date, category, amount, description, is_auto_recurring")
       .eq("user_id", user.id)
       .gte("expense_date", since)
       .order("expense_date", { ascending: false }),
     supabase
       .from("incomes")
-      .select("id, income_date, category, amount, description")
+      .select("id, income_date, category, amount, description, is_auto_recurring")
       .eq("user_id", user.id)
       .gte("income_date", since)
       .order("income_date", { ascending: false }),
@@ -86,6 +86,11 @@ export default async function SummaryPage() {
   const thisYm = currentYmInTz(tz);
   const cfRow = cashflowRes.data;
   const investIncomeMonthly = investmentIncomeMonthly(holdings);
+  // Auto-generated payday transactions stay in `expenses`/`incomes` for the
+  // charts below (real money movements) but are excluded here — FCF is
+  // already fed by the flat planning totals, see page.tsx for the rationale.
+  const expensesForFcf = (expRes.data || []).filter((e) => !e.is_auto_recurring);
+  const incomesForFcf = (incRes.data || []).filter((i) => !i.is_auto_recurring);
   const liveCf = cashflowNums(
     {
       income: Number(cfRow?.income || 0),
@@ -93,8 +98,14 @@ export default async function SummaryPage() {
       lifestyleExpense: Number(cfRow?.lifestyle_expense || 0),
       invest: Number(cfRow?.invest || 0),
     },
-    monthExpenseTotal(expenses, thisYm),
-    monthIncomeTotal(incomes, thisYm) + investIncomeMonthly,
+    monthExpenseTotal(
+      expensesForFcf.map((e) => ({ id: e.id, date: e.expense_date, category: e.category, amount: Number(e.amount), description: e.description })),
+      thisYm,
+    ),
+    monthIncomeTotal(
+      incomesForFcf.map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: Number(i.amount), description: i.description })),
+      thisYm,
+    ) + investIncomeMonthly,
   );
 
   const historicalFcf = (fcfRes.data || [])

@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/stock-prices",
       "schedule": "30 9 * * 1-5"
+    },
+    {
+      "path": "/api/cron/payday-automation",
+      "schedule": "0 23 * * *"
     }
   ]
 }

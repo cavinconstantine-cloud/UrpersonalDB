@@ -76,17 +76,43 @@ export default async function DashboardPage() {
     amount: Number(i.amount),
     description: i.description,
   }));
-  const monthExpTotal = monthExpenseTotal(monthExpensesMapped, thisYm);
-  const monthIncTotal = monthIncomeTotal(monthIncomesMapped, thisYm);
+  // FCF is already fed by the flat "Pemasukan/Pengeluaran Tetap" planning
+  // totals below (cf.income/cf.fixedExpense) — payday automation's own
+  // auto-generated transactions are excluded here so they don't get counted
+  // twice. Every other use of monthExpensesMapped/monthIncomesMapped (daily
+  // recap, category breakdown, budget progress) keeps them, since they're
+  // real money movements.
+  const monthExpTotal = monthExpenseTotal(
+    data.monthExpenses.filter((e) => !e.is_auto_recurring).map((e) => ({
+      id: e.id,
+      date: e.expense_date,
+      category: e.category,
+      amount: Number(e.amount),
+      description: e.description,
+    })),
+    thisYm,
+  );
+  const monthIncTotal = monthIncomeTotal(
+    data.monthIncomes.filter((i) => !i.is_auto_recurring).map((i) => ({
+      id: i.id,
+      date: i.income_date,
+      category: i.category,
+      amount: Number(i.amount),
+      description: i.description,
+    })),
+    thisYm,
+  );
   const investIncomeMonthly = investmentIncomeMonthly(data.holdings);
   const isPengusaha = data.profile.profile_type === "pengusaha";
-  const incomesLast3MonthsMapped = data.incomesLast3Months.map((i) => ({
-    id: i.id,
-    date: i.income_date,
-    category: i.category,
-    amount: Number(i.amount),
-    description: i.description,
-  }));
+  const incomesLast3MonthsMapped = data.incomesLast3Months
+    .filter((i) => !i.is_auto_recurring)
+    .map((i) => ({
+      id: i.id,
+      date: i.income_date,
+      category: i.category,
+      amount: Number(i.amount),
+      description: i.description,
+    }));
   const trackedIncomeForCf = isPengusaha
     ? rollingAverageMonthlyIncome(incomesLast3MonthsMapped)
     : monthIncTotal;

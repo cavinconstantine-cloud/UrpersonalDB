@@ -35,32 +35,38 @@ export default async function GoalsPage() {
       supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
       supabase
         .from("expenses")
-        .select("amount")
+        .select("amount, is_auto_recurring")
         .eq("user_id", user.id)
         .gte("expense_date", firstOfMonth.toISOString().slice(0, 10)),
       supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id),
       supabase.from("goal_interest_credits").select("goal_id, amount").eq("user_id", user.id),
       supabase
         .from("incomes")
-        .select("id, income_date, category, amount, description")
+        .select("id, income_date, category, amount, description, is_auto_recurring")
         .eq("user_id", user.id)
         .gte("income_date", threeMonthsAgo.toISOString().slice(0, 10)),
     ]);
 
   const cf = cashflowRes.data;
-  const monthTotal = (monthExpRes.data || []).reduce((s, e) => s + Number(e.amount), 0);
+  // Auto-generated payday transactions excluded from FCF the same way as
+  // the Home dashboard — see page.tsx for the double-counting rationale.
+  const monthTotal = (monthExpRes.data || [])
+    .filter((e) => !e.is_auto_recurring)
+    .reduce((s, e) => s + Number(e.amount), 0);
   const holdings = (holdingsRes.data || []).map((h) => ({ category: h.category, data: (h.data as HoldingData) || {} }));
   const investIncomeMonthly = investmentIncomeMonthly(holdings);
   const isPengusaha = profileRes.data?.profile_type === "pengusaha";
   const trackedIncomeForCf = isPengusaha
     ? rollingAverageMonthlyIncome(
-        (incomesLast3MonthsRes.data || []).map((i) => ({
-          id: i.id,
-          date: i.income_date,
-          category: i.category,
-          amount: Number(i.amount),
-          description: i.description,
-        })),
+        (incomesLast3MonthsRes.data || [])
+          .filter((i) => !i.is_auto_recurring)
+          .map((i) => ({
+            id: i.id,
+            date: i.income_date,
+            category: i.category,
+            amount: Number(i.amount),
+            description: i.description,
+          })),
       )
     : 0;
 
