@@ -62,6 +62,32 @@ https://claude.ai/artifact/A9wzErA5DxMNMcJ3DuscSt
 
 **Premis penting**: kedua model TETAP butuh hubungan/pendaftaran resmi dengan partner — tidak ada dunia di mana taruh link lalu otomatis dapat komisi tanpa relasi apa pun ke partner tsb.
 
+## Segmentasi customer untuk insight (siapa yang lihat kapan)
+
+4 segmen berbasis sinyal yang sudah ada di data (mockup interaktif: https://claude.ai/artifact/1aGtHwp64VjjFQavURXsCU):
+
+| Segmen | Trigger | Sumber data | Prioritas |
+|---|---|---|---|
+| 1. Dana Darurat Berlebih | Saldo Cash > 6× rata-rata pengeluaran bulanan (9-12× untuk pengusaha) | `monthExpenseTotal`, cashflow — sudah ada | **Utama** — paling data-driven |
+| 2. Goal Butuh Percepatan | Trigger #1 + ada goal aktif `onTrack = false` | `goalMonthlySavingsPlan` — sudah ada | Prioritas 2 — paling persuasif |
+| 3. Windfall Belum Dialokasikan | Cash naik >20% dlm 30 hari, tanpa goal baru | `asset_holding_snapshots` — butuh logic baru | Nanti |
+| 4. Belum Pernah Investasi | 100% aset di Cash | `asset_holdings` — sudah ada | Tone beda (edukasi, bukan upsell) |
+
+**Segmen 5 — Market-Triggered** (ide tambahan user): IHSG turun → arahkan ke saham/reksadana saham; yield obligasi naik (wacana suku bunga naik) → arahkan ke obligasi/SBN. Mockup + penempatan: https://claude.ai/artifact/9VEXdPNCXJ1Ti62vvVgsj1
+
+- **Beda kelas risiko** dari segmen 1-4: ini market timing advice, bukan observasi data personal — perlu disclaimer lebih tegas ("bukan ajakan beli sekarang"), dan lebih dekat ke garis regulasi WAPERD/APERD.
+- **Data**: IHSG harian sudah siap (`change_pct` di cron `stock-prices`). IHSG mingguan butuh 1 tabel snapshot baru (pattern sudah ada 3x di app — net worth/FCF/asset holding). **Yield obligasi/SBN belum ada sumber data sama sekali** — perlu riset sumber (BI/Kemenkeu/IBPA), belum ada API gratis semudah Yahoo Finance buat ini.
+- **Penempatan berbeda dari segmen 1-4**: insight personal tetap di dashboard atas (computed per-user tiap load); insight market ditaro nempel section "Berita Pasar" yang sudah ada (bukan generic ke semua user, harus tetap combine dengan sinyal personal spy nggak berasa spam blast).
+
+## Sourcing "Berita Pasar" (fitur existing, bukan baru)
+
+User tanya: dari mana sumbernya, sustain nggak, siapa yang decide berita mana.
+
+- **Sudah otomatis penuh** — cron harian (03:00 UTC/~10:00 WIB) pakai Claude Sonnet 5 + web search tool, dibatasi ke 15 domain whitelist (Reuters, Bloomberg, AP, FT, WSJ, CNBC Indonesia, Kontan, Bisnis.com, Katadata, Kompas, IDX, BI, OJK, IMF, World Bank).
+- **Claude yang decide sendiri** 3-5 berita paling relevan tiap hari, tulis analisis Bahasa Indonesia — user/founder nggak perlu kurasi manual sama sekali.
+- **Sitasi wajib** — tiap item harus ada minimal 1 URL asli dari hasil search, dilarang mengarang URL. Sudah jadi hard requirement di prompt existing (`api/cron/market-news/route.ts`).
+- **Insight market baru (Segmen 5) ikut aturan sitasi yang sama**: klaim kualitatif wajib ada sitasi media, angka murni dari sistem sendiri (mis. IHSG turun X%) ditandai beda (nggak butuh sitasi eksternal karena itu data terverifikasi sendiri).
+
 ## Ide tambahan
 
 - **Freemium tiering** — basic tracking gratis selamanya, fitur premium (AI insight, export, multi-akun, budget advanced) dikunci. Kemungkinan revenue engine paling sehat jangka pendek.
