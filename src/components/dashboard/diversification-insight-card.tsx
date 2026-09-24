@@ -2,38 +2,45 @@
 
 import { useState } from "react";
 import { fmtRp } from "@/lib/finance/format";
-
-/**
- * No affiliate account is registered with any reksadana/obligasi platform
- * yet (Bibit/Bareksa/Ajaib/Pluang) — flip once real partner links exist.
- * Same pattern as AI_INSIGHT_ENABLED / SPLIT_BILL_ENABLED elsewhere in this
- * codebase: the insight itself is real and useful without it, so it ships
- * now with the CTA disabled rather than waiting on the partnership.
- */
-const AFFILIATE_CTA_ENABLED = false;
+import { InvestmentEducationModal } from "./investment-education-modal";
 
 export type DiversificationInsight =
   | { kind: "idle-cash"; idleSurplus: number; cashBalance: number; emergencyFundTarget: number }
   | { kind: "goal-linked"; idleSurplus: number; goalName: string; monthlyNeed: number; fcf: number }
+  | { kind: "windfall"; increaseAmount: number; priorCash: number; currentCash: number }
   | { kind: "first-timer" };
 
 export function DiversificationInsightCard({ insight }: { insight: DiversificationInsight }) {
   const [open, setOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const isFirstTimer = insight.kind === "first-timer";
 
-  const eyebrow = isFirstTimer ? "🌱 Langkah Pertama" : insight.kind === "goal-linked" ? "🎯 Percepat Goal" : "💡 Insight";
+  const eyebrow =
+    insight.kind === "first-timer"
+      ? "🌱 Langkah Pertama"
+      : insight.kind === "goal-linked"
+        ? "🎯 Percepat Goal"
+        : insight.kind === "windfall"
+          ? "📈 Baru Masuk"
+          : "💡 Insight";
 
-  const title = isFirstTimer
-    ? "100% asetmu masih di Cash"
-    : insight.kind === "goal-linked"
-      ? `Goal "${insight.goalName}" perlu ${fmtRp(insight.monthlyNeed)}/bln, FCF kamu ${fmtRp(insight.fcf)}`
-      : `${fmtRp(insight.idleSurplus)} lebih dari dana darurat idealmu`;
+  const title =
+    insight.kind === "first-timer"
+      ? "100% asetmu masih di Cash"
+      : insight.kind === "goal-linked"
+        ? `Goal "${insight.goalName}" perlu ${fmtRp(insight.monthlyNeed)}/bln, FCF kamu ${fmtRp(insight.fcf)}`
+        : insight.kind === "windfall"
+          ? `${fmtRp(insight.increaseAmount)} baru masuk ke Cash dalam sebulan terakhir`
+          : `${fmtRp(insight.idleSurplus)} lebih dari dana darurat idealmu`;
 
-  const body = isFirstTimer
-    ? "Nggak masalah — banyak yang mulai dari sini. Kalau suatu saat mau coba diversifikasi sedikit, ada opsi yang risikonya mirip tabungan tapi potensi hasilnya lebih baik."
-    : insight.kind === "goal-linked"
-      ? `Ada ${fmtRp(insight.idleSurplus)} nganggur di Cash. Dialokasikan ke instrumen yang cocok sama timeline goal ini bisa bantu kejar target lebih cepat — nggak cuma ngandelin nabung manual.`
-      : `Dana darurat ideal kamu sekitar ${fmtRp(insight.emergencyFundTarget)}. Saldo Cash kamu ${fmtRp(insight.cashBalance)} — ada ${fmtRp(insight.idleSurplus)} yang bisa dialokasikan tanpa ganggu safety net.`;
+  const body =
+    insight.kind === "first-timer"
+      ? "Nggak masalah — banyak yang mulai dari sini. Kalau suatu saat mau coba diversifikasi sedikit, ada opsi yang risikonya mirip tabungan tapi potensi hasilnya lebih baik."
+      : insight.kind === "goal-linked"
+        ? `Ada ${fmtRp(insight.idleSurplus)} nganggur di Cash. Dialokasikan ke instrumen yang cocok sama timeline goal ini bisa bantu kejar target lebih cepat — nggak cuma ngandelin nabung manual.`
+        : insight.kind === "windfall"
+          ? "Belum keliatan rencana buat dana ini di goals kamu. Sebelum kepakai buat hal lain, mau dipertimbangkan buat instrumen yang lebih efektif dulu?"
+          : `Dana darurat ideal kamu sekitar ${fmtRp(insight.emergencyFundTarget)}. Saldo Cash kamu ${fmtRp(insight.cashBalance)} — ada ${fmtRp(insight.idleSurplus)} yang bisa dialokasikan tanpa ganggu safety net.`;
 
   const ctaLabel = isFirstTimer ? "Pelajari, nggak buru-buru" : "Lihat opsi lain";
 
@@ -45,11 +52,7 @@ export function DiversificationInsightCard({ insight }: { insight: Diversificati
         borderColor: isFirstTimer ? "var(--hairline)" : "rgba(124,110,242,0.3)",
       }}
     >
-      <button
-        type="button"
-        onClick={() => !isFirstTimer && setOpen((v) => !v)}
-        className="w-full text-left"
-      >
+      <button type="button" onClick={() => !isFirstTimer && setOpen((v) => !v)} className="w-full text-left">
         <div
           className="flex items-center gap-1.5 text-[10.5px] font-bold tracking-wide uppercase mb-1.5"
           style={{ color: isFirstTimer ? "var(--text-dim)" : "var(--brand-strong)" }}
@@ -83,21 +86,15 @@ export function DiversificationInsightCard({ insight }: { insight: Diversificati
         </div>
       )}
 
-      {AFFILIATE_CTA_ENABLED ? (
-        <button
-          type="button"
-          className="mt-3 w-full rounded-xl bg-brand text-brand-ink py-2.5 text-[13px] font-medium"
-        >
-          {ctaLabel} →
-        </button>
-      ) : (
-        <button
-          disabled
-          className="mt-3 w-full rounded-xl bg-brand text-brand-ink py-2.5 text-[13px] font-medium opacity-40 cursor-not-allowed"
-        >
-          {ctaLabel} <span className="font-normal">(segera hadir)</span>
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="mt-3 w-full rounded-xl bg-brand text-brand-ink py-2.5 text-[13px] font-medium"
+      >
+        {ctaLabel} →
+      </button>
+
+      <InvestmentEducationModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }

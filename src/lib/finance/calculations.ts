@@ -494,6 +494,44 @@ export function hasNoNonCashAssets(holdings: HoldingRow[]): boolean {
   return holdings.length > 0 && holdings.every((h) => h.category === "Cash");
 }
 
+export interface CashWindfallInsight {
+  currentCash: number;
+  priorCash: number;
+  increaseAmount: number;
+  increasePct: number;
+}
+
+const WINDFALL_MIN_INCREASE_PCT = 20;
+const WINDFALL_MIN_INCREASE_AMOUNT = 3_000_000;
+
+/**
+ * A big recent jump in Cash balance (~30 days back) — reads the same
+ * `asset_holding_snapshots` history already used for the daily movement
+ * badges elsewhere, just further back. `priorSnapshotRows` should be every
+ * Cash-category row at or before the ~30-day cutoff; this picks the most
+ * recent date among them as the baseline (there may be no snapshot from
+ * exactly 30 days ago) and sums that date's rows.
+ */
+export function cashWindfall(
+  currentCashBalance: number,
+  priorSnapshotRows: { snapshotDate: string; value: number }[],
+): CashWindfallInsight | null {
+  if (priorSnapshotRows.length === 0) return null;
+  const latestPriorDate = priorSnapshotRows.reduce(
+    (max, r) => (r.snapshotDate > max ? r.snapshotDate : max),
+    priorSnapshotRows[0].snapshotDate,
+  );
+  const priorCash = priorSnapshotRows
+    .filter((r) => r.snapshotDate === latestPriorDate)
+    .reduce((s, r) => s + r.value, 0);
+  if (priorCash <= 0) return null;
+
+  const increaseAmount = currentCashBalance - priorCash;
+  const increasePct = (increaseAmount / priorCash) * 100;
+  if (increaseAmount < WINDFALL_MIN_INCREASE_AMOUNT || increasePct < WINDFALL_MIN_INCREASE_PCT) return null;
+  return { currentCash: currentCashBalance, priorCash, increaseAmount, increasePct };
+}
+
 /** A Cash/Deposito/Obligasi/Reksadana holding, optionally linked to a goal via `goalId`. */
 export type HoldingRowWithGoal = HoldingRowWithId & { goalId: string | null };
 

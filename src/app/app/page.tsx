@@ -9,6 +9,8 @@ import {
 import {
   budgetProgress,
   cashflowNums,
+  cashWindfall,
+  catValue,
   computeDailyRecap,
   computeDBR,
   expenseByCategory,
@@ -209,6 +211,10 @@ export default async function DashboardPage() {
   // estimate, not exact.
   const idleCash = idleCashSurplus(data.holdings, monthExpTotal, data.profile.profile_type);
   const offTrackGoal = data.goals.find((g) => goalMonthlyNeed(g) > Math.max(0, cf.fcf));
+  const windfall = cashWindfall(
+    catValue("Cash", data.holdings),
+    data.priorCashSnapshots,
+  );
   let diversificationInsight: DiversificationInsight | null = null;
   if (idleCash && offTrackGoal) {
     diversificationInsight = {
@@ -218,6 +224,8 @@ export default async function DashboardPage() {
       monthlyNeed: goalMonthlyNeed(offTrackGoal),
       fcf: cf.fcf,
     };
+  } else if (windfall) {
+    diversificationInsight = { kind: "windfall", ...windfall };
   } else if (idleCash) {
     diversificationInsight = { kind: "idle-cash", ...idleCash };
   } else if (hasNoNonCashAssets(data.holdings)) {

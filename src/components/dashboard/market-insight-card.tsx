@@ -1,12 +1,14 @@
-import { fmtRp } from "@/lib/finance/format";
+"use client";
 
-/** No affiliate account registered yet — see diversification-insight-card.tsx for the same flag/reasoning. */
-const AFFILIATE_CTA_ENABLED = false;
+import { useState } from "react";
+import { fmtRp } from "@/lib/finance/format";
+import { InvestmentEducationModal } from "./investment-education-modal";
 
 /** IHSG drop worth surfacing — small daily wiggles aren't. */
 export const IHSG_DROP_THRESHOLD_PCT = -2.5;
 
 export function MarketInsightCard({ ihsgChangePct, idleCash }: { ihsgChangePct: number; idleCash: number }) {
+  const [modalOpen, setModalOpen] = useState(false);
   if (ihsgChangePct > IHSG_DROP_THRESHOLD_PCT || idleCash <= 0) return null;
 
   return (
@@ -26,15 +28,16 @@ export function MarketInsightCard({ ihsgChangePct, idleCash }: { ihsgChangePct: 
         Bukan ajakan beli sekarang — harga bisa terus turun. Timing pasar sulit diprediksi; sesuaikan dengan
         profil risiko &amp; horizon investasimu sebelum memutuskan.
       </p>
-      {AFFILIATE_CTA_ENABLED ? (
-        <button type="button" className="w-full rounded-xl py-2.5 text-[13px] font-medium" style={{ background: "var(--critical)", color: "white" }}>
-          Lihat Reksadana Saham →
-        </button>
-      ) : (
-        <button disabled className="w-full rounded-xl py-2.5 text-[13px] font-medium opacity-40 cursor-not-allowed" style={{ background: "var(--critical)", color: "white" }}>
-          Lihat Reksadana Saham <span className="font-normal">(segera hadir)</span>
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        className="w-full rounded-xl py-2.5 text-[13px] font-medium"
+        style={{ background: "var(--critical)", color: "white" }}
+      >
+        Pelajari opsi investasi →
+      </button>
+
+      <InvestmentEducationModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 }

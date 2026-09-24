@@ -33,6 +33,7 @@ export async function getDashboardData(tz: string) {
     recurringExpenseRes,
     assetHoldingSnapshotsRes,
     ihsgRes,
+    priorCashSnapshotsRes,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -110,6 +111,17 @@ export async function getDashboardData(tz: string) {
       .eq("user_id", user.id)
       .gte("snapshot_date", daysAgoIsoInTz(4, tz)),
     supabase.from("stock_prices").select("change_pct").eq("ticker", "^JKSE").maybeSingle(),
+    // Baseline for the "windfall" insight — Cash-category snapshots from
+    // ~30 days back or earlier (there may be no row from exactly 30 days
+    // ago), most recent first; cashWindfall() picks the closest date.
+    supabase
+      .from("asset_holding_snapshots")
+      .select("snapshot_date, value")
+      .eq("user_id", user.id)
+      .eq("category", "Cash")
+      .lte("snapshot_date", daysAgoIsoInTz(30, tz))
+      .order("snapshot_date", { ascending: false })
+      .limit(20),
   ]);
 
   const profile = profileRes.data;
@@ -186,6 +198,10 @@ export async function getDashboardData(tz: string) {
       value: Number(s.value),
     })),
     ihsgChangePct: ihsgRes.data ? Number(ihsgRes.data.change_pct) : null,
+    priorCashSnapshots: (priorCashSnapshotsRes.data || []).map((r) => ({
+      snapshotDate: r.snapshot_date,
+      value: Number(r.value),
+    })),
   };
 }
 
