@@ -120,9 +120,19 @@ Setelah itu dibenarkan, estimasi kasar (perlu divalidasi dengan load test real):
 
 **Kesimpulan**: nyaman di kisaran beberapa ribu sampai ~5.000-10.000 monthly active user dengan setup sekarang, asalkan email confirmation dibenerin duluan.
 
-## Status per bagian ini
+## Status: diversification insight cards — SUDAH DI-SHIP ke kode (commit d79e8f1)
+
+- [x] `idleCashSurplus()` + `hasNoNonCashAssets()` di `calculations.ts`
+- [x] `DiversificationInsightCard` — Segmen 1 (dana darurat berlebih), Segmen 2 (goal-linked), Segmen 4 (first-timer), otomatis pilih prioritas tertinggi yang berlaku
+- [x] `MarketInsightCard` — IHSG turun >2,5%/hari, ditaro dekat Berita Pasar
+- [x] Fetch `ihsgChangePct` (dari `stock_prices` yang sudah ada) di `dashboard.ts`
+- [ ] **CTA masih di-disable** (`AFFILIATE_CTA_ENABLED = false` di kedua komponen) — nunggu kalian beneran daftar affiliate (Ajaib Ambassador paling konkret) dan dapat link tracking asli. Begitu ada, tinggal flip 1 baris + isi URL-nya.
+- [ ] **Belum di-build**: Segmen 3 (windfall — butuh snapshot table baru), insight yield obligasi (belum ada sumber data sama sekali)
+- [ ] **Legal review OJK (APERD/WAPERD)** belum dilakukan — copy sudah ditulis hati-hati (edukatif, ada disclaimer, bukan "beli sekarang") tapi ini tetap perlu di-review profesional sebelum benar-benar nge-drive traffic ke partner nantinya
+
+## Status bagian lain
 
 - [x] SMTP fix diagnosis (root cause + langkah + checklist interaktif sudah dibuat: https://claude.ai/artifact/WA8kcaQi2B9yHB5q6fthcL)
 - [ ] Eksekusi setup SMTP di dashboard Resend + Supabase (task user, belum dikonfirmasi selesai)
 - [ ] Keputusan final harga Revenue Stream 1 (one-time vs recurring vs tahunan) — belum diputuskan user
-- [ ] Belum dibahas: struktur freemium tier konkret, implementasi teknis affiliate link, legal review APERD/WAPERD
+- [ ] Belum dibahas: struktur freemium tier konkret
