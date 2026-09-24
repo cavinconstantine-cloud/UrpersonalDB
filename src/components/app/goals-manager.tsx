@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { NumberInput } from "@/components/ui/number-field";
 import { GOAL_PRESETS, goalPresetIcon } from "@/lib/finance/constants";
-import { goalMonthlyNeed } from "@/lib/finance/calculations";
+import { goalMonthlySavingsPlan } from "@/lib/finance/calculations";
 import { fmtRp } from "@/lib/finance/format";
 import { addGoal, updateGoal, deleteGoal } from "@/app/app/goals/actions";
 import type { Goal } from "@/lib/finance/types";
@@ -23,8 +23,6 @@ export interface GoalLinkedSummary {
   linkedValue: number;
   monthlyRate: number;
   creditedTotal: number;
-  /** Months to reach target at the current linked-interest pace — null if already reached, or nothing with a fixed payout is linked yet. */
-  projectionMonths: number | null;
 }
 
 const CAT_ICON: Record<string, string> = { Cash: "💵", Deposito: "🏦", Obligasi: "📜", Reksadana: "📈" };
@@ -35,10 +33,12 @@ function twoYearsFromNow(): string {
   return d.toISOString().slice(0, 10);
 }
 
-function monthsFromNowLabel(months: number): string {
-  const d = new Date();
-  d.setMonth(d.getMonth() + months);
-  return d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+function fmtTargetDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  } catch {
+    return iso;
+  }
 }
 
 export function GoalsManager({
@@ -116,7 +116,8 @@ export function GoalsManager({
         const creditedTotal = summary?.creditedTotal || 0;
         const totalCurrent = g.current + linkedValue + creditedTotal;
         const hasLinked = (summary?.assets.length || 0) > 0;
-        const need = goalMonthlyNeed({ ...g, current: totalCurrent });
+        const plan = goalMonthlySavingsPlan({ ...g, current: totalCurrent }, summary?.monthlyRate ?? 0);
+        const need = plan.monthlyNeed;
         const pct = g.target > 0 ? Math.min(100, (totalCurrent / g.target) * 100) : 0;
         const onTrack = need <= Math.max(0, fcf);
         const isOpen = expanded.has(g.id);
@@ -190,23 +191,55 @@ export function GoalsManager({
 
             {summary && summary.monthlyRate > 0 && (
               <div
-                className="flex items-start gap-2 rounded-xl px-3 py-2.5 mb-3"
-                style={{ background: "var(--good-wash)", border: "1px solid var(--good-wash)" }}
+                className="rounded-xl px-3 py-2.5 mb-3"
+                style={{ background: "var(--brand-wash)", border: "1px solid rgba(124,110,242,0.35)" }}
               >
-                <span className="text-sm leading-none">📈</span>
-                <div className="text-xs">
-                  <div className="font-medium text-text">
-                    {summary.projectionMonths === 0
-                      ? "Target sudah tercapai dari aset terhubung"
-                      : `Estimasi tercapai: ~${summary.projectionMonths} bulan lagi`}
+                {totalCurrent >= g.target ? (
+                  <div className="flex items-center gap-2 text-xs font-medium text-text">
+                    <span className="text-sm leading-none">🎉</span>
+                    <span>Target sudah tercapai</span>
                   </div>
-                  {summary.projectionMonths !== null && summary.projectionMonths > 0 && (
-                    <div className="text-text-dim mt-0.5">
-                      Dari bunga/kupon aset terhubung ({fmtRp(summary.monthlyRate)}/bln) · sekitar{" "}
-                      {monthsFromNowLabel(summary.projectionMonths)}
+                ) : plan.monthlyNeed === 0 ? (
+                  <div className="flex items-start gap-2 text-xs">
+                    <span className="text-sm leading-none">✅</span>
+                    <span className="text-text">
+                      Bunga/kupon aset terhubung aja udah cukup buat capai target di{" "}
+                      {fmtTargetDate(g.targetDate)}, nggak perlu nabung tambahan.
+                    </span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm leading-none">💰</span>
+                      <span className="text-xs font-semibold text-text">Perlu {fmtRp(plan.monthlyNeed)}/bln untuk capai target</span>
                     </div>
-                  )}
-                </div>
+                    <div className="text-[10.5px] text-text-dim mb-2 leading-relaxed">
+                      Target {fmtTargetDate(g.targetDate)} · {plan.months} bulan lagi — sudah dikurangi proyeksi
+                      bunga aset terhubung
+                    </div>
+                    <div className="h-px bg-hairline mb-2" />
+                    <div className="flex flex-col gap-1 text-[10.5px]">
+                      <div className="flex justify-between gap-2">
+                        <span className="text-text-dim">Kekurangan saat ini</span>
+                        <span className="text-text">{fmtRp(plan.gap)}</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-text-dim">Proyeksi bunga s/d target ({plan.months} bln)</span>
+                        <span style={{ color: "var(--good)" }}>− {fmtRp(plan.projectedInterest)}</span>
+                      </div>
+                      <div className="flex justify-between gap-2 pt-1 border-t border-dashed border-hairline font-medium">
+                        <span className="text-text-dim">Perlu ditabung manual</span>
+                        <span className="text-text">{fmtRp(plan.adjustedGap)}</span>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <span className="text-text-dim">÷ {plan.months} bulan tersisa</span>
+                        <span className="font-semibold" style={{ color: "var(--brand-strong)" }}>
+                          {fmtRp(plan.monthlyNeed)}/bln
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 

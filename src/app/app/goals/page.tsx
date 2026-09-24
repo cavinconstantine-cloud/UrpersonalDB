@@ -5,7 +5,6 @@ import {
   cashflowNums,
   goalLinkedValue,
   goalMonthlyContributionRate,
-  goalProjectionMonths,
   holdingValue,
   investmentIncomeMonthly,
   rollingAverageMonthlyIncome,
@@ -124,7 +123,6 @@ export default async function GoalsPage() {
       linkedValue,
       monthlyRate,
       creditedTotal,
-      projectionMonths: goalProjectionMonths(g.target, g.current + linkedValue + creditedTotal, monthlyRate),
     };
   }
 

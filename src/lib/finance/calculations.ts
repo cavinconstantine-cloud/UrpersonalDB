@@ -423,9 +423,40 @@ export function monthsBetween(a: Date, b: Date): number {
   return Math.max(1, (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth()));
 }
 
-export function goalMonthlyNeed(g: Pick<Goal, "target" | "current" | "targetDate">): number {
+export interface GoalMonthlySavingsPlan {
+  /** Months remaining until the goal's target date (min 1). */
+  months: number;
+  /** target - current, floored at 0. */
+  gap: number;
+  /** monthlyRate * months — interest/coupon income projected to arrive before the target date. */
+  projectedInterest: number;
+  /** gap minus projectedInterest, floored at 0 — what manual savings still has to cover. */
+  adjustedGap: number;
+  /** adjustedGap / months — what to save per month to hit the target date. */
+  monthlyNeed: number;
+}
+
+/**
+ * How much to save per month, manually, to hit a goal's target by its
+ * target date — netting out interest/coupon income its linked assets are
+ * projected to earn over the remaining months. Without `monthlyRate` this
+ * reduces to the plain gap/months need. Returns the full breakdown (not
+ * just the final number) so a UI showing the math and the top-line "need"
+ * both read from the same computation instead of risking drift.
+ */
+export function goalMonthlySavingsPlan(
+  g: Pick<Goal, "target" | "current" | "targetDate">,
+  monthlyRate = 0,
+): GoalMonthlySavingsPlan {
   const months = Math.max(1, monthsBetween(new Date(), new Date(g.targetDate)));
-  return Math.max(0, (g.target - g.current) / months);
+  const gap = Math.max(0, g.target - g.current);
+  const projectedInterest = monthlyRate > 0 ? monthlyRate * months : 0;
+  const adjustedGap = Math.max(0, gap - projectedInterest);
+  return { months, gap, projectedInterest, adjustedGap, monthlyNeed: adjustedGap / months };
+}
+
+export function goalMonthlyNeed(g: Pick<Goal, "target" | "current" | "targetDate">, monthlyRate = 0): number {
+  return goalMonthlySavingsPlan(g, monthlyRate).monthlyNeed;
 }
 
 /** A Cash/Deposito/Obligasi/Reksadana holding, optionally linked to a goal via `goalId`. */
@@ -447,19 +478,6 @@ export function goalMonthlyContributionRate(goalId: string, holdings: HoldingRow
     else if (h.category === "Obligasi") total += obligasiNetCouponMonthly(h.data);
   }
   return total;
-}
-
-/**
- * Months until a goal reaches its target at its current linked-interest
- * pace — null when the goal is already at/past target, or when nothing
- * with a fixed payout is linked yet (rate <= 0), since projecting from a
- * zero or negative rate would either divide by zero or never resolve.
- */
-export function goalProjectionMonths(target: number, currentTotal: number, monthlyRate: number): number | null {
-  const remaining = target - currentTotal;
-  if (remaining <= 0) return 0;
-  if (monthlyRate <= 0) return null;
-  return Math.ceil(remaining / monthlyRate);
 }
 
 export interface UpcomingGoalMaturity {
