@@ -47,27 +47,23 @@ export function fmtMonthYear(iso: string): string {
 }
 
 /**
- * This app is single-region (Indonesian users, WIB). "Today"/"this month"
- * must mean the same calendar day everywhere they're computed — but this
- * runs both server-side (Vercel, UTC) and client-side (the viewer's actual
- * browser, effectively WIB) via `new Date()`, whose local timezone differs
- * between those two. Anchoring to a fixed WIB (UTC+7) offset instead of the
- * ambient environment's timezone keeps every caller in agreement, and
- * avoids the day/month rolling over up to 7 hours early relative to WIB
- * wall-clock time when this runs on the UTC server.
+ * "Today"/"this month" should follow wherever this actually runs — the
+ * viewer's own device timezone in the browser. Reading local Y/M/D fields
+ * off `Date` (never `.toISOString()`, which converts to UTC and can shift
+ * the calendar day/month backward for any timezone ahead of UTC) keeps
+ * this tied to the caller's real wall-clock date instead of a fixed region.
  */
-const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
-
-function wibNow(): Date {
-  return new Date(Date.now() + WIB_OFFSET_MS);
-}
-
 export function todayIso(): string {
-  return wibNow().toISOString().slice(0, 10);
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
 }
 
 export function currentYm(): string {
-  return wibNow().toISOString().slice(0, 7);
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}`;
 }
 
 export function greeting(): string {

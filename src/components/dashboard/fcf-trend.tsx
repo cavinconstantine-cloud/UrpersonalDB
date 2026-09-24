@@ -20,11 +20,8 @@ function monthLabel(iso: string): string {
 export function FcfTrend({ points, current }: { points: FcfMonthPoint[]; current: number }) {
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
-  // currentYm() is WIB-anchored (see format.ts) so this always matches the
-  // "this month" a stored fcf_snapshots row would use — computing it any
-  // other way here (this ran client-side, in the viewer's own timezone)
-  // used to land on the wrong calendar day for anyone ahead of UTC, which
-  // then failed to replace the stale stored value with the live one below.
+  // currentYm() reads the viewer's own local device date (see format.ts),
+  // matching the "this month" a stored fcf_snapshots row would use.
   const series = useMemo(() => {
     const thisMonth = `${currentYm()}-01`;
     const withoutThisMonth = points.filter((p) => p.month !== thisMonth);

@@ -17,9 +17,8 @@ export function NetWorthTrend({ points, current }: { points: TrendPoint[]; curre
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
 
   // Always include "today" as the last point so the line reaches the current
-  // value. todayIso() is WIB-anchored (see format.ts) so it always matches
-  // the calendar day a stored snapshot would use, regardless of the
-  // viewer's own browser timezone.
+  // value. todayIso() reads the viewer's own local device date (see
+  // format.ts), matching the calendar day a stored snapshot would use.
   const series = useMemo(() => {
     const today = todayIso();
     const withoutToday = points.filter((p) => p.date !== today);
