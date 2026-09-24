@@ -16,8 +16,8 @@ import { addExpense, addCustomExpenseCategory } from "@/app/app/expenses/actions
 import { addIncome, addCustomIncomeCategory } from "@/app/app/incomes/actions";
 import { SplitBillFlow } from "@/components/app/split/split-bill-flow";
 
-/** Flip to true once Anthropic credit is topped up — see the "Kartu ditolak / credit" thread. */
-const SPLIT_BILL_ENABLED = false;
+/** Relaunched — Anthropic credit topped up (see the "Kartu ditolak / credit" thread). */
+const SPLIT_BILL_ENABLED = true;
 
 export type TransactionType = "expense" | "income";
 
