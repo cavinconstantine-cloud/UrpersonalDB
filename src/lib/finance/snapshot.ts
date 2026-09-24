@@ -51,8 +51,8 @@ Total income bulan ini (rutin + tercatat, dasar hitungan FCF): ${fmtRp(input.cf.
 Fixed expense: ${fmtRp(input.cf.fixedExpense)}
 Lifestyle expense (termasuk pengeluaran tercatat bulan ini): ${fmtRp(input.cf.lifestyleTotal)}
 Investasi rutin bulanan: ${fmtRp(input.cf.invest)}
-Free cash flow bulanan: ${fmtRp(input.cf.fcf)}
-Saving rate: ${Math.round(input.cf.savingRate * 100)}%
+Free cash flow bulanan (sisa income yang belum terpakai): ${fmtRp(input.cf.fcf)}
+Persentase nabung (FCF / income bulanan — bukan bunga tabungan): ${Math.round(input.cf.savingRate * 100)}%
 Debt Burden Ratio (total cicilan bulanan / income bulanan): ${
     input.dbr.income > 0 ? input.dbr.pct + "%" : "belum bisa dihitung"
   } (kategori: ${input.dbr.label})

@@ -408,6 +408,7 @@ export interface CashflowNums extends CashflowInputs {
   /** Income rutin + income tambahan yang dicatat manual bulan ini (mis. transferan, side income). */
   incomeTotal: number;
   fcf: number;
+  /** fcf / incomeTotal — porsi income yang nggak habis terpakai bulan ini (bisa negatif kalau overspend). */
   savingRate: number;
 }
 
@@ -415,7 +416,7 @@ export function cashflowNums(cf: CashflowInputs, monthExpenses: number, monthInc
   const lifestyleTotal = cf.lifestyleExpense + monthExpenses;
   const incomeTotal = cf.income + monthIncome;
   const fcf = incomeTotal - cf.fixedExpense - lifestyleTotal - cf.invest;
-  const savingRate = incomeTotal > 0 ? cf.invest / incomeTotal : 0;
+  const savingRate = incomeTotal > 0 ? fcf / incomeTotal : 0;
   return { ...cf, lifestyleTotal, incomeTotal, fcf, savingRate };
 }
 

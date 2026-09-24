@@ -185,7 +185,10 @@ export default async function DashboardPage() {
         </div>
         <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">
           <div className="text-xs text-text-dim mb-1">{dict.dashboard.savingRate}</div>
-          <div className="serif text-[19px]">{Math.round(cf.savingRate * 100)}%</div>
+          <div className="serif text-[19px]" style={{ color: cf.savingRate >= 0 ? "var(--good)" : "var(--critical)" }}>
+            {cf.savingRate >= 0 ? "+" : ""}
+            {Math.round(cf.savingRate * 100)}%
+          </div>
         </div>
       </div>
       <FcfTrend

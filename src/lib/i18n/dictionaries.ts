@@ -45,7 +45,7 @@ const id = {
   },
   dashboard: {
     fcfMonthly: "💰 Free Cash Flow /bln",
-    savingRate: "📊 Saving Rate",
+    savingRate: "💰 % Nabung dari Income",
   },
 };
 
@@ -92,7 +92,7 @@ const en: typeof id = {
   },
   dashboard: {
     fcfMonthly: "💰 Free Cash Flow /mo",
-    savingRate: "📊 Saving Rate",
+    savingRate: "💰 % of Income Saved",
   },
 };
 
