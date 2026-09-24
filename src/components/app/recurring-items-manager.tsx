@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { NumberInput } from "@/components/ui/number-field";
+import { Spinner } from "@/components/ui/spinner";
 import { fmtRp } from "@/lib/finance/format";
 import type { CashAccount } from "./transaction-modal";
 
@@ -30,6 +31,10 @@ function accountLabel(id: string | null, cashAccounts: CashAccount[]): string | 
   return cashAccounts.find((a) => a.id === id)?.label ?? null;
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : "Gagal menyimpan — coba lagi.";
+}
+
 export function RecurringItemsManager({
   title,
   addPlaceholder,
@@ -51,6 +56,9 @@ export function RecurringItemsManager({
   const [newLabel, setNewLabel] = useState("");
   const [newAmount, setNewAmount] = useState(0);
   const [newAccountId, setNewAccountId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [addingNew, setAddingNew] = useState(false);
 
   const total = local.reduce((s, i) => s + i.amount, 0);
   const hasCashAccounts = cashAccounts.length > 0;
@@ -61,38 +69,73 @@ export function RecurringItemsManager({
 
   function commit(item: RecurringItem) {
     if (!item.accountHoldingId) return;
+    setError(null);
+    setSavingId(item.id);
     startTransition(async () => {
-      await onUpdate(item.id, item.label, item.amount, item.accountHoldingId!);
-      router.refresh();
+      try {
+        await onUpdate(item.id, item.label, item.amount, item.accountHoldingId!);
+        router.refresh();
+      } catch (err) {
+        setError(errorMessage(err));
+      } finally {
+        setSavingId(null);
+      }
     });
   }
 
   function pickAccountForExisting(item: RecurringItem, accountId: string) {
+    setError(null);
+    setSavingId(item.id);
     patchLocal(item.id, { accountHoldingId: accountId });
     startTransition(async () => {
-      await onUpdate(item.id, item.label, item.amount, accountId);
-      router.refresh();
+      try {
+        await onUpdate(item.id, item.label, item.amount, accountId);
+        router.refresh();
+      } catch (err) {
+        setError(errorMessage(err));
+        patchLocal(item.id, { accountHoldingId: null });
+      } finally {
+        setSavingId(null);
+      }
     });
   }
 
   function remove(id: string) {
+    setError(null);
+    setSavingId(id);
+    const removed = local.find((i) => i.id === id);
     setLocal((prev) => prev.filter((i) => i.id !== id));
     startTransition(async () => {
-      await onDelete(id);
-      router.refresh();
+      try {
+        await onDelete(id);
+        router.refresh();
+      } catch (err) {
+        setError(errorMessage(err));
+        if (removed) setLocal((prev) => [...prev, removed]);
+      } finally {
+        setSavingId(null);
+      }
     });
   }
 
   function add() {
     const label = newLabel.trim();
     if (!label || newAmount <= 0 || !newAccountId) return;
+    setError(null);
+    setAddingNew(true);
     startTransition(async () => {
-      await onAdd(label, newAmount, newAccountId);
-      router.refresh();
+      try {
+        await onAdd(label, newAmount, newAccountId);
+        router.refresh();
+        setNewLabel("");
+        setNewAmount(0);
+        setNewAccountId(null);
+      } catch (err) {
+        setError(errorMessage(err));
+      } finally {
+        setAddingNew(false);
+      }
     });
-    setNewLabel("");
-    setNewAmount(0);
-    setNewAccountId(null);
   }
 
   const canAdd = Boolean(newLabel.trim()) && newAmount > 0 && Boolean(newAccountId);
@@ -110,6 +153,7 @@ export function RecurringItemsManager({
         <div className="mb-3">
           {local.map((item) => {
             const acctLabel = accountLabel(item.accountHoldingId, cashAccounts);
+            const rowSaving = isPending && savingId === item.id;
             return (
               <div key={item.id} className="py-2 border-b border-hairline last:border-b-0">
                 <div className="flex items-center gap-2">
@@ -118,32 +162,41 @@ export function RecurringItemsManager({
                     value={item.label}
                     onChange={(e) => patchLocal(item.id, { label: e.target.value })}
                     onBlur={() => commit(local.find((i) => i.id === item.id)!)}
-                    className="flex-1 min-w-0 text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text"
+                    disabled={rowSaving}
+                    className="flex-1 min-w-0 text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text disabled:opacity-60"
                   />
                   <NumberInput
                     value={item.amount}
                     onValueChange={(n) => patchLocal(item.id, { amount: n })}
                     onBlur={() => commit(local.find((i) => i.id === item.id)!)}
                     placeholder="0"
-                    className="w-[130px] text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text"
+                    disabled={rowSaving}
+                    className="w-[130px] text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text disabled:opacity-60"
                   />
                   <button
                     onClick={() => remove(item.id)}
                     disabled={isPending}
-                    className="text-xs text-critical bg-critical/10 rounded-full px-2.5 py-1.5 shrink-0"
+                    className="flex items-center gap-1.5 text-xs text-critical bg-critical/10 rounded-full px-2.5 py-1.5 shrink-0 disabled:opacity-50"
                   >
-                    Hapus
+                    {rowSaving ? <Spinner size={12} /> : "Hapus"}
                   </button>
                 </div>
                 {acctLabel ? (
-                  <div className="mt-1.5 text-xs text-text-dim">🏦 {acctLabel}</div>
+                  <div className="mt-1.5 flex items-center gap-1.5 text-xs text-text-dim">
+                    🏦 {acctLabel}
+                    {rowSaving && <Spinner size={11} className="text-text-dim" />}
+                  </div>
                 ) : hasCashAccounts ? (
                   <div className="mt-1.5">
-                    <div className="text-[11px] text-warning font-medium mb-1">⚠️ Pilih rekening</div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-warning font-medium mb-1">
+                      ⚠️ Pilih rekening
+                      {rowSaving && <Spinner size={11} className="text-warning" />}
+                    </div>
                     <div className="flex flex-wrap gap-1.5">
                       {cashAccounts.map((a) => (
                         <Chip
                           key={a.id}
+                          disabled={isPending}
                           className="px-2.5 py-1 text-[11px]"
                           onClick={() => pickAccountForExisting(item, a.id)}
                         >
@@ -168,20 +221,26 @@ export function RecurringItemsManager({
         </div>
       )}
 
+      {error && (
+        <div className="text-[11.5px] text-critical bg-critical/10 border border-critical/30 rounded-lg px-3 py-2.5 mb-3 leading-relaxed">
+          ⚠️ {error}
+        </div>
+      )}
+
       <div className="flex items-center gap-2 mb-2">
         <input
           type="text"
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder={addPlaceholder}
-          disabled={!hasCashAccounts}
+          disabled={!hasCashAccounts || addingNew}
           className="flex-1 min-w-0 text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text disabled:opacity-50"
         />
         <NumberInput
           value={newAmount}
           onValueChange={setNewAmount}
           placeholder="Rp"
-          disabled={!hasCashAccounts}
+          disabled={!hasCashAccounts || addingNew}
           className="w-[130px] text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg-input text-text disabled:opacity-50"
         />
       </div>
@@ -193,6 +252,7 @@ export function RecurringItemsManager({
               <Chip
                 key={a.id}
                 active={newAccountId === a.id}
+                disabled={addingNew}
                 className="px-2.5 py-1 text-[11px]"
                 onClick={() => setNewAccountId(newAccountId === a.id ? null : a.id)}
               >
@@ -203,7 +263,13 @@ export function RecurringItemsManager({
         </div>
       )}
       <Button size="sm" className="mt-1" onClick={add} disabled={isPending || !canAdd}>
-        + Tambah
+        {addingNew ? (
+          <>
+            <Spinner size={14} /> Menyimpan...
+          </>
+        ) : (
+          "+ Tambah"
+        )}
       </Button>
     </div>
   );

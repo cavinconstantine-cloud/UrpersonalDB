@@ -55,6 +55,14 @@ export default async function CashflowPage() {
     monthlyLimit: budgetByCategory.get(category) || 0,
   }));
 
+  // Surface any load failure instead of silently falling back to "" (which
+  // looks identical to "genuinely no data yet") — a query erroring out (e.g.
+  // a column a pending migration hasn't added yet) must never read as "your
+  // data got deleted".
+  const loadError = [recurringIncomeRes.error, recurringExpenseRes.error, budgetsRes.error, cashRes.error].find(
+    Boolean,
+  );
+
   return (
     <div className="px-5 pt-6">
       <div className="mb-6">
@@ -63,6 +71,15 @@ export default async function CashflowPage() {
           Pemasukan & pengeluaran rutin (bulanan) — dasar hitungan Free Cash Flow di Dashboard.
         </p>
       </div>
+      {loadError && (
+        <div className="mb-4 p-4 rounded-2xl border border-critical/40 bg-critical/10 text-sm leading-relaxed">
+          <div className="font-medium text-critical mb-1">⚠️ Gagal memuat data</div>
+          <div className="text-text-dim">
+            Datamu kemungkinan besar masih aman — ini kegagalan memuat, bukan kehilangan data. Detail teknis:{" "}
+            <span className="font-mono text-[11px]">{loadError.message}</span>
+          </div>
+        </div>
+      )}
       <RecurringCashflowSections incomeItems={incomeItems} expenseItems={expenseItems} cashAccounts={cashAccounts} />
       <BudgetManager rows={budgetRows} />
     </div>

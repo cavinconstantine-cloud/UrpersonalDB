@@ -12,6 +12,11 @@ async function requireUser() {
   return { supabase, user };
 }
 
+/** Postgres errors surface with a `code`/`message`; anything else (network, etc.) still gets rethrown as-is. */
+function throwIfError(error: { message: string } | null, action: string) {
+  if (error) throw new Error(`Gagal ${action}: ${error.message}`);
+}
+
 async function syncIncomeTotal(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   const { data } = await supabase.from("recurring_incomes").select("amount").eq("user_id", userId);
   const total = (data || []).reduce((s, r) => s + Number(r.amount), 0);
@@ -26,9 +31,10 @@ async function syncFixedExpenseTotal(supabase: Awaited<ReturnType<typeof createC
 
 export async function addRecurringIncome(label: string, amount: number, accountHoldingId: string) {
   const { supabase, user } = await requireUser();
-  await supabase
+  const { error } = await supabase
     .from("recurring_incomes")
     .insert({ user_id: user.id, label, amount, account_holding_id: accountHoldingId });
+  throwIfError(error, "menambah pemasukan tetap");
   await syncIncomeTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
@@ -36,11 +42,12 @@ export async function addRecurringIncome(label: string, amount: number, accountH
 
 export async function updateRecurringIncome(id: string, label: string, amount: number, accountHoldingId: string) {
   const { supabase, user } = await requireUser();
-  await supabase
+  const { error } = await supabase
     .from("recurring_incomes")
     .update({ label, amount, account_holding_id: accountHoldingId })
     .eq("id", id)
     .eq("user_id", user.id);
+  throwIfError(error, "menyimpan pemasukan tetap");
   await syncIncomeTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
@@ -48,7 +55,8 @@ export async function updateRecurringIncome(id: string, label: string, amount: n
 
 export async function deleteRecurringIncome(id: string) {
   const { supabase, user } = await requireUser();
-  await supabase.from("recurring_incomes").delete().eq("id", id).eq("user_id", user.id);
+  const { error } = await supabase.from("recurring_incomes").delete().eq("id", id).eq("user_id", user.id);
+  throwIfError(error, "menghapus pemasukan tetap");
   await syncIncomeTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
@@ -56,9 +64,10 @@ export async function deleteRecurringIncome(id: string) {
 
 export async function addRecurringExpense(label: string, amount: number, accountHoldingId: string) {
   const { supabase, user } = await requireUser();
-  await supabase
+  const { error } = await supabase
     .from("recurring_expenses")
     .insert({ user_id: user.id, label, amount, account_holding_id: accountHoldingId });
+  throwIfError(error, "menambah pengeluaran tetap");
   await syncFixedExpenseTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
@@ -66,11 +75,12 @@ export async function addRecurringExpense(label: string, amount: number, account
 
 export async function updateRecurringExpense(id: string, label: string, amount: number, accountHoldingId: string) {
   const { supabase, user } = await requireUser();
-  await supabase
+  const { error } = await supabase
     .from("recurring_expenses")
     .update({ label, amount, account_holding_id: accountHoldingId })
     .eq("id", id)
     .eq("user_id", user.id);
+  throwIfError(error, "menyimpan pengeluaran tetap");
   await syncFixedExpenseTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");
@@ -78,7 +88,8 @@ export async function updateRecurringExpense(id: string, label: string, amount: 
 
 export async function deleteRecurringExpense(id: string) {
   const { supabase, user } = await requireUser();
-  await supabase.from("recurring_expenses").delete().eq("id", id).eq("user_id", user.id);
+  const { error } = await supabase.from("recurring_expenses").delete().eq("id", id).eq("user_id", user.id);
+  throwIfError(error, "menghapus pengeluaran tetap");
   await syncFixedExpenseTotal(supabase, user.id);
   revalidatePath("/app");
   revalidatePath("/app/settings");

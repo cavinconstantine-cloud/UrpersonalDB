@@ -14,7 +14,10 @@ async function requireUser() {
 
 export async function setBudget(category: string, monthlyLimit: number) {
   const { supabase, user } = await requireUser();
-  await supabase.from("budgets").upsert({ user_id: user.id, category, monthly_limit: monthlyLimit });
+  const { error } = await supabase
+    .from("budgets")
+    .upsert({ user_id: user.id, category, monthly_limit: monthlyLimit });
+  if (error) throw new Error(`Gagal menyimpan budget: ${error.message}`);
   revalidatePath("/app");
   revalidatePath("/app/cashflow");
 }
