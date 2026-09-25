@@ -21,6 +21,7 @@ export interface MarketNewsRow {
   id: string;
   headline: string;
   summary: string;
+  actionNote: string | null;
   sources: { title: string; url: string; publisher: string }[];
   publishedAt: string;
 }
@@ -32,7 +33,7 @@ export async function listMarketNews(): Promise<MarketNewsRow[]> {
 
   const { data, error } = await admin
     .from("market_news")
-    .select("id, headline, summary, sources, published_at")
+    .select("id, headline, summary, action_note, sources, published_at")
     .order("published_at", { ascending: false })
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -41,6 +42,7 @@ export async function listMarketNews(): Promise<MarketNewsRow[]> {
     id: n.id,
     headline: n.headline,
     summary: n.summary,
+    actionNote: n.action_note,
     sources: (Array.isArray(n.sources) ? n.sources : []) as MarketNewsRow["sources"],
     publishedAt: n.published_at,
   }));
@@ -52,6 +54,11 @@ const AnalysisSchema = z.object({
     .string()
     .describe(
       "Analisa 2-4 kalimat dalam Bahasa Indonesia yang menjelaskan apa yang terjadi dan mengapa ini relevan buat investor reksadana/saham/obligasi di Indonesia",
+    ),
+  actionNote: z
+    .string()
+    .describe(
+      "1 kalimat pendek dan tegas dalam Bahasa Indonesia tentang apa yang SEBAIKNYA dilakukan pembaca sekarang — bukan rekomendasi beli/jual saham tertentu, tapi langkah konkret & umum (mis. 'mulai lirik lagi porsi saham kalau selama ini nganggur di cash', 'cek ulang alokasi investasi sebelum ikut euforia', 'ini saat yang wajar buat nambah cicilan reksadana rutin, bukan buat all-in'). Harus terasa actionable dan punya urgensi, bukan cuma opini datar.",
     ),
 });
 
@@ -104,7 +111,7 @@ export async function submitMarketNews(input: SubmitMarketNewsInput): Promise<Su
       messages: [
         {
           role: "user",
-          content: `Kamu nulis ringkasan berita pasar buat kartu "Berita Pasar" di aplikasi keuangan pribadi Uangku. Ini berita/isu yang sudah dipilih oleh admin:\n\n${rawContent}\n\nTulis judul singkat (headline) dan analisa 2-4 kalimat dalam Bahasa Indonesia yang menjelaskan APA yang terjadi dan MENGAPA ini relevan buat investor reksadana/saham/obligasi di Indonesia. Bukan sekadar terjemahan/ringkasan mentah — kasih insight dampaknya.`,
+          content: `Kamu nulis ringkasan berita pasar buat kartu "Berita Pasar" di aplikasi keuangan pribadi Uangku. Ini berita/isu yang sudah dipilih oleh admin:\n\n${rawContent}\n\nTulis judul singkat (headline), analisa 2-4 kalimat dalam Bahasa Indonesia yang menjelaskan APA yang terjadi dan MENGAPA ini relevan buat investor reksadana/saham/obligasi di Indonesia (bukan sekadar terjemahan/ringkasan mentah — kasih insight dampaknya), DAN satu kalimat penutup yang actionable (actionNote) — dorongan konkret soal apa yang sebaiknya dilakukan pembaca sekarang, bukan rekomendasi beli/jual saham spesifik, tapi langkah umum yang punya urgensi (mis. mulai review alokasi, jangan taruh dana darurat di instrumen yang lagi volatile, ini momentum wajar buat nambah investasi rutin).`,
         },
       ],
       output_config: { format: zodOutputFormat(AnalysisSchema) },
@@ -128,6 +135,7 @@ export async function submitMarketNews(input: SubmitMarketNewsInput): Promise<Su
     {
       headline: parsed.headline,
       summary: parsed.summary,
+      action_note: parsed.actionNote,
       sources: [
         {
           title: input.sourceTitle.trim() || parsed.headline,

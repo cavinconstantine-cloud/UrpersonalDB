@@ -112,6 +112,12 @@ export function MarketNewsAdminForm({ initialNews }: { initialNews: MarketNewsRo
                   </button>
                 </div>
                 <p className="text-[13px] text-text-dim leading-relaxed mb-1.5">{item.summary}</p>
+                {item.actionNote && (
+                  <div className="flex items-start gap-1.5 text-[12px] font-medium text-brand-strong bg-brand/10 rounded-lg px-2.5 py-1.5 mb-1.5 leading-snug">
+                    <span className="shrink-0">💡</span>
+                    <span>{item.actionNote}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between text-[11px] text-text-muted">
                   <span>{fmtDateLong(item.publishedAt)}</span>
                   {item.sources[0] && (

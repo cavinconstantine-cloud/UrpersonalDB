@@ -437,6 +437,7 @@ export interface Database {
           id: string;
           headline: string;
           summary: string;
+          action_note: string | null;
           sources: Json;
           published_at: string;
           created_at: string;
@@ -445,6 +446,7 @@ export interface Database {
           id: string;
           headline: string;
           summary: string;
+          action_note: string | null;
           sources: Json;
           published_at: string;
           created_at: string;

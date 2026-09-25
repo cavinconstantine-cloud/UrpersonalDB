@@ -101,7 +101,7 @@ export async function getDashboardData(tz: string) {
       .order("snapshot_date"),
     supabase
       .from("market_news")
-      .select("id, headline, summary, sources, published_at")
+      .select("id, headline, summary, action_note, sources, published_at")
       .order("published_at", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(5),
@@ -188,6 +188,7 @@ export async function getDashboardData(tz: string) {
       id: n.id,
       headline: n.headline,
       summary: n.summary,
+      actionNote: n.action_note,
       sources: (Array.isArray(n.sources) ? n.sources : []) as unknown as {
         title: string;
         url: string;

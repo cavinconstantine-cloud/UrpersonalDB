@@ -4,6 +4,7 @@ export interface MarketNewsItem {
   id: string;
   headline: string;
   summary: string;
+  actionNote?: string | null;
   sources: { title: string; url: string; publisher?: string }[];
   publishedAt: string;
 }
@@ -18,6 +19,12 @@ export function MarketNewsCard({ news }: { news: MarketNewsItem[] }) {
           <div key={item.id} className="pb-3 border-b border-hairline last:border-b-0 last:pb-1">
             <div className="text-sm font-medium mb-1 leading-snug">{item.headline}</div>
             <p className="text-[13px] text-text-dim leading-relaxed mb-1.5">{item.summary}</p>
+            {item.actionNote && (
+              <div className="flex items-start gap-1.5 text-[12.5px] font-medium text-brand-strong bg-brand/10 rounded-lg px-2.5 py-2 mb-1.5 leading-snug">
+                <span className="shrink-0">💡</span>
+                <span>{item.actionNote}</span>
+              </div>
+            )}
             {item.sources.length > 0 && (
               <div className="flex flex-wrap gap-x-3 gap-y-1">
                 {item.sources.map((s, i) => (
