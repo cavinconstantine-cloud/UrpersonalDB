@@ -30,9 +30,14 @@ export function CashflowStep({
   const canProceed = isPengusaha || income === 0 || draft.incomeAccountIdx !== null;
 
   // Only one rekening? Nothing to pick — link income to it automatically so
-  // "Lanjut" never blocks on a choice with just one possible answer.
+  // "Lanjut" never blocks on a choice with just one possible answer. Compares
+  // against 0 (not just null) so a stale index left over from a since-deleted
+  // account (e.g. user picked account #2, went back and removed account #1,
+  // leaving one account re-indexed to 0) also gets corrected, instead of
+  // silently resolving to no account at submit time while the UI claims it's
+  // auto-linked.
   useEffect(() => {
-    if (!isPengusaha && income > 0 && cashHoldings.length === 1 && draft.incomeAccountIdx === null) {
+    if (!isPengusaha && income > 0 && cashHoldings.length === 1 && draft.incomeAccountIdx !== 0) {
       update({ incomeAccountIdx: 0 });
     }
   }, [isPengusaha, income, cashHoldings.length, draft.incomeAccountIdx, update]);
@@ -47,14 +52,18 @@ export function CashflowStep({
     update({ assetCats: nextCats, step: "assetInput", assetIdx: nextCats.length - 1 });
   }
 
+  // Single source of truth for the account a new fixed-expense item will be
+  // saved with — used both to gate addItem() and to disable the button, so
+  // the two can't drift out of sync.
+  const resolvedNewAccountIdx = newAccountIdx !== null ? newAccountIdx : cashHoldings.length === 1 ? 0 : null;
+
   function addItem() {
     const label = newLabel.trim();
-    const accountIdx = newAccountIdx !== null ? newAccountIdx : cashHoldings.length === 1 ? 0 : null;
-    if (!label || newAmount <= 0 || accountIdx === null) return;
+    if (!label || newAmount <= 0 || resolvedNewAccountIdx === null) return;
     update({
       fixedExpenseItems: [
         ...draft.fixedExpenseItems,
-        { id: crypto.randomUUID(), label, amount: newAmount, accountIdx },
+        { id: crypto.randomUUID(), label, amount: newAmount, accountIdx: resolvedNewAccountIdx },
       ],
     });
     setNewLabel("");
@@ -240,9 +249,7 @@ export function CashflowStep({
               )}
               <button
                 onClick={addItem}
-                disabled={
-                  !newLabel.trim() || newAmount <= 0 || (newAccountIdx === null && cashHoldings.length !== 1)
-                }
+                disabled={!newLabel.trim() || newAmount <= 0 || resolvedNewAccountIdx === null}
                 className="w-full mt-2 text-sm text-text-dim border border-dashed border-hairline rounded-md py-2 disabled:opacity-40"
               >
                 + Tambah item
