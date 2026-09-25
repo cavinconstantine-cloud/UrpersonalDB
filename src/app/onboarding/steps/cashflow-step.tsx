@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { NumberField, NumberInput } from "@/components/ui/number-field";
@@ -29,6 +29,14 @@ export function CashflowStep({
   const income = Number(draft.cashflow.income) || 0;
   const canProceed = isPengusaha || income === 0 || draft.incomeAccountIdx !== null;
 
+  // Only one rekening? Nothing to pick — link income to it automatically so
+  // "Lanjut" never blocks on a choice with just one possible answer.
+  useEffect(() => {
+    if (!isPengusaha && income > 0 && cashHoldings.length === 1 && draft.incomeAccountIdx === null) {
+      update({ incomeAccountIdx: 0 });
+    }
+  }, [isPengusaha, income, cashHoldings.length, draft.incomeAccountIdx, update]);
+
   function goAddCashAccount() {
     const idx = draft.assetCats.indexOf("Cash");
     if (idx >= 0) {
@@ -41,11 +49,12 @@ export function CashflowStep({
 
   function addItem() {
     const label = newLabel.trim();
-    if (!label || newAmount <= 0 || newAccountIdx === null) return;
+    const accountIdx = newAccountIdx !== null ? newAccountIdx : cashHoldings.length === 1 ? 0 : null;
+    if (!label || newAmount <= 0 || accountIdx === null) return;
     update({
       fixedExpenseItems: [
         ...draft.fixedExpenseItems,
-        { id: crypto.randomUUID(), label, amount: newAmount, accountIdx: newAccountIdx },
+        { id: crypto.randomUUID(), label, amount: newAmount, accountIdx },
       ],
     });
     setNewLabel("");
@@ -142,17 +151,25 @@ export function CashflowStep({
             <div className="mb-[18px] -mt-2">
               <label className="text-xs text-text-dim mb-1.5 block">Gaji masuk ke rekening mana?</label>
               {hasCash ? (
-                <div className="flex flex-wrap gap-2">
-                  {cashHoldings.map((h, i) => (
-                    <Chip
-                      key={i}
-                      active={draft.incomeAccountIdx === i}
-                      onClick={() => update({ incomeAccountIdx: draft.incomeAccountIdx === i ? null : i })}
-                    >
-                      🏦 {String(h.label || "Rekening")}
-                    </Chip>
-                  ))}
-                </div>
+                cashHoldings.length === 1 ? (
+                  <div className="flex items-center gap-1.5 text-xs text-text-dim">
+                    <span>
+                      🏦 Otomatis ke <span className="text-text font-medium">{String(cashHoldings[0].label || "Rekening")}</span> — rekening kamu baru satu.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {cashHoldings.map((h, i) => (
+                      <Chip
+                        key={i}
+                        active={draft.incomeAccountIdx === i}
+                        onClick={() => update({ incomeAccountIdx: draft.incomeAccountIdx === i ? null : i })}
+                      >
+                        🏦 {String(h.label || "Rekening")}
+                      </Chip>
+                    ))}
+                  </div>
+                )
               ) : (
                 noCashNotice
               )}
@@ -207,21 +224,25 @@ export function CashflowStep({
                   className="w-[110px] text-sm px-2.5 py-2 rounded-md border border-hairline bg-bg text-text"
                 />
               </div>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {cashHoldings.map((h, i) => (
-                  <Chip
-                    key={i}
-                    active={newAccountIdx === i}
-                    className="px-2.5 py-1 text-[11px]"
-                    onClick={() => setNewAccountIdx(newAccountIdx === i ? null : i)}
-                  >
-                    🏦 {String(h.label || "Rekening")}
-                  </Chip>
-                ))}
-              </div>
+              {cashHoldings.length > 1 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {cashHoldings.map((h, i) => (
+                    <Chip
+                      key={i}
+                      active={newAccountIdx === i}
+                      className="px-2.5 py-1 text-[11px]"
+                      onClick={() => setNewAccountIdx(newAccountIdx === i ? null : i)}
+                    >
+                      🏦 {String(h.label || "Rekening")}
+                    </Chip>
+                  ))}
+                </div>
+              )}
               <button
                 onClick={addItem}
-                disabled={!newLabel.trim() || newAmount <= 0 || newAccountIdx === null}
+                disabled={
+                  !newLabel.trim() || newAmount <= 0 || (newAccountIdx === null && cashHoldings.length !== 1)
+                }
                 className="w-full mt-2 text-sm text-text-dim border border-dashed border-hairline rounded-md py-2 disabled:opacity-40"
               >
                 + Tambah item
