@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 
 /** Bump this when new slides are added so everyone sees the update once more. */
-const SEEN_VERSION = "2";
+const SEEN_VERSION = "3";
 
 function seenKey(userId: string) {
   return `uangku_whatsnew_seen_${userId}`;
@@ -155,6 +155,15 @@ const PROFILE_SLIDE: Slide = {
 };
 
 const PIE_FILTER_SPLIT_SLIDES: Slide[] = [
+  {
+    icon: "💬",
+    wash: "rgba(37,211,102,0.14)",
+    title: "Catat via WhatsApp",
+    body: "Sekarang kamu bisa catat transaksi langsung dari chat WhatsApp — nggak perlu buka app. Ketik \"makan siang 35rb\", langsung tercatat. Masih tahap Beta, jadi masukanmu sangat berarti!",
+    wiggle: true,
+    cta: { label: "Coba Sekarang →", href: "/app/settings" },
+    dismissLabel: "Nanti aja",
+  },
   {
     icon: "🥧",
     wash: "rgba(124,110,242,0.14)",

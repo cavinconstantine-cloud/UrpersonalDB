@@ -37,6 +37,20 @@ export default async function SettingsPage() {
     <div className="px-5 pt-6">
       <h1 className="serif text-[24px] font-medium mb-6">{dict.settings.title}</h1>
 
+      <Link
+        href="/app/panduan"
+        className="flex items-center justify-between gap-3 bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]"
+      >
+        <div className="flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-brand/10 flex items-center justify-center text-[17px] shrink-0">📖</span>
+          <div>
+            <div className="serif text-[15px]">Panduan Fitur</div>
+            <div className="text-[11.5px] text-text-muted">Pelajari semua fitur Uangku</div>
+          </div>
+        </div>
+        <span className="text-text-muted">›</span>
+      </Link>
+
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
         <div className="serif text-[15px] mb-3">{dict.theme.title}</div>
         <ThemeToggle />
