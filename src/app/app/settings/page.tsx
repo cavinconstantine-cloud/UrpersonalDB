@@ -58,7 +58,12 @@ export default async function SettingsPage() {
       </div>
 
       <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
-        <div className="serif text-[15px] mb-3">💬 Catat via WhatsApp</div>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="serif text-[15px]">💬 Catat via WhatsApp</div>
+          <span className="text-[9.5px] font-bold tracking-wide text-warning bg-warning/14 border border-warning/35 rounded-full px-1.5 py-0.5">
+            BETA
+          </span>
+        </div>
         <WhatsappLink
           linkedNumber={profileRes.data?.whatsapp_number || null}
           pairingCode={profileRes.data?.whatsapp_pairing_code || null}

@@ -47,12 +47,19 @@ interface LinkButtonProps {
   size?: Size;
   fullWidth?: boolean;
   className?: string;
+  target?: string;
+  rel?: string;
   children: React.ReactNode;
 }
 
-export function LinkButton({ href, className, variant = "primary", size = "md", fullWidth, children }: LinkButtonProps) {
+export function LinkButton({ href, className, variant = "primary", size = "md", fullWidth, target, rel, children }: LinkButtonProps) {
   return (
-    <Link href={href} className={cn(base, variants[variant], sizes[size], fullWidth && "w-full", className)}>
+    <Link
+      href={href}
+      target={target}
+      rel={rel}
+      className={cn(base, variants[variant], sizes[size], fullWidth && "w-full", className)}
+    >
       {children}
     </Link>
   );
