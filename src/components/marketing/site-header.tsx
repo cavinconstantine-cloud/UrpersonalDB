@@ -7,27 +7,16 @@ export function SiteHeader() {
       <div className="max-w-[1100px] mx-auto px-5 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <svg viewBox="0 0 100 100" width="28" height="28" className="shrink-0" aria-hidden="true">
-            <defs>
-              <linearGradient id="siteHeaderLogoBg" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#7a6cf0" />
-                <stop offset="100%" stopColor="#2f2066" />
-              </linearGradient>
-              <linearGradient id="siteHeaderLogoGold" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#f6e2ab" />
-                <stop offset="55%" stopColor="#d9b45f" />
-                <stop offset="100%" stopColor="#9c7a2e" />
-              </linearGradient>
-            </defs>
-            <rect width="100" height="100" rx="22" fill="url(#siteHeaderLogoBg)" />
+            <rect width="100" height="100" rx="22" fill="#5643c9" />
             <path
               d="M32,26 L32,56 A18,18 0 0 0 68,56 L68,26"
               fill="none"
-              stroke="url(#siteHeaderLogoGold)"
+              stroke="#ffffff"
               strokeWidth="14"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            <circle cx="50" cy="56" r="9" fill="url(#siteHeaderLogoGold)" />
+            <circle cx="50" cy="56" r="9" fill="#ffffff" />
           </svg>
           <span className="serif text-[18px] text-brand-strong">Uangku</span>
         </Link>
