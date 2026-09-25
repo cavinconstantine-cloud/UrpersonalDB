@@ -67,6 +67,11 @@ export default async function SplitPublicPage({ params }: { params: Promise<{ to
               <div className="text-xs text-text-muted">
                 {p.itemLines.length > 0 ? p.itemLines.map((l) => `${l.units} ${l.name}`).join(", ") : "tidak ada item"}
               </div>
+              {p.sharedLines.length > 0 && (
+                <div className="text-xs text-good mt-0.5">
+                  Patungan: {p.sharedLines.map((l) => `${l.name} (${fmtRp(l.amount)})`).join(", ")}
+                </div>
+              )}
             </div>
           ))}
         </div>

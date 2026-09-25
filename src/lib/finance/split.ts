@@ -23,11 +23,18 @@ export interface SplitParticipant {
 /** assignments[itemId][participantId] = how many units of that item this participant is taking. */
 export type SplitAssignments = Record<string, Record<string, number>>;
 
+/** sharedMode[itemId] = true means this item is split evenly (see sharedWith) instead of by per-unit assignment. */
+export type SplitSharedMode = Record<string, boolean>;
+
+/** sharedWith[itemId] = participant ids who split that item's full line total evenly ("Bagi Rata"). */
+export type SplitSharedWith = Record<string, string[]>;
+
 export interface SplitParticipantResult {
   participantId: string;
   name: string;
   isCreator: boolean;
   itemLines: { name: string; units: number; lineTotal: number }[];
+  sharedLines: { name: string; amount: number }[];
   itemsSubtotal: number;
   taxShare: number;
   serviceShare: number;
@@ -42,9 +49,19 @@ export interface SplitResult {
   grandTotal: number;
 }
 
-/** Whether every unit of every item has been assigned to someone — gates moving past the assign step. */
-export function isFullyAssigned(items: SplitItem[], assignments: SplitAssignments): boolean {
+/**
+ * Whether every item is resolved — gates moving past the assign step. An
+ * item in "Bagi Rata" mode is resolved once at least one person is picked
+ * to share it; otherwise it needs every unit assigned to someone.
+ */
+export function isFullyAssigned(
+  items: SplitItem[],
+  assignments: SplitAssignments,
+  sharedMode: SplitSharedMode = {},
+  sharedWith: SplitSharedWith = {},
+): boolean {
   return items.every((item) => {
+    if (sharedMode[item.id]) return (sharedWith[item.id]?.length ?? 0) > 0;
     const assigned = Object.values(assignments[item.id] ?? {}).reduce((a, b) => a + b, 0);
     return assigned === item.qty;
   });
@@ -60,23 +77,50 @@ export function allocateSplit(
   assignments: SplitAssignments,
   tax: number,
   service: number,
+  sharedMode: SplitSharedMode = {},
+  sharedWith: SplitSharedWith = {},
 ): SplitResult {
   const itemsSubtotal = items.reduce((sum, i) => sum + i.qty * i.unitPrice, 0);
 
+  // Per item in "Bagi Rata" mode: its full line total splits evenly across
+  // the chosen people, with any leftover rupiah (from rounding) folded onto
+  // the first few of them in order so the split reconciles exactly.
+  const sharedAmountByItemThenParticipant: Record<string, Record<string, number>> = {};
+  for (const item of items) {
+    if (!sharedMode[item.id]) continue;
+    const people = sharedWith[item.id] ?? [];
+    if (people.length === 0) continue;
+    const lineTotal = item.qty * item.unitPrice;
+    const base = Math.floor(lineTotal / people.length);
+    const remainder = lineTotal - base * people.length;
+    const perPerson: Record<string, number> = {};
+    people.forEach((participantId, i) => {
+      perPerson[participantId] = base + (i < remainder ? 1 : 0);
+    });
+    sharedAmountByItemThenParticipant[item.id] = perPerson;
+  }
+
   const perParticipant: SplitParticipantResult[] = participants.map((p) => {
     const itemLines = items
+      .filter((item) => !sharedMode[item.id])
       .map((item) => ({
         name: item.name,
         units: assignments[item.id]?.[p.id] ?? 0,
         lineTotal: (assignments[item.id]?.[p.id] ?? 0) * item.unitPrice,
       }))
       .filter((line) => line.units > 0);
-    const subtotal = itemLines.reduce((sum, l) => sum + l.lineTotal, 0);
+    const sharedLines = items
+      .filter((item) => sharedMode[item.id])
+      .map((item) => ({ name: item.name, amount: sharedAmountByItemThenParticipant[item.id]?.[p.id] ?? 0 }))
+      .filter((line) => line.amount > 0);
+    const subtotal =
+      itemLines.reduce((sum, l) => sum + l.lineTotal, 0) + sharedLines.reduce((sum, l) => sum + l.amount, 0);
     return {
       participantId: p.id,
       name: p.name,
       isCreator: p.isCreator,
       itemLines,
+      sharedLines,
       itemsSubtotal: subtotal,
       taxShare: 0,
       serviceShare: 0,

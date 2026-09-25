@@ -548,12 +548,14 @@ export interface Database {
           item_id: string;
           participant_id: string;
           units: number;
+          shared: boolean;
         },
         Partial<{
           id: string;
           item_id: string;
           participant_id: string;
           units: number;
+          shared: boolean;
         }> & { item_id: string; participant_id: string }
       >;
       bill_split_misreads: Table<

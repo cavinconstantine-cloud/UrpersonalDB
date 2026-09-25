@@ -6,7 +6,14 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { adjustCashBalance } from "@/app/app/assets/account-sync";
 import { revalidatePath } from "next/cache";
-import { allocateSplit, type SplitAssignments, type SplitItem, type SplitParticipant } from "@/lib/finance/split";
+import {
+  allocateSplit,
+  type SplitAssignments,
+  type SplitItem,
+  type SplitParticipant,
+  type SplitSharedMode,
+  type SplitSharedWith,
+} from "@/lib/finance/split";
 
 async function requireUser() {
   const supabase = await createClient();
@@ -149,6 +156,8 @@ export interface CreateBillSplitInput {
   items: SplitItem[];
   participants: SplitParticipant[];
   assignments: SplitAssignments;
+  sharedMode: SplitSharedMode;
+  sharedWith: SplitSharedWith;
   tax: number;
   service: number;
   accountHoldingId: string | null;
@@ -174,7 +183,15 @@ export async function createBillSplit(input: CreateBillSplitInput): Promise<Crea
   if (input.items.length === 0) return { ok: false, error: "Belum ada item." };
   if (input.participants.length === 0) return { ok: false, error: "Belum ada orang yang ikut split." };
 
-  const result = allocateSplit(input.items, input.participants, input.assignments, input.tax, input.service);
+  const result = allocateSplit(
+    input.items,
+    input.participants,
+    input.assignments,
+    input.tax,
+    input.service,
+    input.sharedMode,
+    input.sharedWith,
+  );
   const creator = result.perParticipant.find((p) => p.isCreator);
 
   const { data: bill, error: billError } = await supabase
@@ -231,16 +248,26 @@ export async function createBillSplit(input: CreateBillSplitInput): Promise<Crea
   }
   const itemIdByOriginal = new Map(input.items.map((it, i) => [it.id, itemResults[i].data!.id]));
 
-  const assignmentRows: { item_id: string; participant_id: string; units: number }[] = [];
+  const assignmentRows: { item_id: string; participant_id: string; units: number; shared: boolean }[] = [];
   for (const item of input.items) {
     const insertedItemId = itemIdByOriginal.get(item.id);
     if (!insertedItemId) continue;
+
+    if (input.sharedMode[item.id]) {
+      for (const participantOriginalId of input.sharedWith[item.id] ?? []) {
+        const participantId = participantIdByOriginal.get(participantOriginalId);
+        if (!participantId) continue;
+        assignmentRows.push({ item_id: insertedItemId, participant_id: participantId, units: 0, shared: true });
+      }
+      continue;
+    }
+
     const forItem = input.assignments[item.id] ?? {};
     for (const [participantOriginalId, units] of Object.entries(forItem)) {
       if (units <= 0) continue;
       const participantId = participantIdByOriginal.get(participantOriginalId);
       if (!participantId) continue;
-      assignmentRows.push({ item_id: insertedItemId, participant_id: participantId, units });
+      assignmentRows.push({ item_id: insertedItemId, participant_id: participantId, units, shared: false });
     }
   }
   if (assignmentRows.length > 0) {
@@ -307,13 +334,20 @@ export async function getBillSplitByToken(token: string): Promise<PublicBillSpli
 
   const { data: assignmentRows } = await supabase
     .from("bill_split_item_assignments")
-    .select("item_id, participant_id, units")
+    .select("item_id, participant_id, units, shared")
     .in("item_id", items.map((it) => it.id));
 
   const assignments: SplitAssignments = {};
+  const sharedMode: SplitSharedMode = {};
+  const sharedWith: SplitSharedWith = {};
   for (const row of assignmentRows ?? []) {
-    assignments[row.item_id] ??= {};
-    assignments[row.item_id][row.participant_id] = row.units;
+    if (row.shared) {
+      sharedMode[row.item_id] = true;
+      (sharedWith[row.item_id] ??= []).push(row.participant_id);
+    } else {
+      assignments[row.item_id] ??= {};
+      assignments[row.item_id][row.participant_id] = row.units;
+    }
   }
 
   const splitItems: SplitItem[] = items.map((it) => ({ id: it.id, name: it.name, qty: it.qty, unitPrice: it.unit_price }));
@@ -322,7 +356,7 @@ export async function getBillSplitByToken(token: string): Promise<PublicBillSpli
     name: p.name,
     isCreator: p.is_creator,
   }));
-  const result = allocateSplit(splitItems, splitParticipants, assignments, bill.tax, bill.service);
+  const result = allocateSplit(splitItems, splitParticipants, assignments, bill.tax, bill.service, sharedMode, sharedWith);
 
   return {
     title: bill.title,

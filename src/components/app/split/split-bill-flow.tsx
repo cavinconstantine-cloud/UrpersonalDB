@@ -15,6 +15,8 @@ import {
   type SplitAssignments,
   type SplitItem,
   type SplitParticipant,
+  type SplitSharedMode,
+  type SplitSharedWith,
 } from "@/lib/finance/split";
 import { createBillSplit, extractReceipt, reportMisread, type ExtractedReceipt } from "@/app/app/split/actions";
 import type { CashAccount } from "@/components/app/transaction-modal";
@@ -98,6 +100,8 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
   const [newParticipantName, setNewParticipantName] = useState("");
 
   const [assignments, setAssignments] = useState<SplitAssignments>({});
+  const [sharedMode, setSharedMode] = useState<SplitSharedMode>({});
+  const [sharedWith, setSharedWith] = useState<SplitSharedWith>({});
   const [accountHoldingId, setAccountHoldingId] = useState<string | null>(null);
   const [shareToken, setShareToken] = useState<string | null>(null);
 
@@ -113,8 +117,14 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
     };
   }, [previewUrl]);
 
-  const result = useMemo(() => allocateSplit(items, participants, assignments, tax, service), [items, participants, assignments, tax, service]);
-  const fullyAssigned = useMemo(() => isFullyAssigned(items, assignments), [items, assignments]);
+  const result = useMemo(
+    () => allocateSplit(items, participants, assignments, tax, service, sharedMode, sharedWith),
+    [items, participants, assignments, tax, service, sharedMode, sharedWith],
+  );
+  const fullyAssigned = useMemo(
+    () => isFullyAssigned(items, assignments, sharedMode, sharedWith),
+    [items, assignments, sharedMode, sharedWith],
+  );
 
   function applyExtraction(extraction: ExtractedReceipt) {
     setTitle(extraction.merchant || "Struk Belanja");
@@ -168,6 +178,16 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
       delete next[id];
       return next;
     });
+    setSharedMode((m) => {
+      const next = { ...m };
+      delete next[id];
+      return next;
+    });
+    setSharedWith((w) => {
+      const next = { ...w };
+      delete next[id];
+      return next;
+    });
   }
   function addItem() {
     setItems((list) => [...list, { id: newId(), name: "", qty: 1, unitPrice: 0 }]);
@@ -187,6 +207,13 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
         const rest = { ...byParticipant };
         delete rest[id];
         next[itemId] = rest;
+      }
+      return next;
+    });
+    setSharedWith((w) => {
+      const next: SplitSharedWith = {};
+      for (const [itemId, people] of Object.entries(w)) {
+        next[itemId] = people.filter((pid) => pid !== id);
       }
       return next;
     });
@@ -216,6 +243,23 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
     setAssignments((a) => ({ ...a, [item.id]: { [participantId]: item.qty } }));
   }
 
+  /** Switching an item's mode clears the other mode's data for it, so stale state can't leak in. */
+  function setItemMode(itemId: string, shared: boolean) {
+    setSharedMode((m) => ({ ...m, [itemId]: shared }));
+    if (shared) {
+      setAssignments((a) => ({ ...a, [itemId]: {} }));
+    } else {
+      setSharedWith((w) => ({ ...w, [itemId]: [] }));
+    }
+  }
+  function toggleSharedParticipant(itemId: string, participantId: string) {
+    setSharedWith((w) => {
+      const current = w[itemId] ?? [];
+      const next = current.includes(participantId) ? current.filter((id) => id !== participantId) : [...current, participantId];
+      return { ...w, [itemId]: next };
+    });
+  }
+
   function goToAssign() {
     if (items.length === 0) {
       setError("Tambahkan minimal satu item dulu.");
@@ -239,6 +283,8 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
         items,
         participants,
         assignments,
+        sharedMode,
+        sharedWith,
         tax,
         service,
         accountHoldingId,
@@ -426,62 +472,132 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
       {step === "assign" && (
         <div>
           <p className="text-[13px] text-text-dim leading-relaxed mb-3">
-            Tap avatar buat assign tiap unit item ke orangnya. Bisa semua ke satu orang, bisa dibagi rata — yang penting semua unit ke-assign.
+            Tap avatar buat assign tiap unit item ke orangnya. Item yang dipesan bareng (menu tengah)? Ganti ke &quot;Bagi Rata&quot; dan pilih siapa aja yang ikut patungan.
           </p>
           <div className="flex flex-col gap-3 mb-4">
             {items.map((item) => {
+              const shared = sharedMode[item.id] ?? false;
+              const sharers = sharedWith[item.id] ?? [];
               const assigned = assignedUnits(item, assignments);
-              const complete = assigned === item.qty;
+              const complete = shared ? sharers.length > 0 : assigned === item.qty;
+              const lineTotal = item.qty * item.unitPrice;
+              const perHead = sharers.length > 0 ? Math.floor(lineTotal / sharers.length) : 0;
               return (
                 <div key={item.id} className={cn("rounded-xl border p-3", complete ? "border-good/35 bg-good/10" : "border-hairline bg-bg-raised")}>
+                  <div className="flex rounded-lg bg-bg-input p-0.5 mb-2.5 w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setItemMode(item.id, false)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[11px] font-medium",
+                        !shared ? "bg-bg-raised text-text shadow-sm" : "text-text-dim",
+                      )}
+                    >
+                      Per Orang
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setItemMode(item.id, true)}
+                      className={cn(
+                        "px-2.5 py-1 rounded-md text-[11px] font-medium",
+                        shared ? "bg-brand text-brand-ink shadow-sm" : "text-text-dim",
+                      )}
+                    >
+                      Bagi Rata
+                    </button>
+                  </div>
+
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[13px] font-medium text-text">
                       {item.name} <span className="text-text-muted">× {item.qty}</span>
                     </span>
                     <span className={cn("text-[11px] font-medium", complete ? "text-good" : "text-warning")}>
-                      Terisi {assigned} dari {item.qty}
+                      {shared ? `Dibagi ${sharers.length} orang` : `Terisi ${assigned} dari ${item.qty}`}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-2 mb-1.5">
-                    {participants.map((p, i) => {
-                      const units = assignments[item.id]?.[p.id] ?? 0;
-                      return (
-                        <div key={p.id} className="flex items-center gap-1 rounded-full border border-hairline bg-bg-input pl-1 pr-1.5 py-1">
+
+                  {shared ? (
+                    <>
+                      <div className="flex flex-wrap gap-3 mb-1.5">
+                        {participants.map((p, i) => {
+                          const picked = sharers.includes(p.id);
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => toggleSharedParticipant(item.id, p.id)}
+                              title={`${picked ? "Keluarkan" : "Ikutkan"} ${p.name} dari patungan ${item.name}`}
+                              className="flex flex-col items-center gap-1"
+                            >
+                              <span className="relative">
+                                <span
+                                  className={cn(
+                                    "w-7 h-7 rounded-full text-white text-[11px] font-semibold flex items-center justify-center",
+                                    AVATAR_COLORS[i % AVATAR_COLORS.length],
+                                    !picked && "opacity-35",
+                                  )}
+                                >
+                                  {p.name.slice(0, 1).toUpperCase()}
+                                </span>
+                                {picked && (
+                                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-good text-white text-[8px] flex items-center justify-center">
+                                    ✓
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-[10px] text-text-muted">{picked ? fmtRp(perHead) : "—"}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="text-[10.5px] text-text-muted">
+                        Pilih siapa aja yang ikut patungan — nggak harus semua orang.
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex flex-wrap gap-2 mb-1.5">
+                        {participants.map((p, i) => {
+                          const units = assignments[item.id]?.[p.id] ?? 0;
+                          return (
+                            <div key={p.id} className="flex items-center gap-1 rounded-full border border-hairline bg-bg-input pl-1 pr-1.5 py-1">
+                              <button
+                                type="button"
+                                onClick={() => tapAssign(item, p.id)}
+                                title={`Assign 1 ${item.name} ke ${p.name}`}
+                                className={cn(
+                                  "w-6 h-6 rounded-full text-white text-[10px] font-semibold flex items-center justify-center",
+                                  AVATAR_COLORS[i % AVATAR_COLORS.length],
+                                )}
+                              >
+                                {p.name.slice(0, 1).toUpperCase()}
+                              </button>
+                              <span className="text-[11px] text-text w-3 text-center">{units}</span>
+                              {units > 0 && (
+                                <button type="button" onClick={() => unassign(item, p.id)} className="text-text-muted">
+                                  <Minus size={11} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button type="button" onClick={() => resetItemAssignment(item.id)} className="text-[11px] text-text-muted">
+                          Reset
+                        </button>
+                        {participants.length > 0 && (
                           <button
                             type="button"
-                            onClick={() => tapAssign(item, p.id)}
-                            title={`Assign 1 ${item.name} ke ${p.name}`}
-                            className={cn(
-                              "w-6 h-6 rounded-full text-white text-[10px] font-semibold flex items-center justify-center",
-                              AVATAR_COLORS[i % AVATAR_COLORS.length],
-                            )}
+                            onClick={() => assignAllToOne(item, participants[0].id)}
+                            className="text-[11px] text-brand-strong"
                           >
-                            {p.name.slice(0, 1).toUpperCase()}
+                            Semua ke {participants[0].name}
                           </button>
-                          <span className="text-[11px] text-text w-3 text-center">{units}</span>
-                          {units > 0 && (
-                            <button type="button" onClick={() => unassign(item, p.id)} className="text-text-muted">
-                              <Minus size={11} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => resetItemAssignment(item.id)} className="text-[11px] text-text-muted">
-                      ↺ Reset
-                    </button>
-                    {participants.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => assignAllToOne(item, participants[0].id)}
-                        className="text-[11px] text-brand-strong"
-                      >
-                        Semua ke {participants[0].name}
-                      </button>
-                    )}
-                  </div>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               );
             })}
@@ -515,6 +631,11 @@ export function SplitBillFlow({ cashAccounts, userName, onDone }: SplitBillFlowP
                 <div className="text-[11px] text-text-muted">
                   {p.itemLines.length > 0 ? p.itemLines.map((l) => `${l.units} ${l.name}`).join(", ") : "tidak ada item"}
                 </div>
+                {p.sharedLines.length > 0 && (
+                  <div className="text-[11px] text-good mt-0.5">
+                    {p.sharedLines.map((l) => `Patungan: ${l.name} (${fmtRp(l.amount)})`).join(", ")}
+                  </div>
+                )}
                 {p.isCreator && cashAccounts.length > 0 && (
                   <div className="mt-2.5">
                     <div className="text-[10.5px] text-text-muted mb-1.5">🔗 Sumber Dana — didebit dari mana?</div>
