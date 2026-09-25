@@ -39,7 +39,24 @@ export function AppShell({
     <ToastProvider>
       <TimezoneSync />
       <div className="min-h-full flex flex-col">
-        <div className="max-w-[560px] w-full mx-auto flex-1 pb-28">{children}</div>
+        <div className="max-w-[560px] w-full mx-auto flex-1 pb-28">
+          <div className="flex items-center gap-2 px-5 pt-3 pb-2.5 border-b border-hairline">
+            <svg viewBox="0 0 100 100" width="20" height="20" className="shrink-0" aria-hidden="true">
+              <rect width="100" height="100" rx="22" fill="#5643c9" />
+              <path
+                d="M32,26 L32,56 A18,18 0 0 0 68,56 L68,26"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="14"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <circle cx="50" cy="56" r="9" fill="#ffffff" />
+            </svg>
+            <span className="serif text-[15px] font-medium text-brand-strong">Uangku</span>
+          </div>
+          {children}
+        </div>
 
         <CatatToggle
           onOpen={(type) => setModal({ open: true, type, split: false })}
