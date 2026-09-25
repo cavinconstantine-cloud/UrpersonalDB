@@ -5,7 +5,6 @@ import { holdingValue } from "@/lib/finance/calculations";
 import {
   currentPeriodStartIsoInTz,
   daysAgoIsoInTz,
-  firstOfMonthIsoInTz,
   monthsAgoFirstOfMonthIsoInTz,
   todayIsoInTz,
 } from "@/lib/finance/format";
@@ -229,6 +228,7 @@ export async function getDashboardData(tz: string) {
           lastLoggedDate: streakRes.data.last_logged_date,
         }
       : { current: 0, longest: 0, lastLoggedDate: null },
+    periodStart,
   };
 }
 
@@ -334,10 +334,18 @@ export async function recordNetWorthSnapshot(
 }
 
 /**
- * Upserts the current month's FCF breakdown, keyed by the 1st of the month.
- * Called on every dashboard view — the current month's row stays live all
- * month, then is left untouched (frozen) once the month rolls over, giving
- * a natural per-month history without any manual reset.
+ * Upserts the current period's FCF breakdown, keyed by the 1st of the
+ * calendar month the period *starts* in. Called on every dashboard view —
+ * the row stays live for as long as that period is current, then is left
+ * untouched (frozen) once the next one starts, giving a natural per-period
+ * history without any manual reset.
+ *
+ * `snapshotMonth` must be the caller's already-resolved period-start month
+ * (see currentPeriodStartIsoInTz) — not recomputed from `today` here, since
+ * for a Karyawan whose payday isn't the 1st, "today's calendar month" and
+ * "the month the current pay period started in" are only the same for part
+ * of the month and would otherwise silently overwrite the wrong row's data
+ * depending on which day of the month the dashboard happens to be viewed.
  */
 export async function recordFcfSnapshot(
   userId: string,
@@ -349,10 +357,9 @@ export async function recordFcfSnapshot(
     fcf: number;
     savingRate: number;
   },
-  tz: string,
+  snapshotMonth: string,
 ) {
   const supabase = await createClient();
-  const snapshotMonth = firstOfMonthIsoInTz(tz);
   await supabase.from("fcf_snapshots").upsert({
     user_id: userId,
     snapshot_month: snapshotMonth,

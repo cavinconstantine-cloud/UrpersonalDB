@@ -110,16 +110,16 @@ export interface TopTransaction {
   description: string;
 }
 
-/** Largest transactions (expenses + incomes combined) whose date falls within `datePrefix` ("YYYY-MM" or "YYYY"), biggest amount first. */
+/** Largest transactions (expenses + incomes combined) whose date falls within `datePrefix` ("YYYY-MM" or "YYYY", or `null` to skip date filtering — array already scoped by the caller), biggest amount first. */
 export function topTransactions(
   expenses: Expense[],
   incomes: Income[],
-  datePrefix: string,
+  datePrefix: string | null,
   limit = 3,
 ): TopTransaction[] {
   const combined: TopTransaction[] = [
     ...expenses
-      .filter((e) => e.date.startsWith(datePrefix))
+      .filter((e) => datePrefix === null || e.date.startsWith(datePrefix))
       .map((e) => ({
         id: e.id,
         type: "expense" as const,
@@ -129,7 +129,7 @@ export function topTransactions(
         description: e.description,
       })),
     ...incomes
-      .filter((i) => i.date.startsWith(datePrefix))
+      .filter((i) => datePrefix === null || i.date.startsWith(datePrefix))
       .map((i) => ({
         id: i.id,
         type: "income" as const,

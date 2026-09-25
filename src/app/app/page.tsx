@@ -161,7 +161,7 @@ export default async function DashboardPage() {
           fcf: cf.fcf,
           savingRate: cf.savingRate,
         },
-        tz,
+        `${data.periodStart.slice(0, 7)}-01`,
       ),
       recordAssetHoldingSnapshots(data.user.id, data.holdings, tz),
     ]),

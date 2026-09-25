@@ -7,7 +7,7 @@ import {
   monthExpenseTotal,
   monthIncomeTotal,
 } from "@/lib/finance/calculations";
-import { currentPeriodStartIsoInTz, currentYmInTz, monthsAgoFirstOfMonthIsoInTz } from "@/lib/finance/format";
+import { currentPeriodStartIsoInTz, monthsAgoFirstOfMonthIsoInTz } from "@/lib/finance/format";
 import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import type { Expense, HoldingData, Income } from "@/lib/finance/types";
 import { SummaryView } from "@/components/app/summary-view";
@@ -81,16 +81,18 @@ export default async function SummaryPage() {
     value: Number(s.value),
   }));
 
-  // The current month's fcf_snapshots row can be stale (only refreshed when
+  // The current period's fcf_snapshots row can be stale (only refreshed when
   // the Home dashboard is viewed) — recompute it live here, same formula as
   // the dashboard, so Summary always agrees with what Home shows right now.
-  const thisYm = currentYmInTz(tz);
   const cfRow = cashflowRes.data;
   const investIncomeMonthly = investmentIncomeMonthly(holdings);
-  const periodStart = currentPeriodStartIsoInTz(
-    tz,
-    profileRes.data?.profile_type === "karyawan" ? profileRes.data.payday_day : null,
-  );
+  const isKaryawan = profileRes.data?.profile_type === "karyawan";
+  const paydayDay = isKaryawan ? (profileRes.data?.payday_day ?? null) : null;
+  const periodStart = currentPeriodStartIsoInTz(tz, paydayDay);
+  // Labeled by the month the period *starts* in, same convention as
+  // recordFcfSnapshot() — for Karyawan this can differ from "today's"
+  // calendar month (e.g. still mid-period, started last month).
+  const thisYm = periodStart.slice(0, 7);
   // Auto-generated payday transactions stay in `expenses`/`incomes` for the
   // charts below (real money movements) but are excluded here — FCF is
   // already fed by the flat planning totals, see page.tsx for the rationale.
@@ -126,7 +128,14 @@ export default async function SummaryPage() {
 
   return (
     <div className="pt-6">
-      <SummaryView expenses={expenses} incomes={incomes} fcfSeries={fcfSeries} holdings={holdings} assetSnapshots={assetSnapshots} />
+      <SummaryView
+        expenses={expenses}
+        incomes={incomes}
+        fcfSeries={fcfSeries}
+        holdings={holdings}
+        assetSnapshots={assetSnapshots}
+        paydayDay={paydayDay}
+      />
     </div>
   );
 }

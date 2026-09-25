@@ -151,3 +151,33 @@ export function currentPeriodStartIsoInTz(tz: string, paydayDay: number | null |
   const effectiveDayPrevMonth = Math.min(paydayDay, daysInMonthUtc(prevYear, prevMonth));
   return `${prevYear}-${String(prevMonth).padStart(2, "0")}-${String(effectiveDayPrevMonth).padStart(2, "0")}`;
 }
+
+/**
+ * The payday-aligned date range for a given "YYYY-MM" label — a period is
+ * labeled by the calendar month it *starts* in (so "September" with
+ * payday_day=25 means Sep 25 → Oct 24, matching currentPeriodStartIsoInTz
+ * and how recordFcfSnapshot keys its rows). `paydayDay` null/undefined
+ * falls back to the plain calendar month (1st to last day). Pure date math,
+ * no ambient timezone needed — safe to call from client components too.
+ */
+export function periodRangeForYm(ym: string, paydayDay: number | null | undefined): { start: string; end: string } {
+  const [y, m] = ym.split("-").map(Number);
+
+  if (!paydayDay) {
+    const lastDay = daysInMonthUtc(y, m);
+    return { start: `${ym}-01`, end: `${ym}-${String(lastDay).padStart(2, "0")}` };
+  }
+
+  const effectiveDayThisMonth = Math.min(paydayDay, daysInMonthUtc(y, m));
+  const start = `${y}-${String(m).padStart(2, "0")}-${String(effectiveDayThisMonth).padStart(2, "0")}`;
+
+  const nextMonthFirst = new Date(Date.UTC(y, m, 1)); // m is 1-indexed, so this IS next month's 1st
+  const nextYear = nextMonthFirst.getUTCFullYear();
+  const nextMonth = nextMonthFirst.getUTCMonth() + 1;
+  const effectiveDayNextMonth = Math.min(paydayDay, daysInMonthUtc(nextYear, nextMonth));
+  const endDate = new Date(Date.UTC(nextYear, nextMonth - 1, effectiveDayNextMonth));
+  endDate.setUTCDate(endDate.getUTCDate() - 1);
+  const end = `${endDate.getUTCFullYear()}-${String(endDate.getUTCMonth() + 1).padStart(2, "0")}-${String(endDate.getUTCDate()).padStart(2, "0")}`;
+
+  return { start, end };
+}

@@ -18,7 +18,7 @@ import {
   type TopTransaction,
 } from "@/lib/finance/calculations";
 import { catColorVar, catIcon, expenseCatColorVar, expenseCatIcon, incomeCatColorVar, incomeCatIcon } from "@/lib/finance/constants";
-import { fmtRp } from "@/lib/finance/format";
+import { fmtDateLong, fmtRp, periodRangeForYm } from "@/lib/finance/format";
 import type { Expense, Income } from "@/lib/finance/types";
 
 interface FcfPoint {
@@ -145,12 +145,15 @@ export function SummaryView({
   fcfSeries,
   holdings,
   assetSnapshots,
+  paydayDay,
 }: {
   expenses: Expense[];
   incomes: Income[];
   fcfSeries: FcfPoint[];
   holdings: HoldingRowWithId[];
   assetSnapshots: AssetSnapshotRow[];
+  /** Karyawan's payday_day, or null (Pengusaha / not set) — null keeps every "this month" view on the plain calendar month. */
+  paydayDay: number | null;
 }) {
   const [mode, setMode] = useState<Mode>("monthly");
   const [shareState, setShareState] = useState<"idle" | "copied">("idle");
@@ -193,14 +196,41 @@ export function SummaryView({
     return window.reduce((s, p) => s + p.savingRate, 0) / window.length;
   }, [mode, fcfSeries, selectedYm]);
 
+  // For Karyawan (paydayDay set), "this month" in the monthly browser runs
+  // payday-to-payday instead of the 1st-to-last-day of the calendar month —
+  // same cutoff as Home/FCF, so a bill charged right on payday doesn't
+  // stack onto the tail of the wrong period here either. periodRangeForYm()
+  // falls back to the plain calendar month when paydayDay is null.
+  const periodRange = mode === "monthly" ? periodRangeForYm(selectedYm, paydayDay) : null;
+  const prevPeriodRange = mode === "monthly" ? periodRangeForYm(shiftYm(selectedYm, -1), paydayDay) : null;
+
   const expenseSlices =
-    mode === "monthly" ? expenseByCategory(expenses, selectedYm) : expenseByCategoryForYear(expenses, selectedYear);
-  const prevExpenseSlices = mode === "monthly" ? expenseByCategory(expenses, shiftYm(selectedYm, -1)) : [];
+    mode === "monthly"
+      ? expenseByCategory(
+          expenses.filter((e) => e.date >= periodRange!.start && e.date <= periodRange!.end),
+          null,
+        )
+      : expenseByCategoryForYear(expenses, selectedYear);
+  const prevExpenseSlices =
+    mode === "monthly"
+      ? expenseByCategory(
+          expenses.filter((e) => e.date >= prevPeriodRange!.start && e.date <= prevPeriodRange!.end),
+          null,
+        )
+      : [];
   const categoryDrop = mode === "monthly" ? biggestCategoryDecrease(expenseSlices, prevExpenseSlices) : null;
   const categoryRise = mode === "monthly" ? biggestCategoryIncrease(expenseSlices, prevExpenseSlices) : null;
   const topCategory = expenseSlices[0] ?? null;
 
-  const topTx = topTransactions(expenses, incomes, periodPrefix, 3);
+  const topTx =
+    mode === "monthly"
+      ? topTransactions(
+          expenses.filter((e) => e.date >= periodRange!.start && e.date <= periodRange!.end),
+          incomes.filter((i) => i.date >= periodRange!.start && i.date <= periodRange!.end),
+          null,
+          3,
+        )
+      : topTransactions(expenses, incomes, periodPrefix, 3);
   const assetMovers = topAssetMovers(assetSnapshots, holdings, periodPrefix, new Date(), 3);
 
   const insight = buildInsightText({
@@ -272,6 +302,12 @@ export function SummaryView({
               {MONTH_SHORT.format(ymToDate(ym))}
             </Chip>
           ))}
+        </div>
+      )}
+
+      {mode === "monthly" && paydayDay !== null && periodRange && (
+        <div className="mx-5 mb-4 rounded-xl px-3 py-2 text-xs leading-relaxed bg-brand/10 text-brand-strong">
+          📅 Disesuaikan dengan tanggal gajian kamu ({paydayDay}): {fmtDateLong(periodRange.start)} – {fmtDateLong(periodRange.end)}
         </div>
       )}
 
