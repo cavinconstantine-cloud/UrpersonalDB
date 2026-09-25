@@ -40,7 +40,21 @@ export function AssetInputStep({
   }
 
   async function deleteHolding(idx: number) {
-    setHoldings(holdings.filter((_, i) => i !== idx));
+    const nextHoldings = holdings.filter((_, i) => i !== idx);
+    if (cat !== "Cash") {
+      setHoldings(nextHoldings);
+      return;
+    }
+    // Cash holdings are referenced elsewhere in the draft by raw array
+    // index (incomeAccountIdx, fixedExpenseItems[].accountIdx) — reconcile
+    // those references here so deleting an earlier account doesn't silently
+    // re-point an existing link at the wrong (shifted) account.
+    const reindex = (i: number | null) => (i === null ? null : i === idx ? null : i > idx ? i - 1 : i);
+    update({
+      assetHoldings: { ...draft.assetHoldings, [cat]: nextHoldings },
+      incomeAccountIdx: reindex(draft.incomeAccountIdx),
+      fixedExpenseItems: draft.fixedExpenseItems.map((it) => ({ ...it, accountIdx: reindex(it.accountIdx) })),
+    });
   }
 
   function back() {

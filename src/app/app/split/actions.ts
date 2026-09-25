@@ -8,6 +8,7 @@ import { adjustCashBalance } from "@/app/app/assets/account-sync";
 import { revalidatePath } from "next/cache";
 import {
   allocateSplit,
+  isFullyAssigned,
   type SplitAssignments,
   type SplitItem,
   type SplitParticipant,
@@ -182,6 +183,14 @@ export async function createBillSplit(input: CreateBillSplitInput): Promise<Crea
 
   if (input.items.length === 0) return { ok: false, error: "Belum ada item." };
   if (input.participants.length === 0) return { ok: false, error: "Belum ada orang yang ikut split." };
+  // Re-validate server-side — the client only disables "Lanjut" on an
+  // incomplete assignment, it doesn't stop a request from being sent. Without
+  // this, an unassigned item's cost gets silently folded into the largest
+  // share by allocateSplit's rounding-reconciliation step, overcharging
+  // whoever that participant is.
+  if (!isFullyAssigned(input.items, input.assignments, input.sharedMode, input.sharedWith)) {
+    return { ok: false, error: "Masih ada item yang belum di-assign ke seseorang." };
+  }
 
   const result = allocateSplit(
     input.items,
@@ -216,36 +225,35 @@ export async function createBillSplit(input: CreateBillSplitInput): Promise<Crea
   // index regardless of completion order) so each returned id can be
   // matched back to its original client-side id unambiguously — a bulk
   // insert + select doesn't guarantee row order matches input order.
-  const participantResults = await Promise.all(
-    input.participants.map((p, i) =>
-      supabase
-        .from("bill_split_participants")
-        .insert({ bill_split_id: bill.id, name: p.name, is_creator: p.isCreator, sort_order: i })
-        .select("id")
-        .single(),
+  // Participants and items don't depend on each other, so both batches run
+  // concurrently rather than one after the other.
+  const [participantResults, itemResults] = await Promise.all([
+    Promise.all(
+      input.participants.map((p, i) =>
+        supabase
+          .from("bill_split_participants")
+          .insert({ bill_split_id: bill.id, name: p.name, is_creator: p.isCreator, sort_order: i })
+          .select("id")
+          .single(),
+      ),
     ),
-  );
-  if (participantResults.some((r) => r.error || !r.data)) {
+    Promise.all(
+      input.items.map((it, i) =>
+        supabase
+          .from("bill_split_items")
+          .insert({ bill_split_id: bill.id, name: it.name, qty: it.qty, unit_price: it.unitPrice, sort_order: i })
+          .select("id")
+          .single(),
+      ),
+    ),
+  ]);
+  if (participantResults.some((r) => r.error || !r.data) || itemResults.some((r) => r.error || !r.data)) {
     await supabase.from("bill_splits").delete().eq("id", bill.id);
-    return { ok: false, error: "Gagal menyimpan peserta split." };
+    return { ok: false, error: "Gagal menyimpan peserta/item split." };
   }
   const participantIdByOriginal = new Map(
     input.participants.map((p, i) => [p.id, participantResults[i].data!.id]),
   );
-
-  const itemResults = await Promise.all(
-    input.items.map((it, i) =>
-      supabase
-        .from("bill_split_items")
-        .insert({ bill_split_id: bill.id, name: it.name, qty: it.qty, unit_price: it.unitPrice, sort_order: i })
-        .select("id")
-        .single(),
-    ),
-  );
-  if (itemResults.some((r) => r.error || !r.data)) {
-    await supabase.from("bill_splits").delete().eq("id", bill.id);
-    return { ok: false, error: "Gagal menyimpan item split." };
-  }
   const itemIdByOriginal = new Map(input.items.map((it, i) => [it.id, itemResults[i].data!.id]));
 
   const assignmentRows: { item_id: string; participant_id: string; units: number; shared: boolean }[] = [];
@@ -271,7 +279,11 @@ export async function createBillSplit(input: CreateBillSplitInput): Promise<Crea
     }
   }
   if (assignmentRows.length > 0) {
-    await supabase.from("bill_split_item_assignments").insert(assignmentRows);
+    const { error: assignError } = await supabase.from("bill_split_item_assignments").insert(assignmentRows);
+    if (assignError) {
+      await supabase.from("bill_splits").delete().eq("id", bill.id);
+      return { ok: false, error: "Gagal menyimpan pembagian item split." };
+    }
   }
 
   if (creator && creator.total > 0) {
@@ -288,8 +300,10 @@ export async function createBillSplit(input: CreateBillSplitInput): Promise<Crea
       .select("id")
       .single();
     if (expense) {
-      await adjustCashBalance(supabase, user.id, input.accountHoldingId, -creator.total);
-      await supabase.from("bill_splits").update({ creator_expense_id: expense.id }).eq("id", bill.id);
+      await Promise.all([
+        adjustCashBalance(supabase, user.id, input.accountHoldingId, -creator.total),
+        supabase.from("bill_splits").update({ creator_expense_id: expense.id }).eq("id", bill.id),
+      ]);
     }
   }
 

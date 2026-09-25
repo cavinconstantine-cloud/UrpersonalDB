@@ -154,8 +154,10 @@ async function finalizeTransaction(
     return;
   }
 
-  await adjustCashBalance(admin, userId, accountHoldingId, parsed.type === "expense" ? -parsed.amount : parsed.amount);
-  await touchStreak(admin, userId);
+  await Promise.all([
+    adjustCashBalance(admin, userId, accountHoldingId, parsed.type === "expense" ? -parsed.amount : parsed.amount),
+    touchStreak(admin, userId),
+  ]);
 
   const emoji = parsed.type === "expense" ? "💸" : "💰";
   const accountPart = accountLabel ? `, dari ${accountLabel}` : "";
@@ -194,15 +196,24 @@ async function resolveAccountAndFinalize(admin: AdminClient, userId: string, msg
     return;
   }
 
-  await admin.from("whatsapp_pending_transactions").insert({
-    user_id: userId,
-    whatsapp_number: msg.from,
-    type: parsed.type,
-    amount: parsed.amount,
-    category: parsed.category,
-    description: parsed.description,
-    account_choices: accounts.map((a) => a.id),
-  });
+  // Upsert (not insert) keyed on whatsapp_number: a second ambiguous message
+  // arriving before the first pending question is answered replaces it
+  // in-place instead of leaving the earlier row orphaned forever (nothing
+  // else can ever look it up, since only the account_choices from the LATEST
+  // question map to the numbers the user is asked to reply with).
+  await admin.from("whatsapp_pending_transactions").upsert(
+    {
+      user_id: userId,
+      whatsapp_number: msg.from,
+      type: parsed.type,
+      amount: parsed.amount,
+      category: parsed.category,
+      description: parsed.description,
+      account_choices: accounts.map((a) => a.id),
+      created_at: new Date().toISOString(),
+    },
+    { onConflict: "whatsapp_number" },
+  );
   await sendWhatsAppMessage(msg.from, accountChoiceMessage(accounts));
 }
 
@@ -216,6 +227,14 @@ async function resolveAccountAndFinalize(admin: AdminClient, userId: string, msg
 async function tryResolvePendingSelection(admin: AdminClient, userId: string, msg: InboundMessage): Promise<boolean> {
   if (!admin) return false;
 
+  // Best-effort housekeeping: purge anything past its TTL on every inbound
+  // message (there's no separate cron sweep for this table), so a question
+  // nobody ever answers doesn't sit around forever.
+  await admin
+    .from("whatsapp_pending_transactions")
+    .delete()
+    .lt("created_at", new Date(Date.now() - PENDING_TTL_MS).toISOString());
+
   const { data: pending } = await admin
     .from("whatsapp_pending_transactions")
     .select("id, type, amount, category, description, account_choices, created_at")
@@ -223,13 +242,7 @@ async function tryResolvePendingSelection(admin: AdminClient, userId: string, ms
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!pending) return false;
-
-  const isStale = Date.now() - new Date(pending.created_at).getTime() > PENDING_TTL_MS;
-  if (isStale) {
-    await admin.from("whatsapp_pending_transactions").delete().eq("id", pending.id);
-    return false; // let the caller parse this message fresh
-  }
+  if (!pending) return false; // nothing pending (or it just aged out above) — parse this message fresh
 
   const accounts = await getCashAccounts(admin, userId);
   const byId = new Map(accounts.map((a) => [a.id, a]));
@@ -245,7 +258,18 @@ async function tryResolvePendingSelection(admin: AdminClient, userId: string, ms
     return true;
   }
 
-  await admin.from("whatsapp_pending_transactions").delete().eq("id", pending.id);
+  // Claim the row before finalizing: if two replies for the same pending
+  // selection arrive close together (gateway retry/double-delivery), only
+  // the one that actually deletes a row proceeds to insert the transaction —
+  // the other finds nothing left to delete and backs off, instead of both
+  // inserting the same transaction and double-adjusting the balance.
+  const { data: claimed } = await admin
+    .from("whatsapp_pending_transactions")
+    .delete()
+    .eq("id", pending.id)
+    .select("id");
+  if (!claimed || claimed.length === 0) return true;
+
   await finalizeTransaction(
     admin,
     userId,

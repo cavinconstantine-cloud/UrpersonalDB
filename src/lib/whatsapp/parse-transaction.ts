@@ -55,12 +55,21 @@ export async function parseWhatsAppTransaction(
     ].join("\n"),
   });
 
-  const response = await anthropic.messages.parse({
-    model: "claude-sonnet-5",
-    max_tokens: 500,
-    messages: [{ role: "user", content }],
-    output_config: { format: zodOutputFormat(ParsedTransactionSchema) },
-  });
+  let response;
+  try {
+    response = await anthropic.messages.parse({
+      model: "claude-sonnet-5",
+      max_tokens: 500,
+      messages: [{ role: "user", content }],
+      output_config: { format: zodOutputFormat(ParsedTransactionSchema) },
+    });
+  } catch (err) {
+    // Network hiccup, rate limit, timeout, etc. — surface as "couldn't parse"
+    // rather than letting it throw uncaught out of the webhook handler,
+    // which would skip the user-facing fallback reply entirely.
+    console.error("parseWhatsAppTransaction: Anthropic call failed:", err);
+    return null;
+  }
 
   const parsed = response.parsed_output;
   if (!parsed) return null;

@@ -27,18 +27,21 @@ export function CashflowStep({
   const fixedTotal = draft.fixedExpenseItems.reduce((s, it) => s + it.amount, 0);
   const isPengusaha = draft.profileType === "pengusaha";
   const income = Number(draft.cashflow.income) || 0;
-  const canProceed = isPengusaha || income === 0 || draft.incomeAccountIdx !== null;
+  const canProceed =
+    isPengusaha || income === 0 || (draft.incomeAccountIdx !== null && draft.incomeAccountIdx < cashHoldings.length);
 
-  // Only one rekening? Nothing to pick — link income to it automatically so
-  // "Lanjut" never blocks on a choice with just one possible answer. Compares
-  // against 0 (not just null) so a stale index left over from a since-deleted
-  // account (e.g. user picked account #2, went back and removed account #1,
-  // leaving one account re-indexed to 0) also gets corrected, instead of
-  // silently resolving to no account at submit time while the UI claims it's
-  // auto-linked.
+  // Keep incomeAccountIdx valid as the Cash holdings list changes:
+  //  - exactly one account: auto-link to it, nothing to pick.
+  //  - the previously-picked index no longer exists (an account was deleted
+  //    while 2+ remain): clear it so the picker re-prompts, instead of
+  //    silently keeping a stale index that now points at the wrong account
+  //    (or none) at submit time with no visible sign anything changed.
   useEffect(() => {
-    if (!isPengusaha && income > 0 && cashHoldings.length === 1 && draft.incomeAccountIdx !== 0) {
+    if (isPengusaha || income <= 0) return;
+    if (cashHoldings.length === 1 && draft.incomeAccountIdx !== 0) {
       update({ incomeAccountIdx: 0 });
+    } else if (draft.incomeAccountIdx !== null && draft.incomeAccountIdx >= cashHoldings.length) {
+      update({ incomeAccountIdx: null });
     }
   }, [isPengusaha, income, cashHoldings.length, draft.incomeAccountIdx, update]);
 
