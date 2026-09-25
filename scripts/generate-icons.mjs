@@ -7,33 +7,62 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const outDir = path.join(__dirname, "..", "public", "icons");
 mkdirSync(outDir, { recursive: true });
 
-function svg(size, { padding = 0 } = {}) {
-  const inner = size - padding * 2;
+// Uangku mark: a "U" built from 2 straight lines + 1 arc, with a coin
+// resting in its cup (savings) — same construction used across the brand
+// (brochures, in-app "what's new" assets), rendered here in a deep
+// purple-to-indigo tile with a gold monoline glyph for a more premium/
+// exclusive finish than the flat white-on-purple original.
+const DEFS = `
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#7a6cf0"/>
+    <stop offset="100%" stop-color="#2f2066"/>
+  </linearGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#f6e2ab"/>
+    <stop offset="55%" stop-color="#d9b45f"/>
+    <stop offset="100%" stop-color="#9c7a2e"/>
+  </linearGradient>`;
+
+const GLYPH = `
+  <path d="M32,26 L32,56 A18,18 0 0 0 68,56 L68,26" fill="none" stroke="url(#gold)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="50" cy="56" r="9" fill="url(#gold)"/>`;
+
+/** Rounded tile with a thin gold ring — for contexts that show the icon's own shape as-is (favicon, manifest "any" icons). */
+function tileSvg(size) {
   return `
-  <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <defs>
-      <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#f3d99a"/>
-        <stop offset="55%" stop-color="#d3ae5c"/>
-        <stop offset="100%" stop-color="#8a6a22"/>
-      </linearGradient>
-    </defs>
-    <rect width="${size}" height="${size}" fill="#15140f"/>
-    <rect x="${padding}" y="${padding}" width="${inner}" height="${inner}" rx="${inner * 0.22}" fill="url(#g)"/>
-    <text x="50%" y="${padding + inner * 0.68}" text-anchor="middle"
-      font-family="Georgia, 'Times New Roman', serif" font-size="${inner * 0.52}" fill="#2a2008" font-weight="600">U</text>
+  <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100">
+    <defs>${DEFS}</defs>
+    <rect width="100" height="100" rx="22" fill="url(#bg)"/>
+    <rect x="3" y="3" width="94" height="94" rx="19.5" fill="none" stroke="url(#gold)" stroke-width="1.4" opacity="0.55"/>
+    ${GLYPH}
+  </svg>`;
+}
+
+/**
+ * Full-bleed, no rounded corners or ring — for contexts that apply their
+ * own mask on top (iOS's own squircle for apple-touch-icon; Android's
+ * adaptive-icon mask for the maskable manifest entry). The glyph's own
+ * bounding box already sits inside a centered 80%-diameter circle (the
+ * standard maskable "safe zone"), so it needs no extra scaling/padding.
+ */
+function fullBleedSvg(size) {
+  return `
+  <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100">
+    <defs>${DEFS}</defs>
+    <rect width="100" height="100" fill="url(#bg)"/>
+    ${GLYPH}
   </svg>`;
 }
 
 const targets = [
-  { name: "icon-192.png", size: 192, padding: 0 },
-  { name: "icon-512.png", size: 512, padding: 0 },
-  { name: "icon-maskable-512.png", size: 512, padding: 64 },
-  { name: "apple-touch-icon.png", size: 180, padding: 0 },
+  { name: "icon-192.png", svg: tileSvg(192) },
+  { name: "icon-512.png", svg: tileSvg(512) },
+  { name: "icon-maskable-512.png", svg: fullBleedSvg(512) },
+  { name: "apple-touch-icon.png", svg: fullBleedSvg(180) },
 ];
 
 for (const t of targets) {
-  await sharp(Buffer.from(svg(t.size, { padding: t.padding })))
+  await sharp(Buffer.from(t.svg))
     .png()
     .toFile(path.join(outDir, t.name));
   console.log("wrote", t.name);
