@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Chip } from "@/components/ui/chip";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -16,7 +15,6 @@ interface ProfileTypeSettingsProps {
 }
 
 export function ProfileTypeSettings({ initialProfileType, initialPaydayDay }: ProfileTypeSettingsProps) {
-  const router = useRouter();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [profileType, setProfileType] = useState<ProfileType>(initialProfileType);
@@ -29,7 +27,9 @@ export function ProfileTypeSettings({ initialProfileType, initialPaydayDay }: Pr
       try {
         await updateProfileType({ profileType, paydayDay: profileType === "karyawan" ? paydayDay : null });
         setSaved(true);
-        router.refresh();
+        // No router.refresh() needed — this action's revalidatePath() calls
+        // already cause Next.js to re-render the affected server segments
+        // once the transition settles.
         setTimeout(() => setSaved(false), 2000);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Gagal menyimpan — coba lagi.");

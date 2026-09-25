@@ -8,6 +8,7 @@ import { AssetCategoryManager } from "@/components/app/asset-category-manager";
 import { IhsgWidget } from "@/components/finance/ihsg-widget";
 import type { StockPriceInfo } from "@/components/finance/saham-holding-modal";
 import { capNameOrKamu, nameOrKamu } from "@/lib/finance/format";
+import { getProfile } from "@/lib/data/shared";
 
 function daysAgoIso(days: number): string {
   const d = new Date();
@@ -42,7 +43,7 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       .gte("snapshot_date", daysAgoIso(4)),
     supabase.from("goals").select("id, name").eq("user_id", user.id).order("created_at"),
     category === "Saham" ? supabase.from("stock_prices").select("*") : Promise.resolve({ data: null }),
-    supabase.from("profiles").select("name").eq("id", user.id).single(),
+    getProfile(user.id),
   ]);
 
   const stockPrices: Record<string, StockPriceInfo> = {};

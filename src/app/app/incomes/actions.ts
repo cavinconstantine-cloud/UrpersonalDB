@@ -77,10 +77,22 @@ export async function updateIncome(
 
   if (existing) {
     // undo the old credit, then apply the new one — handles amount changes,
-    // switching accounts, or removing/adding the Sumber Dana link
-    await adjustCashBalance(supabase, user.id, existing.account_holding_id, -Number(existing.amount));
+    // switching accounts, or removing/adding the Sumber Dana link. Only
+    // sequenced when both edits land on the same holding (adjustCashBalance
+    // is a read-modify-write, so two concurrent calls on the same row could
+    // lose an update) — different holdings run in parallel.
+    if (existing.account_holding_id && existing.account_holding_id === input.accountHoldingId) {
+      await adjustCashBalance(supabase, user.id, existing.account_holding_id, -Number(existing.amount));
+      await adjustCashBalance(supabase, user.id, input.accountHoldingId, input.amount);
+    } else {
+      await Promise.all([
+        adjustCashBalance(supabase, user.id, existing.account_holding_id, -Number(existing.amount)),
+        adjustCashBalance(supabase, user.id, input.accountHoldingId, input.amount),
+      ]);
+    }
+  } else {
+    await adjustCashBalance(supabase, user.id, input.accountHoldingId, input.amount);
   }
-  await adjustCashBalance(supabase, user.id, input.accountHoldingId, input.amount);
 
   revalidatePath("/app");
   revalidatePath("/app/expenses");

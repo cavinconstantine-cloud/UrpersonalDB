@@ -9,6 +9,7 @@ import {
   todayIsoInTz,
 } from "@/lib/finance/format";
 import type { HoldingData } from "@/lib/finance/types";
+import { getProfile } from "@/lib/data/shared";
 
 export async function getDashboardData(tz: string) {
   const supabase = await createClient();
@@ -22,12 +23,10 @@ export async function getDashboardData(tz: string) {
   // month-scoped queries below need that resolved before they can be built.
   // See currentPeriodStartIsoInTz() for why: without this, a bill charged
   // right on payday landed in the tail of the *previous* calendar month's
-  // totals instead of starting the new period clean.
-  const profileRes = await supabase
-    .from("profiles")
-    .select("name, onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
-    .eq("id", user.id)
-    .single();
+  // totals instead of starting the new period clean. getProfile() is
+  // request-deduped, so this is a free hit if the /app layout (which also
+  // needs this row) already resolved it for this same request.
+  const profileRes = await getProfile(user.id);
 
   const profile = profileRes.data;
   if (!profile || profile.onboarding_step !== "done") redirect("/onboarding");
@@ -44,8 +43,6 @@ export async function getDashboardData(tz: string) {
     incomesLast3MonthsRes,
     recentExpRes,
     recentIncRes,
-    customExpCatRes,
-    customIncCatRes,
     snapshotsRes,
     marketNewsRes,
     fcfSnapshotsRes,
@@ -54,7 +51,6 @@ export async function getDashboardData(tz: string) {
     recurringExpenseRes,
     assetHoldingSnapshotsRes,
     ihsgRes,
-    priorCashSnapshotsRes,
     streakRes,
   ] = await Promise.all([
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
@@ -91,8 +87,6 @@ export async function getDashboardData(tz: string) {
       .eq("user_id", user.id)
       .order("income_date", { ascending: false })
       .limit(8),
-    supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
-    supabase.from("custom_income_categories").select("name").eq("user_id", user.id),
     supabase
       .from("net_worth_snapshots")
       .select("snapshot_date, net_worth")
@@ -128,17 +122,6 @@ export async function getDashboardData(tz: string) {
       .eq("user_id", user.id)
       .gte("snapshot_date", daysAgoIsoInTz(4, tz)),
     supabase.from("stock_prices").select("change_pct").eq("ticker", "^JKSE").maybeSingle(),
-    // Baseline for the "windfall" insight — Cash-category snapshots from
-    // ~30 days back or earlier (there may be no row from exactly 30 days
-    // ago), most recent first; cashWindfall() picks the closest date.
-    supabase
-      .from("asset_holding_snapshots")
-      .select("snapshot_date, value")
-      .eq("user_id", user.id)
-      .eq("category", "Cash")
-      .lte("snapshot_date", daysAgoIsoInTz(30, tz))
-      .order("snapshot_date", { ascending: false })
-      .limit(20),
     supabase
       .from("logging_streaks")
       .select("current_streak, longest_streak, last_logged_date")
@@ -181,8 +164,6 @@ export async function getDashboardData(tz: string) {
     incomesLast3Months: incomesLast3MonthsRes.data || [],
     recentExpenses: recentExpRes.data || [],
     recentIncomes: recentIncRes.data || [],
-    customExpenseCategories: (customExpCatRes.data || []).map((c) => c.name),
-    customIncomeCategories: (customIncCatRes.data || []).map((c) => c.name),
     snapshots: snapshotsRes.data || [],
     marketNews: (marketNewsRes.data || []).map((n) => ({
       id: n.id,
@@ -218,10 +199,6 @@ export async function getDashboardData(tz: string) {
       value: Number(s.value),
     })),
     ihsgChangePct: ihsgRes.data ? Number(ihsgRes.data.change_pct) : null,
-    priorCashSnapshots: (priorCashSnapshotsRes.data || []).map((r) => ({
-      snapshotDate: r.snapshot_date,
-      value: Number(r.value),
-    })),
     streak: streakRes.data
       ? {
           current: streakRes.data.current_streak,
@@ -246,11 +223,7 @@ export async function getFinancialSnapshotData(tz: string) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const profileRes = await supabase
-    .from("profiles")
-    .select("onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
-    .eq("id", user.id)
-    .single();
+  const profileRes = await getProfile(user.id);
 
   const profile = profileRes.data;
   if (!profile || profile.onboarding_step !== "done") redirect("/onboarding");

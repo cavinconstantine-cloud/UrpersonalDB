@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { RecurringCashflowSections } from "@/components/app/recurring-cashflow-sections";
 import { BudgetManager } from "@/components/app/budget-manager";
 import { EXPENSE_CATS } from "@/lib/finance/constants";
-import type { HoldingData } from "@/lib/finance/types";
+import { getCashAccountsResult, getCustomCategories } from "@/lib/data/shared";
 
 export const metadata: Metadata = { title: "Arus Kas Tetap" };
 
@@ -15,7 +15,7 @@ export default async function CashflowPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [recurringIncomeRes, recurringExpenseRes, budgetsRes, customExpCatRes, cashRes] = await Promise.all([
+  const [recurringIncomeRes, recurringExpenseRes, budgetsRes, categories, cashAccountsRes] = await Promise.all([
     supabase
       .from("recurring_incomes")
       .select("id, label, amount, account_holding_id")
@@ -27,9 +27,10 @@ export default async function CashflowPage() {
       .eq("user_id", user.id)
       .order("created_at"),
     supabase.from("budgets").select("category, monthly_limit").eq("user_id", user.id),
-    supabase.from("custom_expense_categories").select("name").eq("user_id", user.id),
-    supabase.from("asset_holdings").select("id, data").eq("user_id", user.id).eq("category", "Cash"),
+    getCustomCategories(user.id),
+    getCashAccountsResult(user.id),
   ]);
+  const cashAccounts = cashAccountsRes.accounts;
 
   const incomeItems = (recurringIncomeRes.data || []).map((r) => ({
     id: r.id,
@@ -43,12 +44,8 @@ export default async function CashflowPage() {
     amount: Number(r.amount),
     accountHoldingId: r.account_holding_id,
   }));
-  const cashAccounts = (cashRes.data || []).map((h) => ({
-    id: h.id,
-    label: String((h.data as HoldingData)?.label || "Rekening"),
-  }));
 
-  const expenseCats = [...EXPENSE_CATS, ...(customExpCatRes.data || []).map((c) => c.name)];
+  const expenseCats = [...EXPENSE_CATS, ...categories.customExpenseCategories];
   const budgetByCategory = new Map((budgetsRes.data || []).map((b) => [b.category, Number(b.monthly_limit)]));
   const budgetRows = expenseCats.map((category) => ({
     category,
@@ -59,7 +56,7 @@ export default async function CashflowPage() {
   // looks identical to "genuinely no data yet") — a query erroring out (e.g.
   // a column a pending migration hasn't added yet) must never read as "your
   // data got deleted".
-  const loadError = [recurringIncomeRes.error, recurringExpenseRes.error, budgetsRes.error, cashRes.error].find(
+  const loadError = [recurringIncomeRes.error, recurringExpenseRes.error, budgetsRes.error, cashAccountsRes.error].find(
     Boolean,
   );
 

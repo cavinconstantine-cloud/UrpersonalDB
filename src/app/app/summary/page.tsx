@@ -11,6 +11,7 @@ import { currentPeriodStartIsoInTz, monthsAgoFirstOfMonthIsoInTz } from "@/lib/f
 import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import type { Expense, HoldingData, Income } from "@/lib/finance/types";
 import { SummaryView } from "@/components/app/summary-view";
+import { getProfile } from "@/lib/data/shared";
 
 export const metadata: Metadata = { title: "Summary" };
 
@@ -25,7 +26,7 @@ export default async function SummaryPage() {
   const since = monthsAgoFirstOfMonthIsoInTz(12, tz);
 
   const [profileRes, cashflowRes, holdingsRes, expRes, incRes, fcfRes, assetSnapshotsRes] = await Promise.all([
-    supabase.from("profiles").select("profile_type, payday_day").eq("id", user.id).maybeSingle(),
+    getProfile(user.id),
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
     supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id),
     supabase

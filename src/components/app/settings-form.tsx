@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { TextField } from "@/components/ui/field";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -15,7 +14,6 @@ interface SettingsFormProps {
 
 export function SettingsForm({ initialName }: SettingsFormProps) {
   const { dict } = useLanguage();
-  const router = useRouter();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState(initialName);
@@ -26,7 +24,9 @@ export function SettingsForm({ initialName }: SettingsFormProps) {
       try {
         await updateProfileName(name);
         setSaved(true);
-        router.refresh();
+        // No router.refresh() needed — this action's revalidatePath() calls
+        // already cause Next.js to re-render the affected server segments
+        // once the transition settles.
         setTimeout(() => setSaved(false), 2000);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Gagal menyimpan — coba lagi.");

@@ -5,6 +5,7 @@ import { LIAB_SCHEMAS } from "@/lib/finance/schemas";
 import { catIcon } from "@/lib/finance/constants";
 import { LiabilityCategoryManager } from "@/components/app/liability-category-manager";
 import { capNameOrKamu } from "@/lib/finance/format";
+import { getProfile } from "@/lib/data/shared";
 
 export default async function LiabilityCategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const { category: rawCategory } = await params;
@@ -25,7 +26,7 @@ export default async function LiabilityCategoryPage({ params }: { params: Promis
       .eq("user_id", user.id)
       .eq("category", category)
       .order("updated_at"),
-    supabase.from("profiles").select("name").eq("id", user.id).single(),
+    getProfile(user.id),
   ]);
 
   const holdings = (data || []).map((l) => ({ id: l.id, data: (l.data as Record<string, string | number>) || {} }));

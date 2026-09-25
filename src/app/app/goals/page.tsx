@@ -15,6 +15,7 @@ import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import { depositoNetInterestMonthly, obligasiNetCouponMonthly } from "@/lib/finance/schemas";
 import type { HoldingData } from "@/lib/finance/types";
 import { GoalsManager, type GoalLinkedAsset, type GoalLinkedSummary } from "@/components/app/goals-manager";
+import { getProfile } from "@/lib/data/shared";
 
 export const metadata: Metadata = { title: "Goals" };
 
@@ -30,7 +31,7 @@ export default async function GoalsPage() {
   // Fetched first — the "current period" expense query below needs to know
   // profile_type/payday_day before it can be built (payday-to-payday for
   // Karyawan, calendar month otherwise; see currentPeriodStartIsoInTz()).
-  const profileRes = await supabase.from("profiles").select("profile_type, payday_day").eq("id", user.id).single();
+  const profileRes = await getProfile(user.id);
   const periodStart = currentPeriodStartIsoInTz(
     tz,
     profileRes.data?.profile_type === "karyawan" ? profileRes.data.payday_day : null,

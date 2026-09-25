@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { getLang } from "@/lib/i18n/lang";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { isAdminEmail } from "@/lib/admin";
+import { getProfile } from "@/lib/data/shared";
 
 export const metadata: Metadata = { title: "Pengaturan" };
 
@@ -24,11 +25,7 @@ export default async function SettingsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const profileRes = await supabase
-    .from("profiles")
-    .select("name, profile_type, payday_day, whatsapp_number, whatsapp_pairing_code, push_enabled")
-    .eq("id", user.id)
-    .single();
+  const profileRes = await getProfile(user.id);
 
   const lang = await getLang();
   const dict = getDictionary(lang);
