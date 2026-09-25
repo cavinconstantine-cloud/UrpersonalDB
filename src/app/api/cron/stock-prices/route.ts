@@ -96,12 +96,10 @@ export async function GET(request: Request) {
   const ihsg = quotes.get(IHSG_TICKER) ?? null;
   if (ihsg) results.set(IHSG_TICKER, ihsg);
 
-  let upserted = 0;
-  for (const t of IDX_TICKERS) {
-    const fetched = results.get(t.ticker);
-    if (!fetched) continue;
+  const priceRows = IDX_TICKERS.filter((t) => results.has(t.ticker)).map((t) => {
+    const fetched = results.get(t.ticker)!;
     const changePct = fetched.prevClose > 0 ? ((fetched.price - fetched.prevClose) / fetched.prevClose) * 100 : 0;
-    const { error } = await admin.from("stock_prices").upsert({
+    return {
       ticker: t.ticker,
       company_name: t.name,
       price: fetched.price,
@@ -109,13 +107,11 @@ export async function GET(request: Request) {
       change_pct: changePct,
       currency: "IDR",
       as_of: isoToday,
-    });
-    if (!error) upserted++;
-  }
-
+    };
+  });
   if (ihsg) {
     const changePct = ihsg.prevClose > 0 ? ((ihsg.price - ihsg.prevClose) / ihsg.prevClose) * 100 : 0;
-    await admin.from("stock_prices").upsert({
+    priceRows.push({
       ticker: IHSG_TICKER,
       company_name: IHSG_NAME,
       price: ihsg.price,
@@ -124,6 +120,13 @@ export async function GET(request: Request) {
       currency: "IDR",
       as_of: isoToday,
     });
+  }
+  // One batched upsert instead of one round trip per ticker (~50+) — the
+  // route has a 60s budget and this was the single biggest chunk of it.
+  let upserted = 0;
+  if (priceRows.length > 0) {
+    const { error } = await admin.from("stock_prices").upsert(priceRows);
+    if (!error) upserted = priceRows.filter((r) => r.ticker !== IHSG_TICKER).length;
   }
 
   // Write-through: sync every held Saham holding's curPrice to the ticker it's
@@ -134,8 +137,8 @@ export async function GET(request: Request) {
     .select("id, data")
     .eq("category", "Saham");
 
-  let holdingsUpdated = 0;
   let holdingsBackfilled = 0;
+  const holdingUpdates: Promise<boolean>[] = [];
   for (const h of sahamHoldings || []) {
     const data = (h.data as HoldingData) || {};
     let ticker = typeof data.ticker === "string" ? data.ticker : null;
@@ -156,12 +159,28 @@ export async function GET(request: Request) {
 
     const fetched = results.get(ticker);
     if (!fetched) continue;
-    const { error } = await admin
-      .from("asset_holdings")
-      .update({ data: { ...data, ticker, curPrice: fetched.price, priceAsOf: isoToday } })
-      .eq("id", h.id);
-    if (!error) holdingsUpdated++;
+    holdingUpdates.push(
+      (async () => {
+        const { error } = await admin
+          .from("asset_holdings")
+          .update({ data: { ...data, ticker, curPrice: fetched.price, priceAsOf: isoToday } })
+          .eq("id", h.id);
+        return !error;
+      })(),
+    );
   }
+  // One round trip per holding is unavoidable (each writes a different row),
+  // but they're independent of each other — running them concurrently
+  // instead of sequentially keeps this well inside the route's time budget
+  // as the number of tracked holdings grows.
+  const holdingResults = await Promise.all(holdingUpdates);
+  const holdingsUpdated = holdingResults.filter(Boolean).length;
+
+  // Tickers Yahoo failed to return today keep yesterday's curPrice/priceAsOf
+  // on any holding that references them (no write happens for them above) —
+  // surfaced here for monitoring, since the UI has no other signal that a
+  // given holding's price may be a day or more stale.
+  const staleTickers = IDX_TICKERS.map((t) => t.ticker).filter((t) => !results.has(t));
 
   return NextResponse.json({
     ok: true,
@@ -171,6 +190,7 @@ export async function GET(request: Request) {
     holdingsUpdated,
     holdingsBackfilled,
     ihsg: ihsg ? { price: ihsg.price, prevClose: ihsg.prevClose } : null,
+    ...(staleTickers.length ? { staleTickers } : {}),
     ...(results.size === 0 ? { sampleErrors } : {}),
   });
 }

@@ -47,12 +47,14 @@ export async function GET(request: Request) {
   let sent = 0;
   let skippedAlreadyLogged = 0;
 
+  const userIds = (profiles || []).map((p) => p.id);
+  const { data: streaks } = userIds.length
+    ? await admin.from("logging_streaks").select("user_id, current_streak, last_logged_date").in("user_id", userIds)
+    : { data: [] };
+  const streakByUser = new Map((streaks || []).map((s) => [s.user_id, s]));
+
   for (const p of profiles || []) {
-    const { data: streak } = await admin
-      .from("logging_streaks")
-      .select("current_streak, last_logged_date")
-      .eq("user_id", p.id)
-      .maybeSingle();
+    const streak = streakByUser.get(p.id);
 
     if (streak?.last_logged_date === todayIso) {
       skippedAlreadyLogged++;

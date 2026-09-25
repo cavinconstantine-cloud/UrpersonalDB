@@ -88,7 +88,15 @@ export async function GET(request: Request) {
         .from("payday_executions")
         .insert({ user_id: userId, execution_month: executionMonth });
       if (claimError) {
-        usersSkippedAlreadyRun++;
+        // 23505 = unique_violation — the automation genuinely already ran for
+        // this user this month, which is the expected/common case. Any other
+        // error (connection issue, schema problem, etc.) is a real failure
+        // and must not be silently folded into the same "already ran" count.
+        if (claimError.code === "23505") {
+          usersSkippedAlreadyRun++;
+        } else {
+          errors.push(`claim failed for user ${userId}: ${claimError.message}`);
+        }
         continue;
       }
     } else {

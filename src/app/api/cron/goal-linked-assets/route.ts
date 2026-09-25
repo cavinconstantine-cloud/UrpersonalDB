@@ -45,14 +45,18 @@ export async function GET(request: Request) {
     }
   }
 
-  const admin = createAdminClient();
-  if (!admin) {
+  const adminClient = createAdminClient();
+  if (!adminClient) {
     return NextResponse.json({
       ok: true,
       skipped: true,
       reason: "Goal-linked asset job not configured (missing SUPABASE_SERVICE_ROLE_KEY).",
     });
   }
+  // Rebound to a non-null local so the type stays narrowed inside
+  // processHolding below (a closure over the original `const` doesn't keep
+  // TS's null-check narrowing).
+  const admin = adminClient;
 
   const { day, isoDate, date: today } = jakartaTodayParts();
   const emailEnabled = isResendConfigured();
@@ -67,11 +71,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 
-  let credited = 0;
-  let remindersSent = 0;
-  let unlinked = 0;
+  type HoldingRow = NonNullable<typeof linkedHoldings>[number];
 
-  for (const holding of linkedHoldings || []) {
+  // Each holding's three steps (credit, reminder, unlink) touch only that
+  // holding's own rows, so different holdings are fully independent of each
+  // other — processed concurrently instead of one full holding at a time.
+  async function processHolding(holding: HoldingRow) {
+    const result = { credited: false, remindersSent: false, unlinked: false };
     const h = (holding.data as HoldingData) || {};
     const isDeposito = holding.category === "Deposito";
 
@@ -87,16 +93,16 @@ export async function GET(request: Request) {
           credit_date: isoDate,
           amount,
         });
-        if (!creditError) credited++;
+        if (!creditError) result.credited = true;
         // A unique-constraint error just means today's credit already ran — not a failure.
       }
     }
 
     // 2. Maturity reminder / auto-unlink.
     const maturityStr = isDeposito ? depositoMaturityDate(h) : typeof h.maturityDate === "string" ? h.maturityDate : null;
-    if (!maturityStr) continue;
+    if (!maturityStr) return result;
     const maturity = new Date(maturityStr);
-    if (isNaN(maturity.getTime())) continue;
+    if (isNaN(maturity.getTime())) return result;
     const daysUntil = Math.round((maturity.getTime() - today.getTime()) / 86400000);
 
     if (daysUntil === 7 && emailEnabled) {
@@ -125,16 +131,23 @@ export async function GET(request: Request) {
               </div>
             `,
           });
-          if (ok) remindersSent++;
+          if (ok) result.remindersSent = true;
         }
       }
     }
 
     if (daysUntil <= 0) {
       const { error: unlinkError } = await admin.from("asset_holdings").update({ goal_id: null }).eq("id", holding.id);
-      if (!unlinkError) unlinked++;
+      if (!unlinkError) result.unlinked = true;
     }
+
+    return result;
   }
+
+  const results = await Promise.all((linkedHoldings || []).map(processHolding));
+  const credited = results.filter((r) => r.credited).length;
+  const remindersSent = results.filter((r) => r.remindersSent).length;
+  const unlinked = results.filter((r) => r.unlinked).length;
 
   return NextResponse.json({ ok: true, checked: linkedHoldings?.length || 0, credited, remindersSent, unlinked });
 }
