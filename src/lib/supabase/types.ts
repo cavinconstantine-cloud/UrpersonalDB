@@ -152,6 +152,30 @@ export interface Database {
           updated_at: string;
         }> & { user_id: string }
       >;
+      whatsapp_pending_transactions: Table<
+        {
+          id: string;
+          user_id: string;
+          whatsapp_number: string;
+          type: string;
+          amount: number;
+          category: string;
+          description: string;
+          account_choices: string[];
+          created_at: string;
+        },
+        Partial<{
+          id: string;
+          user_id: string;
+          whatsapp_number: string;
+          type: string;
+          amount: number;
+          category: string;
+          description: string;
+          account_choices: string[];
+          created_at: string;
+        }> & { user_id: string; whatsapp_number: string; type: string; amount: number; category: string; description: string; account_choices: string[] }
+      >;
       budgets: Table<
         {
           user_id: string;
