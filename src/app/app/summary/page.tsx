@@ -7,7 +7,7 @@ import {
   monthExpenseTotal,
   monthIncomeTotal,
 } from "@/lib/finance/calculations";
-import { currentYmInTz, monthsAgoFirstOfMonthIsoInTz } from "@/lib/finance/format";
+import { currentPeriodStartIsoInTz, currentYmInTz, monthsAgoFirstOfMonthIsoInTz } from "@/lib/finance/format";
 import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import type { Expense, HoldingData, Income } from "@/lib/finance/types";
 import { SummaryView } from "@/components/app/summary-view";
@@ -24,7 +24,8 @@ export default async function SummaryPage() {
   const tz = await getVisitorTimezone();
   const since = monthsAgoFirstOfMonthIsoInTz(12, tz);
 
-  const [cashflowRes, holdingsRes, expRes, incRes, fcfRes, assetSnapshotsRes] = await Promise.all([
+  const [profileRes, cashflowRes, holdingsRes, expRes, incRes, fcfRes, assetSnapshotsRes] = await Promise.all([
+    supabase.from("profiles").select("profile_type, payday_day").eq("id", user.id).maybeSingle(),
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
     supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id),
     supabase
@@ -86,11 +87,19 @@ export default async function SummaryPage() {
   const thisYm = currentYmInTz(tz);
   const cfRow = cashflowRes.data;
   const investIncomeMonthly = investmentIncomeMonthly(holdings);
+  const periodStart = currentPeriodStartIsoInTz(
+    tz,
+    profileRes.data?.profile_type === "karyawan" ? profileRes.data.payday_day : null,
+  );
   // Auto-generated payday transactions stay in `expenses`/`incomes` for the
   // charts below (real money movements) but are excluded here — FCF is
   // already fed by the flat planning totals, see page.tsx for the rationale.
-  const expensesForFcf = (expRes.data || []).filter((e) => !e.is_auto_recurring);
-  const incomesForFcf = (incRes.data || []).filter((i) => !i.is_auto_recurring);
+  // Filtered to the current *period* (payday-to-payday for Karyawan, not
+  // the calendar month — see currentPeriodStartIsoInTz()), then summed with
+  // ym=null since that filtering already did the scoping monthExpenseTotal/
+  // monthIncomeTotal would otherwise redo (incorrectly, by calendar month).
+  const expensesForFcf = (expRes.data || []).filter((e) => !e.is_auto_recurring && e.expense_date >= periodStart);
+  const incomesForFcf = (incRes.data || []).filter((i) => !i.is_auto_recurring && i.income_date >= periodStart);
   const liveCf = cashflowNums(
     {
       income: Number(cfRow?.income || 0),
@@ -100,11 +109,11 @@ export default async function SummaryPage() {
     },
     monthExpenseTotal(
       expensesForFcf.map((e) => ({ id: e.id, date: e.expense_date, category: e.category, amount: Number(e.amount), description: e.description })),
-      thisYm,
+      null,
     ),
     monthIncomeTotal(
       incomesForFcf.map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: Number(i.amount), description: i.description })),
-      thisYm,
+      null,
     ) + investIncomeMonthly,
   );
 

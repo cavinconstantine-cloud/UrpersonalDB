@@ -2,7 +2,13 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { holdingValue } from "@/lib/finance/calculations";
-import { daysAgoIsoInTz, firstOfMonthIsoInTz, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from "@/lib/finance/format";
+import {
+  currentPeriodStartIsoInTz,
+  daysAgoIsoInTz,
+  firstOfMonthIsoInTz,
+  monthsAgoFirstOfMonthIsoInTz,
+  todayIsoInTz,
+} from "@/lib/finance/format";
 import type { HoldingData } from "@/lib/finance/types";
 
 export async function getDashboardData(tz: string) {
@@ -12,8 +18,24 @@ export async function getDashboardData(tz: string) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Fetched first (not in the big Promise.all below) because the "current
+  // period" for a Karyawan starts on their payday_day, not the 1st — the
+  // month-scoped queries below need that resolved before they can be built.
+  // See currentPeriodStartIsoInTz() for why: without this, a bill charged
+  // right on payday landed in the tail of the *previous* calendar month's
+  // totals instead of starting the new period clean.
+  const profileRes = await supabase
+    .from("profiles")
+    .select("name, onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
+    .eq("id", user.id)
+    .single();
+
+  const profile = profileRes.data;
+  if (!profile || profile.onboarding_step !== "done") redirect("/onboarding");
+
+  const periodStart = currentPeriodStartIsoInTz(tz, profile.profile_type === "karyawan" ? profile.payday_day : null);
+
   const [
-    profileRes,
     cashflowRes,
     holdingsRes,
     liabRes,
@@ -36,11 +58,6 @@ export async function getDashboardData(tz: string) {
     priorCashSnapshotsRes,
     streakRes,
   ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("name, onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
-      .eq("id", user.id)
-      .single(),
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
     supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id).order("created_at"),
     supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
@@ -49,13 +66,13 @@ export async function getDashboardData(tz: string) {
       .from("expenses")
       .select("id, expense_date, category, amount, description, is_auto_recurring")
       .eq("user_id", user.id)
-      .gte("expense_date", firstOfMonthIsoInTz(tz))
+      .gte("expense_date", periodStart)
       .order("expense_date", { ascending: false }),
     supabase
       .from("incomes")
       .select("id, income_date, category, amount, description, is_auto_recurring")
       .eq("user_id", user.id)
-      .gte("income_date", firstOfMonthIsoInTz(tz))
+      .gte("income_date", periodStart)
       .order("income_date", { ascending: false }),
     supabase
       .from("incomes")
@@ -129,9 +146,6 @@ export async function getDashboardData(tz: string) {
       .eq("user_id", user.id)
       .maybeSingle(),
   ]);
-
-  const profile = profileRes.data;
-  if (!profile || profile.onboarding_step !== "done") redirect("/onboarding");
 
   const holdings = (holdingsRes.data || []).map((h) => ({
     id: h.id,
@@ -231,39 +245,41 @@ export async function getFinancialSnapshotData(tz: string) {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [profileRes, cashflowRes, holdingsRes, liabRes, goalsRes, monthExpRes, monthIncRes, incomesLast3MonthsRes] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
-        .eq("id", user.id)
-        .single(),
-      supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
-      supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id).order("created_at"),
-      supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
-      supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
-      supabase
-        .from("expenses")
-        .select("id, expense_date, category, amount, description, is_auto_recurring")
-        .eq("user_id", user.id)
-        .gte("expense_date", firstOfMonthIsoInTz(tz))
-        .order("expense_date", { ascending: false }),
-      supabase
-        .from("incomes")
-        .select("id, income_date, category, amount, description, is_auto_recurring")
-        .eq("user_id", user.id)
-        .gte("income_date", firstOfMonthIsoInTz(tz))
-        .order("income_date", { ascending: false }),
-      supabase
-        .from("incomes")
-        .select("id, income_date, category, amount, description, is_auto_recurring")
-        .eq("user_id", user.id)
-        .gte("income_date", monthsAgoFirstOfMonthIsoInTz(2, tz))
-        .order("income_date", { ascending: false }),
-    ]);
+  const profileRes = await supabase
+    .from("profiles")
+    .select("onboarding_step, asset_categories, liability_categories, profile_type, payday_day")
+    .eq("id", user.id)
+    .single();
 
   const profile = profileRes.data;
   if (!profile || profile.onboarding_step !== "done") redirect("/onboarding");
+
+  const periodStart = currentPeriodStartIsoInTz(tz, profile.profile_type === "karyawan" ? profile.payday_day : null);
+
+  const [cashflowRes, holdingsRes, liabRes, goalsRes, monthExpRes, monthIncRes, incomesLast3MonthsRes] = await Promise.all([
+    supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
+    supabase.from("asset_holdings").select("id, category, data").eq("user_id", user.id).order("created_at"),
+    supabase.from("liabilities").select("id, category, data").eq("user_id", user.id),
+    supabase.from("goals").select("id, name, target, current, target_date").eq("user_id", user.id).order("created_at"),
+    supabase
+      .from("expenses")
+      .select("id, expense_date, category, amount, description, is_auto_recurring")
+      .eq("user_id", user.id)
+      .gte("expense_date", periodStart)
+      .order("expense_date", { ascending: false }),
+    supabase
+      .from("incomes")
+      .select("id, income_date, category, amount, description, is_auto_recurring")
+      .eq("user_id", user.id)
+      .gte("income_date", periodStart)
+      .order("income_date", { ascending: false }),
+    supabase
+      .from("incomes")
+      .select("id, income_date, category, amount, description, is_auto_recurring")
+      .eq("user_id", user.id)
+      .gte("income_date", monthsAgoFirstOfMonthIsoInTz(2, tz))
+      .order("income_date", { ascending: false }),
+  ]);
 
   const holdings = (holdingsRes.data || []).map((h) => ({
     id: h.id,

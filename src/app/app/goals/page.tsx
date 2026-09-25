@@ -10,6 +10,8 @@ import {
   rollingAverageMonthlyIncome,
   type HoldingRowWithGoal,
 } from "@/lib/finance/calculations";
+import { currentPeriodStartIsoInTz, monthsAgoFirstOfMonthIsoInTz } from "@/lib/finance/format";
+import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import { depositoNetInterestMonthly, obligasiNetCouponMonthly } from "@/lib/finance/schemas";
 import type { HoldingData } from "@/lib/finance/types";
 import { GoalsManager, type GoalLinkedAsset, type GoalLinkedSummary } from "@/components/app/goals-manager";
@@ -23,29 +25,33 @@ export default async function GoalsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const firstOfMonth = new Date();
-  firstOfMonth.setDate(1);
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 2, 1);
+  const tz = await getVisitorTimezone();
 
-  const [goalsRes, profileRes, cashflowRes, monthExpRes, holdingsRes, creditsRes, incomesLast3MonthsRes] =
-    await Promise.all([
-      supabase.from("goals").select("*").eq("user_id", user.id).order("created_at"),
-      supabase.from("profiles").select("profile_type").eq("id", user.id).single(),
-      supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
-      supabase
-        .from("expenses")
-        .select("amount, is_auto_recurring")
-        .eq("user_id", user.id)
-        .gte("expense_date", firstOfMonth.toISOString().slice(0, 10)),
-      supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id),
-      supabase.from("goal_interest_credits").select("goal_id, amount").eq("user_id", user.id),
-      supabase
-        .from("incomes")
-        .select("id, income_date, category, amount, description, is_auto_recurring")
-        .eq("user_id", user.id)
-        .gte("income_date", threeMonthsAgo.toISOString().slice(0, 10)),
-    ]);
+  // Fetched first — the "current period" expense query below needs to know
+  // profile_type/payday_day before it can be built (payday-to-payday for
+  // Karyawan, calendar month otherwise; see currentPeriodStartIsoInTz()).
+  const profileRes = await supabase.from("profiles").select("profile_type, payday_day").eq("id", user.id).single();
+  const periodStart = currentPeriodStartIsoInTz(
+    tz,
+    profileRes.data?.profile_type === "karyawan" ? profileRes.data.payday_day : null,
+  );
+
+  const [goalsRes, cashflowRes, monthExpRes, holdingsRes, creditsRes, incomesLast3MonthsRes] = await Promise.all([
+    supabase.from("goals").select("*").eq("user_id", user.id).order("created_at"),
+    supabase.from("cashflow").select("*").eq("user_id", user.id).maybeSingle(),
+    supabase
+      .from("expenses")
+      .select("amount, is_auto_recurring")
+      .eq("user_id", user.id)
+      .gte("expense_date", periodStart),
+    supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id),
+    supabase.from("goal_interest_credits").select("goal_id, amount").eq("user_id", user.id),
+    supabase
+      .from("incomes")
+      .select("id, income_date, category, amount, description, is_auto_recurring")
+      .eq("user_id", user.id)
+      .gte("income_date", monthsAgoFirstOfMonthIsoInTz(2, tz)),
+  ]);
 
   const cf = cashflowRes.data;
   // Auto-generated payday transactions excluded from FCF the same way as

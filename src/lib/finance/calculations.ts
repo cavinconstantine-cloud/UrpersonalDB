@@ -67,8 +67,9 @@ export function netWorth(assetCats: string[], holdings: HoldingRow[], liabRows: 
   return totalAssets(assetCats, holdings) - totalLiabilities(liabRows);
 }
 
-export function monthExpenseTotal(expenses: Expense[], ym: string = currentYm()): number {
-  return expenses.filter((e) => e.date.slice(0, 7) === ym).reduce((s, e) => s + Number(e.amount || 0), 0);
+/** `ym` narrows to a calendar month; `null` sums the array as-is (used where the caller already scoped it to the right range, e.g. a payday-aligned period that spans two calendar months). */
+export function monthExpenseTotal(expenses: Expense[], ym: string | null = currentYm()): number {
+  return expenses.filter((e) => ym === null || e.date.slice(0, 7) === ym).reduce((s, e) => s + Number(e.amount || 0), 0);
 }
 
 export interface ExpenseCategorySlice {
@@ -77,9 +78,9 @@ export interface ExpenseCategorySlice {
   pct: number;
 }
 
-/** Expenses whose date falls within `datePrefix` ("YYYY-MM" for a month, "YYYY" for a year), grouped by category, sorted by amount descending. */
-function expenseByCategoryForPrefix(expenses: Expense[], datePrefix: string): ExpenseCategorySlice[] {
-  const matched = expenses.filter((e) => e.date.startsWith(datePrefix));
+/** Expenses whose date falls within `datePrefix` ("YYYY-MM" for a month, "YYYY" for a year, or `null` to skip date filtering entirely), grouped by category, sorted by amount descending. */
+function expenseByCategoryForPrefix(expenses: Expense[], datePrefix: string | null): ExpenseCategorySlice[] {
+  const matched = datePrefix === null ? expenses : expenses.filter((e) => e.date.startsWith(datePrefix));
   const total = matched.reduce((s, e) => s + Number(e.amount || 0), 0);
   const byCategory = new Map<string, number>();
   for (const e of matched) {
@@ -90,8 +91,8 @@ function expenseByCategoryForPrefix(expenses: Expense[], datePrefix: string): Ex
     .sort((a, b) => b.amount - a.amount);
 }
 
-/** Current month's expenses grouped by category, sorted by amount descending. */
-export function expenseByCategory(expenses: Expense[], ym: string = currentYm()): ExpenseCategorySlice[] {
+/** Current month's expenses grouped by category, sorted by amount descending. `ym: null` skips date filtering (array already scoped by the caller). */
+export function expenseByCategory(expenses: Expense[], ym: string | null = currentYm()): ExpenseCategorySlice[] {
   return expenseByCategoryForPrefix(expenses, ym);
 }
 
@@ -321,7 +322,7 @@ export interface BudgetProgressItem {
 export function budgetProgress(
   expenses: Expense[],
   budgets: CategoryBudget[],
-  ym: string = currentYm(),
+  ym: string | null = currentYm(),
 ): BudgetProgressItem[] {
   const spentByCategory = new Map<string, number>();
   for (const slice of expenseByCategory(expenses, ym)) {
@@ -338,8 +339,8 @@ export function budgetProgress(
     .sort((a, b) => b.pct - a.pct);
 }
 
-export function monthIncomeTotal(incomes: Income[], ym: string = currentYm()): number {
-  return incomes.filter((i) => i.date.slice(0, 7) === ym).reduce((s, i) => s + Number(i.amount || 0), 0);
+export function monthIncomeTotal(incomes: Income[], ym: string | null = currentYm()): number {
+  return incomes.filter((i) => ym === null || i.date.slice(0, 7) === ym).reduce((s, i) => s + Number(i.amount || 0), 0);
 }
 
 /**

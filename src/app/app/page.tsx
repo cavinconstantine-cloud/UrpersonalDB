@@ -25,7 +25,7 @@ import {
   upcomingInstallments,
   upcomingInvestmentIncome,
 } from "@/lib/finance/calculations";
-import { currentYmInTz, fmtRp, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from "@/lib/finance/format";
+import { fmtRp, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from "@/lib/finance/format";
 import { getVisitorTimezone } from "@/lib/i18n/timezone";
 import { HeroCard } from "@/components/dashboard/hero-card";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
@@ -59,7 +59,6 @@ export default async function DashboardPage() {
   const data = await getDashboardData(tz);
   const lang = await getLang();
   const dict = getDictionary(lang);
-  const thisYm = currentYmInTz(tz);
   const today = todayIsoInTz(tz);
 
   const monthExpensesMapped = data.monthExpenses.map((e) => ({
@@ -82,6 +81,12 @@ export default async function DashboardPage() {
   // twice. Every other use of monthExpensesMapped/monthIncomesMapped (daily
   // recap, category breakdown, budget progress) keeps them, since they're
   // real money movements.
+  //
+  // `null` here (instead of a "YYYY-MM" ym) because data.monthExpenses/
+  // monthIncomes are already scoped to the user's current *period* by the
+  // query in getDashboardData() — for Karyawan that's payday-to-payday, not
+  // the calendar month, so it can span two different "YYYY-MM" values and a
+  // prefix-match filter here would incorrectly chop part of it back off.
   const monthExpTotal = monthExpenseTotal(
     data.monthExpenses.filter((e) => !e.is_auto_recurring).map((e) => ({
       id: e.id,
@@ -90,7 +95,7 @@ export default async function DashboardPage() {
       amount: Number(e.amount),
       description: e.description,
     })),
-    thisYm,
+    null,
   );
   const monthIncTotal = monthIncomeTotal(
     data.monthIncomes.filter((i) => !i.is_auto_recurring).map((i) => ({
@@ -100,7 +105,7 @@ export default async function DashboardPage() {
       amount: Number(i.amount),
       description: i.description,
     })),
-    thisYm,
+    null,
   );
   const investIncomeMonthly = investmentIncomeMonthly(data.holdings);
   const isPengusaha = data.profile.profile_type === "pengusaha";
@@ -135,8 +140,8 @@ export default async function DashboardPage() {
   const dailyRecap = computeDailyRecap(monthExpensesMapped, monthIncomesMapped, today);
   const installments = upcomingInstallments(data.liabilities);
   const investIncomeItems = upcomingInvestmentIncome(data.holdings);
-  const expenseSlices = expenseByCategory(monthExpensesMapped, thisYm);
-  const budgetItems = budgetProgress(monthExpensesMapped, data.budgets);
+  const expenseSlices = expenseByCategory(monthExpensesMapped, null);
+  const budgetItems = budgetProgress(monthExpensesMapped, data.budgets, null);
   const goalMaturities = upcomingGoalMaturities(data.holdings);
   const goalNameById = new Map(data.goals.map((g) => [g.id, g.name] as const));
 

@@ -39,10 +39,14 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
   // Auto-generated payday transactions are excluded here — FCF is already
   // fed by the flat planning totals (cf.income/cf.fixedExpense) below, so
   // counting them again would double-count. See page.tsx for the same rule.
+  // `null` ym: data.monthIncomes is already scoped to the current period
+  // (payday-to-payday for Karyawan) by getFinancialSnapshotData() — see
+  // page.tsx for why a calendar "YYYY-MM" filter here would be wrong.
   const monthIncomeTracked = monthIncomeTotal(
     data.monthIncomes
       .filter((i) => !i.is_auto_recurring)
       .map((i) => ({ id: i.id, date: i.income_date, category: i.category, amount: i.amount, description: i.description })),
+    null,
   );
   const investIncomeMonthly = investmentIncomeMonthly(data.holdings);
   const isPengusaha = data.profile.profile_type === "pengusaha";
@@ -65,6 +69,7 @@ export async function generateAiInsight(): Promise<AiInsightResult> {
       data.monthExpenses
         .filter((e) => !e.is_auto_recurring)
         .map((e) => ({ id: e.id, date: e.expense_date, category: e.category, amount: e.amount, description: e.description })),
+      null,
     ),
     trackedIncomeForCf + investIncomeMonthly,
   );

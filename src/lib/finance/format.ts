@@ -119,3 +119,35 @@ export function monthsAgoFirstOfMonthIsoInTz(months: number, tz: string): string
   const mm = String(base.getUTCMonth() + 1).padStart(2, "0");
   return `${base.getUTCFullYear()}-${mm}-01`;
 }
+
+function daysInMonthUtc(year: number, month1Indexed: number): number {
+  return new Date(Date.UTC(year, month1Indexed, 0)).getUTCDate();
+}
+
+/**
+ * Start of the user's "current period" — for a Karyawan, this is their
+ * payday_day (clamped to the month's real day count, e.g. 31 in February
+ * lands on the 28th/29th) instead of the 1st of the calendar month, so a
+ * bill charged right on payday doesn't get lumped into the tail end of the
+ * *previous* period. Falls back to the plain calendar month when
+ * `paydayDay` is null (Pengusaha, or no payday set yet).
+ */
+export function currentPeriodStartIsoInTz(tz: string, paydayDay: number | null | undefined): string {
+  if (!paydayDay) return firstOfMonthIsoInTz(tz);
+
+  const { y, m, d } = ymdInTz(new Date(), tz);
+  const year = Number(y);
+  const month = Number(m); // 1-indexed
+  const day = Number(d);
+
+  const effectiveDayThisMonth = Math.min(paydayDay, daysInMonthUtc(year, month));
+  if (day >= effectiveDayThisMonth) {
+    return `${y}-${m}-${String(effectiveDayThisMonth).padStart(2, "0")}`;
+  }
+
+  const prevMonthFirst = new Date(Date.UTC(year, month - 2, 1));
+  const prevYear = prevMonthFirst.getUTCFullYear();
+  const prevMonth = prevMonthFirst.getUTCMonth() + 1;
+  const effectiveDayPrevMonth = Math.min(paydayDay, daysInMonthUtc(prevYear, prevMonth));
+  return `${prevYear}-${String(prevMonth).padStart(2, "0")}-${String(effectiveDayPrevMonth).padStart(2, "0")}`;
+}
