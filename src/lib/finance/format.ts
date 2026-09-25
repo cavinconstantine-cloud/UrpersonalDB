@@ -92,6 +92,34 @@ export function todayIsoInTz(tz: string): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * True only when `updatedAtIso` is no more than `maxMinutes` old (default
+ * 40 — a safety buffer above the ~30-minute intraday price-refresh
+ * interval). A window this tight can never actually span into a prior
+ * trading day, so no separate "is it still today" check is needed. Gates
+ * any "diperbarui X menit lalu" style copy so it can never claim a price
+ * is current when the background refresh actually failed, hasn't run yet
+ * (e.g. a weekend or a missed beat from the external scheduler), or the
+ * caller simply doesn't have a timestamp — always falls back to `false`
+ * (never claims freshness) when unsure. Timezone-agnostic (a plain
+ * duration check), so it's safe to call from a client component too.
+ */
+export function isFreshStockPrice(updatedAtIso: string | null | undefined, maxMinutes = 40): boolean {
+  if (!updatedAtIso) return false;
+  const updated = new Date(updatedAtIso);
+  if (isNaN(updated.getTime())) return false;
+  const ageMinutes = (Date.now() - updated.getTime()) / 60000;
+  return ageMinutes >= -5 && ageMinutes <= maxMinutes; // small allowance for clock drift
+}
+
+/** "Diperbarui 12 menit lalu" — pairs with isFreshStockPrice(), never called unless that already returned true. */
+export function fmtMinutesAgo(updatedAtIso: string): string {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(updatedAtIso).getTime()) / 60000));
+  if (mins < 1) return "Diperbarui baru saja";
+  if (mins === 1) return "Diperbarui 1 menit lalu";
+  return `Diperbarui ${mins} menit lalu`;
+}
+
 /** Same as currentYm(), but for a given IANA timezone (see todayIsoInTz). */
 export function currentYmInTz(tz: string): string {
   const { y, m } = ymdInTz(new Date(), tz);

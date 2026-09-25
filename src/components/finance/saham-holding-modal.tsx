@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { NumberField } from "@/components/ui/number-field";
 import { TextField } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
-import { fmtRp, nameOrKamu } from "@/lib/finance/format";
+import { fmtMinutesAgo, fmtRp, isFreshStockPrice, nameOrKamu } from "@/lib/finance/format";
 import { STOCK_LOT_SIZE } from "@/lib/finance/constants";
 import { IDX_TICKERS, searchIdxTickers } from "@/lib/finance/idx-tickers";
 import type { HoldingData } from "@/lib/finance/types";
@@ -16,6 +16,8 @@ export interface StockPriceInfo {
   price: number;
   changePct: number;
   asOf: string;
+  /** stock_prices.updated_at — when present and recent, the UI says "diperbarui X menit lalu" instead of the H-1 closing-price copy. */
+  updatedAt?: string;
 }
 
 interface SahamHoldingModalProps {
@@ -170,8 +172,8 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
           <div className="flex gap-2 bg-brand/10 border border-brand/25 rounded-xl px-3 py-2.5 mb-4">
             <span className="text-xs shrink-0">💡</span>
             <span className="text-[11px] text-text-dim leading-relaxed">
-              Harga yang ditampilkan adalah <b className="text-text">harga penutupan hari sebelumnya (H-1)</b>,
-              diperbarui otomatis tiap hari kerja — bukan harga real-time/live.
+              Harga diperbarui berkala saat jam bursa buka (09.00&ndash;16.00 WIB) — bukan streaming real-time
+              seperti aplikasi trading.
             </span>
           </div>
           <Button fullWidth variant="ghost" onClick={onClose}>
@@ -207,8 +209,17 @@ export function SahamHoldingModal({ open, onClose, initial, stockPrices, onSave,
                 <div className="flex gap-2 bg-good/10 border border-good/30 rounded-xl px-3 py-2.5 mb-5">
                   <span className="text-xs shrink-0">🕒</span>
                   <span className="text-[11.5px] text-text-dim leading-relaxed">
-                    Harga penutupan <b className="text-text">{fmtAsOf(picked.asOf)}</b> — <b className="text-text">bukan harga real-time/live</b>,
-                    cuma diperbarui tiap hari kerja. {who[0].toUpperCase() + who.slice(1)} nggak perlu update manual.
+                    {isFreshStockPrice(picked.updatedAt) ? (
+                      <>
+                        <b className="text-text">{fmtMinutesAgo(picked.updatedAt!)}</b> — bukan streaming
+                        real-time, cuma diperbarui berkala saat jam bursa buka.
+                      </>
+                    ) : (
+                      <>
+                        Harga penutupan <b className="text-text">{fmtAsOf(picked.asOf)}</b> — belum ada update terbaru hari ini.
+                      </>
+                    )}{" "}
+                    {who[0].toUpperCase() + who.slice(1)} nggak perlu update manual.
                   </span>
                 </div>
               )}

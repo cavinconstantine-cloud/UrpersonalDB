@@ -54,6 +54,7 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       price: Number(row.price),
       changePct: Number(row.change_pct),
       asOf: row.as_of,
+      updatedAt: row.updated_at,
     };
     if (row.ticker === "^JKSE") ihsg = info;
     else stockPrices[row.ticker] = info;
@@ -83,12 +84,12 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       </h1>
       <p className="text-text-dim text-sm mb-6 leading-relaxed">
         {category === "Saham"
-          ? `Harga saham & IHSG di sini adalah harga penutupan hari sebelumnya (H-1), diperbarui otomatis tiap hari kerja — bukan harga real-time/live. ${capNameOrKamu(profile?.name)} tinggal isi jumlah lot & harga beli.`
+          ? `Harga saham & IHSG diperbarui berkala saat jam bursa buka (09.00–16.00 WIB) — bukan streaming real-time seperti aplikasi trading. ${capNameOrKamu(profile?.name)} tinggal isi jumlah lot & harga beli.`
           : `${capNameOrKamu(profile?.name)} bisa menambahkan lebih dari satu, mis. beberapa produk sekaligus.`}
       </p>
       {category === "Saham" && ihsg && (
         <>
-          <IhsgWidget price={ihsg.price} asOf={ihsg.asOf} />
+          <IhsgWidget price={ihsg.price} asOf={ihsg.asOf} updatedAt={ihsg.updatedAt} />
           <div className="text-xs font-medium text-text-dim mb-2.5">📊 Portofolio Saham {capNameOrKamu(profile?.name)}</div>
         </>
       )}

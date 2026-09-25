@@ -65,11 +65,38 @@ async function fetchYahooQuotes(symbols: string[]): Promise<{ quotes: Map<string
   return { quotes, sampleErrors };
 }
 
+/**
+ * IDX trading session (09:00–15:50 WIB) plus a buffer through the existing
+ * once-daily post-close run (~16:30 WIB) — wide enough to never skip that
+ * legitimate run, tight enough to no-op cheaply if an external scheduler
+ * (see `force`) ends up pinging this route outside market hours or on a
+ * weekend/holiday, instead of hammering Yahoo Finance and rewriting prices
+ * for no reason.
+ */
+function isTradingWindowJakarta(): boolean {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jakarta",
+    hour: "2-digit",
+    hour12: false,
+    weekday: "short",
+  }).formatToParts(new Date());
+  const hour = Number(parts.find((p) => p.type === "hour")?.value ?? "0");
+  const weekday = parts.find((p) => p.type === "weekday")?.value ?? "";
+  const isWeekday = !["Sat", "Sun"].includes(weekday);
+  return isWeekday && hour >= 9 && hour < 17;
+}
+
 export async function GET(request: Request) {
+  const url = new URL(request.url);
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret) {
     const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
+    // Vercel's own cron sends the secret as a Bearer header; a free external
+    // scheduler (used to poll this route more often than the Hobby plan's
+    // once-a-day native cron allows) may only be able to hit a bare URL, so
+    // a `?secret=` query param works too — either proves the same secret.
+    const querySecret = url.searchParams.get("secret");
+    if (auth !== `Bearer ${cronSecret}` && querySecret !== cronSecret) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
   }
@@ -83,7 +110,19 @@ export async function GET(request: Request) {
     });
   }
 
+  // `force=true` bypasses the trading-window gate for manual/closed-environment
+  // testing outside market hours — never set by the real schedule.
+  const force = url.searchParams.get("force") === "true";
+  if (!force && !isTradingWindowJakarta()) {
+    return NextResponse.json({
+      ok: true,
+      skipped: true,
+      reason: "Outside IDX trading hours (09:00–17:00 WIB, Mon–Fri).",
+    });
+  }
+
   const isoToday = new Date().toISOString().slice(0, 10);
+  const nowIso = new Date().toISOString();
   const results = new Map<string, FetchedPrice>();
 
   const symbols = [...IDX_TICKERS.map((t) => `${t.ticker}.JK`), IHSG_TICKER];
@@ -107,6 +146,7 @@ export async function GET(request: Request) {
       change_pct: changePct,
       currency: "IDR",
       as_of: isoToday,
+      updated_at: nowIso,
     };
   });
   if (ihsg) {
@@ -119,6 +159,7 @@ export async function GET(request: Request) {
       change_pct: changePct,
       currency: "IDR",
       as_of: isoToday,
+      updated_at: nowIso,
     });
   }
   // One batched upsert instead of one round trip per ticker (~50+) — the
