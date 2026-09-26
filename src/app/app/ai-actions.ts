@@ -86,7 +86,17 @@ Contoh: "Untuk mencapai semua goals tepat waktu, ${userName} perlu menabung Rp X
       .join("\n")
       .trim();
 
-    if (!text) return { ok: false, error: "AI tidak menghasilkan jawaban. Coba lagi." };
+    if (!text) {
+      console.error(
+        "generateGoalProgressInsight: empty text. stop_reason=%s blocks=%o",
+        message.stop_reason,
+        message.content.map((b) => b.type),
+      );
+      return {
+        ok: false,
+        error: `AI tidak menghasilkan jawaban (stop_reason: ${message.stop_reason}, blocks: ${message.content.map((b) => b.type).join(", ") || "none"}). Coba lagi.`,
+      };
+    }
     return { ok: true, text };
   } catch (err) {
     console.error("generateGoalProgressInsight: Anthropic call failed:", err);
