@@ -106,8 +106,10 @@ function numberedAccountList(accounts: CashAccount[]): string {
   return accounts.map((a, i) => `${i + 1}) ${a.label}`).join("\n");
 }
 
-function accountChoiceMessage(accounts: CashAccount[]): string {
-  return `Baik, bayarnya pakai rekening mana nih? 💳\n${numberedAccountList(accounts)}\n\n(bisa diedit lagi di app kok 😉)`;
+function accountChoiceMessage(accounts: CashAccount[], type: "expense" | "income"): string {
+  const question =
+    type === "income" ? "Baik, penerimaan ini mau di catat ke rekening mana?" : "Baik, bayarnya pakai rekening mana nih?";
+  return `${question} 💳\n${numberedAccountList(accounts)}\n\n(bisa diedit lagi di app kok 😉)`;
 }
 
 function todayIsoJakarta(): string {
@@ -214,7 +216,7 @@ async function resolveAccountAndFinalize(admin: AdminClient, userId: string, msg
     },
     { onConflict: "whatsapp_number" },
   );
-  await sendWhatsAppMessage(msg.from, accountChoiceMessage(accounts));
+  await sendWhatsAppMessage(msg.from, accountChoiceMessage(accounts, parsed.type));
 }
 
 /**
