@@ -107,7 +107,7 @@ function numberedAccountList(accounts: CashAccount[]): string {
 }
 
 function accountChoiceMessage(accounts: CashAccount[]): string {
-  return `Dicatat dari mana nih? 💳\n${numberedAccountList(accounts)}\n\n(bisa diedit lagi di app kok 😉)`;
+  return `Baik, bayarnya pakai rekening mana nih? 💳\n${numberedAccountList(accounts)}\n\n(bisa diedit lagi di app kok 😉)`;
 }
 
 function todayIsoJakarta(): string {
