@@ -36,12 +36,14 @@ import { SpendingByCategoryCard } from "@/components/dashboard/spending-by-categ
 import { AssetSection } from "@/components/dashboard/asset-section";
 import { LiabilitySection } from "@/components/dashboard/liability-section";
 import { GoalsPreview } from "@/components/dashboard/goals-preview";
+import { GoalAiInsightCard } from "@/components/dashboard/goal-ai-insight-card";
 import { TransactionsPreview } from "@/components/dashboard/transactions-preview";
 import { UpcomingBillingCard } from "@/components/dashboard/upcoming-billing-card";
 import { UpcomingInvestmentIncomeCard } from "@/components/dashboard/upcoming-investment-income-card";
 import { GoalMaturityCard } from "@/components/dashboard/goal-maturity-card";
 import { RecurringCashflowPreview } from "@/components/dashboard/recurring-cashflow-preview";
 import type { TxRow } from "@/components/app/transaction-list";
+import { isAiInsightAvailable } from "@/app/app/ai-actions";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -49,6 +51,7 @@ export default async function DashboardPage() {
   const tz = await getVisitorTimezone();
   const data = await getDashboardData(tz);
   const today = todayIsoInTz(tz);
+  const aiAvailable = await isAiInsightAvailable();
 
   const monthExpensesMapped = data.monthExpenses.map((e) => ({
     id: e.id,
@@ -261,6 +264,7 @@ export default async function DashboardPage() {
       />
       <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
       <GoalsPreview goals={data.goals} fcf={cf.fcf} />
+      <GoalAiInsightCard available={aiAvailable} />
       <RecurringCashflowPreview incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
       <UpcomingBillingCard installments={installments} />
       <UpcomingInvestmentIncomeCard items={investIncomeItems} />
