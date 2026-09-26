@@ -251,9 +251,9 @@ export default async function DashboardPage() {
         prevMonthExpenseTotal={data.prevMonthExpenseTotal}
         totalMonthlyBudget={totalMonthlyBudget}
       />
+      <SpendingByCategoryCard budgetItems={budgetItems} expenseSlices={expenseSlices} />
       <StatTilesRow incomeTotal={monthIncTotal} fcf={cf.fcf} savingRate={cf.savingRate} />
       <DailyRecapCard recap={dailyRecap} />
-      <SpendingByCategoryCard budgetItems={budgetItems} expenseSlices={expenseSlices} />
       <AssetSection
         assetCats={data.profile.asset_categories}
         holdings={data.holdings}
