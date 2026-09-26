@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { signInAction, type AuthFormState } from "../actions";
-import { TextField } from "@/components/ui/field";
+import { TextField, PasswordField } from "@/components/ui/field";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { FormMessage } from "@/components/auth/form-message";
 
@@ -25,10 +25,9 @@ export function LoginForm({ next }: { next: string }) {
         autoComplete="email"
         required
       />
-      <TextField
+      <PasswordField
         id="password"
         name="password"
-        type="password"
         label="Password"
         placeholder="••••••••"
         autoComplete="current-password"
