@@ -31,6 +31,7 @@ export async function generateGoalProgressInsight(
   goals: Array<{ id: string; name: string; target: number; current: number; targetDate: string }>,
   fcf: number,
   monthlyIncome: number,
+  userName: string,
 ): Promise<AiInsightResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -38,14 +39,15 @@ export async function generateGoalProgressInsight(
   }
 
   if (!goals || goals.length === 0) {
-    return { ok: false, error: "Belum ada goal yang dibuat." };
+    return { ok: false };
   }
 
   const goalsText = goals
     .map((g) => {
       const remaining = g.target - g.current;
-      const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
-      return `- ${g.name}: Rp ${Number(g.target).toLocaleString("id-ID")} (${pct}% terkumpul, sisa Rp ${remaining.toLocaleString("id-ID")}, target ${g.targetDate})`;
+      const monthsLeft = 12; // simplified, ideally calculate from targetDate
+      const monthlyNeeded = remaining > 0 ? Math.ceil(remaining / monthsLeft) : 0;
+      return `- ${g.name}: target Rp ${Number(g.target).toLocaleString("id-ID")}, sudah Rp ${Number(g.current).toLocaleString("id-ID")} (sisa Rp ${remaining.toLocaleString("id-ID")}, target ${g.targetDate})`;
     })
     .join("\n");
 
@@ -53,23 +55,27 @@ export async function generateGoalProgressInsight(
     const anthropic = new Anthropic({ apiKey });
     const message = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 500,
+      max_tokens: 600,
       messages: [
         {
           role: "user",
-          content: `Anda adalah asisten keuangan pribadi. Analisa progress goals berdasarkan FCF & income pengguna:
+          content: `Anda adalah asisten keuangan pribadi berbahasa Indonesia. Analisa feasibility goals ${userName} dengan FCF & income mereka:
 
 Goals:
 ${goalsText}
 
 Kondisi Finansial:
-- Free Cash Flow: Rp ${fcf.toLocaleString("id-ID")}/bulan
+- Free Cash Flow (FCF): Rp ${fcf.toLocaleString("id-ID")}/bulan
 - Monthly Income: Rp ${monthlyIncome.toLocaleString("id-ID")}/bulan
 
-Tulis dalam Bahasa Indonesia, singkat (2-3 kalimat max):
-1. Highlight: Mana goal yang feasible atau tidak dengan FCF current.
-2. 1 rekomendasi konkret: berapa/bulan perlu dialokasikan atau apa yang perlu diubah.
-Jangan panjang, langsung ke inti.`,
+Instruksi:
+1. Hitung total monthly allocation yang dibutuhkan untuk semua goals.
+2. Bandingkan dengan FCF yang tersedia.
+3. Jika gap: beri rekomendasi konkret (extend target date, kurangi lifestyle expense, atau adjust goals).
+4. Jika feasible: confirm dan beri tips optimization.
+
+Format: 3-4 kalimat, actionable, spesifik dengan angka. Jangan generic.
+Contoh: "Untuk mencapai semua goals tepat waktu, ${userName} perlu menabung Rp X/bulan, tapi FCF hanya Rp Y/bulan. Pertimbangkan A atau B."`,
         },
       ],
     });
@@ -80,16 +86,10 @@ Jangan panjang, langsung ke inti.`,
       .join("\n")
       .trim();
 
-    if (!text) return { ok: false, error: "AI tidak menghasilkan jawaban." };
+    if (!text) return { ok: false };
     return { ok: true, text };
   } catch (err) {
     console.error("generateGoalProgressInsight: Anthropic call failed:", err);
-    if (err instanceof Anthropic.AuthenticationError) {
-      return { ok: false, error: "ANTHROPIC_API_KEY tidak valid." };
-    }
-    if (err instanceof Error) {
-      return { ok: false, error: `Terjadi kendala: ${err.message}` };
-    }
     return { ok: false };
   }
 }

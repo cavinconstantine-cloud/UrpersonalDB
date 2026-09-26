@@ -262,7 +262,7 @@ export default async function DashboardPage() {
       />
       <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
       <GoalsPreview goals={data.goals} fcf={cf.fcf} />
-      <GoalProgressInsight goals={data.goals} fcf={cf.fcf} monthlyIncome={monthIncTotal} />
+      <GoalProgressInsight goals={data.goals} fcf={cf.fcf} monthlyIncome={monthIncTotal} userName={data.profile.name} />
       <RecurringCashflowPreview incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
       <UpcomingBillingCard installments={installments} />
       <UpcomingInvestmentIncomeCard items={investIncomeItems} />
