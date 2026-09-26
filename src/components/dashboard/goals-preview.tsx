@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SectionCard } from "@/components/ui/section-card";
 import { goalMonthlyNeed } from "@/lib/finance/calculations";
-import { fmtRp } from "@/lib/finance/format";
+import { fmtRpCompact } from "@/lib/finance/format";
 import type { Goal } from "@/lib/finance/types";
 
 export function GoalsPreview({ goals, fcf }: { goals: Goal[]; fcf: number }) {
@@ -10,12 +10,12 @@ export function GoalsPreview({ goals, fcf }: { goals: Goal[]; fcf: number }) {
       title="🎯 Goals"
       action={
         <Link href="/app/goals" className="text-xs text-brand-strong bg-brand/10 rounded-full px-3 py-1.5 font-medium">
-          Kelola
+          Manage
         </Link>
       }
     >
       {goals.length === 0 ? (
-        <div className="text-sm text-text-dim py-2 pb-4">Belum ada goals.</div>
+        <div className="text-sm text-text-dim py-2 pb-4">No goals yet.</div>
       ) : (
         goals.map((g) => {
           const need = goalMonthlyNeed(g);
@@ -32,7 +32,7 @@ export function GoalsPreview({ goals, fcf }: { goals: Goal[]; fcf: number }) {
                     background: onTrack ? "var(--good-wash)" : "var(--warning-wash)",
                   }}
                 >
-                  {onTrack ? "Sesuai jalur" : "Perlu perhatian"}
+                  {onTrack ? "On Track" : "Needs Attention"}
                 </span>
               </div>
               <div className="h-1.5 rounded-full bg-hairline overflow-hidden mb-1.5">
@@ -40,9 +40,9 @@ export function GoalsPreview({ goals, fcf }: { goals: Goal[]; fcf: number }) {
               </div>
               <div className="flex justify-between text-xs text-text-dim">
                 <span>
-                  {fmtRp(g.current)} dari {fmtRp(g.target)}
+                  {fmtRpCompact(g.current)} / {fmtRpCompact(g.target)}
                 </span>
-                <span>perlu {fmtRp(need)}/bln</span>
+                <span>needs {fmtRpCompact(need)}/mo</span>
               </div>
             </div>
           );

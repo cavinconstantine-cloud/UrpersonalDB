@@ -5,6 +5,7 @@ import { holdingValue } from "@/lib/finance/calculations";
 import {
   currentPeriodStartIsoInTz,
   daysAgoIsoInTz,
+  firstOfMonthIsoInTz,
   monthsAgoFirstOfMonthIsoInTz,
   todayIsoInTz,
 } from "@/lib/finance/format";
@@ -52,6 +53,7 @@ export async function getDashboardData(tz: string) {
     assetHoldingSnapshotsRes,
     ihsgRes,
     streakRes,
+    prevMonthExpRes,
   ] = await Promise.all([
     supabase.from("cashflow").select("income, fixed_expense, lifestyle_expense, invest").eq("user_id", user.id).maybeSingle(),
     supabase.from("asset_holdings").select("id, category, data, goal_id").eq("user_id", user.id).order("created_at"),
@@ -127,6 +129,16 @@ export async function getDashboardData(tz: string) {
       .select("current_streak, longest_streak, last_logged_date")
       .eq("user_id", user.id)
       .maybeSingle(),
+    // Previous calendar month's spend, for the dashboard's "vs last month"
+    // delta — an approximation for Karyawan (whose real period runs
+    // payday-to-payday, not 1st-to-1st), but close enough for a trend badge
+    // and avoids computing a second payday-aware period boundary just for this.
+    supabase
+      .from("expenses")
+      .select("amount, is_auto_recurring")
+      .eq("user_id", user.id)
+      .gte("expense_date", monthsAgoFirstOfMonthIsoInTz(1, tz))
+      .lt("expense_date", firstOfMonthIsoInTz(tz)),
   ]);
 
   const holdings = (holdingsRes.data || []).map((h) => ({
@@ -198,6 +210,9 @@ export async function getDashboardData(tz: string) {
       label: s.label,
       value: Number(s.value),
     })),
+    prevMonthExpenseTotal: (prevMonthExpRes.data || [])
+      .filter((e) => !e.is_auto_recurring)
+      .reduce((s, e) => s + Number(e.amount), 0),
     ihsgChangePct: ihsgRes.data ? Number(ihsgRes.data.change_pct) : null,
     streak: streakRes.data
       ? {

@@ -24,20 +24,20 @@ export function PaydayReminderCard({
       </div>
       {positive ? (
         <>
-          Sisa dari income {who} yang belum kepake:{" "}
+          Leftover from {who}&apos;s income that hasn&apos;t been spent:{" "}
           <strong style={{ color: "var(--good)" }}>
             {fmtRp(fcf)} ({Math.round(savingRate * 100)}%)
           </strong>
-          . Kemungkinan uang ini masih nongkrong di rekening {who} — coba pindahin ke tabungan/investasi biar nggak
-          kepake nggak sadar.
+          . It&apos;s probably still sitting in {who}&apos;s account — consider moving it to savings/investments before
+          it quietly gets spent.
         </>
       ) : (
         <>
-          Pengeluaran {who} lebih besar dari income:{" "}
+          {who}&apos;s spending is higher than income:{" "}
           <strong style={{ color: "var(--critical)" }}>
             {fmtRp(Math.abs(fcf))} ({Math.round(savingRate * 100)}%)
           </strong>
-          . Coba cek lagi pos pengeluaran yang bisa dipangkas bulan depan.
+          . Worth reviewing which expenses can be trimmed next month.
         </>
       )}
     </div>

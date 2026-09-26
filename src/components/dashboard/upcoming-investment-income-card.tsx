@@ -4,9 +4,9 @@ import { fmtRp } from "@/lib/finance/format";
 import type { UpcomingInvestmentIncome } from "@/lib/finance/calculations";
 
 function whenLabel(daysUntil: number): string {
-  if (daysUntil === 0) return "Hari ini";
-  if (daysUntil === 1) return "Besok";
-  return `${daysUntil} hari lagi`;
+  if (daysUntil === 0) return "Today";
+  if (daysUntil === 1) return "Tomorrow";
+  return `in ${daysUntil} days`;
 }
 
 export function UpcomingInvestmentIncomeCard({ items }: { items: UpcomingInvestmentIncome[] }) {
@@ -15,7 +15,7 @@ export function UpcomingInvestmentIncomeCard({ items }: { items: UpcomingInvestm
   const upcoming = items.slice(0, 5);
 
   return (
-    <SectionCard title="💰 Perkiraan Pemasukan Bulan Ini">
+    <SectionCard title="💰 Expected Income This Month">
       <div className="pb-2">
         {upcoming.map((item) => (
           <Link
@@ -27,7 +27,7 @@ export function UpcomingInvestmentIncomeCard({ items }: { items: UpcomingInvestm
               <div className="min-w-0">
                 <div className="text-sm font-medium truncate">{item.label}</div>
                 <div className="text-xs text-text-dim">
-                  {item.category} · tgl {item.day}
+                  {item.category} · day {item.day}
                 </div>
               </div>
               <div className="text-right shrink-0">

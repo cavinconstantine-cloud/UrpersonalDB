@@ -12,10 +12,10 @@ export function MissingAccountReminder({ count }: { count: number }) {
       <div className="flex items-center gap-2">
         <span className="text-base leading-none">⚠️</span>
         <span className="font-medium">
-          {count} item pemasukan/pengeluaran tetap belum terhubung ke rekening
+          {count} recurring income/expense item{count === 1 ? "" : "s"} not linked to an account
         </span>
       </div>
-      <p className="text-xs text-text-dim mt-1">Tap buat lengkapi di Arus Kas Tetap →</p>
+      <p className="text-xs text-text-dim mt-1">Tap to complete it in Cash Flow →</p>
     </Link>
   );
 }

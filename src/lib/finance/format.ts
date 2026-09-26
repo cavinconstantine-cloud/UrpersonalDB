@@ -3,6 +3,23 @@ export function fmtRp(n: number | string | undefined | null): string {
   return "Rp " + Math.round(num).toLocaleString("id-ID");
 }
 
+/**
+ * Compact English K/M/B form (Rp1.28B, Rp42.5M, Rp800K) — the international
+ * convention, as opposed to Indonesian "rb/jt" shorthand. Used on the English
+ * dashboard cards where space is tight; full fmtRp() is still used wherever
+ * precision matters more than density (transaction lists, per-category detail).
+ */
+export function fmtRpCompact(n: number | string | undefined | null): string {
+  const num = Number(n) || 0;
+  const sign = num < 0 ? "-" : "";
+  const abs = Math.abs(num);
+  const trim = (s: string) => s.replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+  if (abs >= 1_000_000_000) return `${sign}Rp${trim((abs / 1_000_000_000).toFixed(2))}B`;
+  if (abs >= 1_000_000) return `${sign}Rp${trim((abs / 1_000_000).toFixed(2))}M`;
+  if (abs >= 1_000) return `${sign}Rp${Math.round(abs / 1_000)}K`;
+  return `${sign}Rp${Math.round(abs)}`;
+}
+
 /** Mid-sentence address — the user's name, or lowercase "kamu" when none is set yet. */
 export function nameOrKamu(name: string | null | undefined): string {
   const trimmed = name?.trim();

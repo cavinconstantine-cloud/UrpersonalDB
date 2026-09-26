@@ -15,26 +15,26 @@ export function RecurringCashflowPreview({
 
   return (
     <SectionCard
-      title="💳 Arus Kas Tetap"
+      title="💳 Recurring Cash Flow"
       action={
         <Link
           href="/app/cashflow"
           className="text-xs text-brand-strong bg-brand/10 rounded-full px-3 py-1.5 font-medium"
         >
-          Kelola
+          Manage
         </Link>
       }
     >
       <p className="text-xs text-text-dim mb-3 -mt-1 leading-relaxed">
-        Pemasukan & pengeluaran rutin (bulanan) — dasar hitungan Free Cash Flow.
+        Recurring monthly income & expenses — the basis for your Free Cash Flow calculation.
       </p>
       <div className="flex gap-2.5 pb-3">
         <div className="flex-1 rounded-xl bg-bg-input p-3">
-          <div className="text-xs text-text-dim mb-1">Pemasukan tetap</div>
+          <div className="text-xs text-text-dim mb-1">Recurring income</div>
           <div className="serif text-[16px]">{fmtRp(incomeTotal)}</div>
         </div>
         <div className="flex-1 rounded-xl bg-bg-input p-3">
-          <div className="text-xs text-text-dim mb-1">Pengeluaran tetap</div>
+          <div className="text-xs text-text-dim mb-1">Recurring expenses</div>
           <div className="serif text-[16px]">{fmtRp(expenseTotal)}</div>
         </div>
       </div>

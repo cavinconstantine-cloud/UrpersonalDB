@@ -10,9 +10,7 @@ import {
   budgetProgress,
   cashflowNums,
   computeDailyRecap,
-  computeDBR,
   expenseByCategory,
-  idleCashSurplus,
   investmentIncomeMonthly,
   liquidAssets,
   monthExpenseTotal,
@@ -25,16 +23,16 @@ import {
   upcomingInstallments,
   upcomingInvestmentIncome,
 } from "@/lib/finance/calculations";
-import { fmtRp, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from "@/lib/finance/format";
+import { daysAgoIsoInTz, monthsAgoFirstOfMonthIsoInTz, todayIsoInTz } from "@/lib/finance/format";
 import { getVisitorTimezone } from "@/lib/i18n/timezone";
-import { HeroCard } from "@/components/dashboard/hero-card";
 import { GreetingHeader } from "@/components/dashboard/greeting-header";
-import { NetWorthTrend } from "@/components/dashboard/net-worth-trend";
-import { DbrCard } from "@/components/dashboard/dbr-card";
-import { LiquidAssetsCard } from "@/components/dashboard/liquid-assets-card";
+import { NetWorthHeroCard } from "@/components/dashboard/net-worth-hero-card";
+import { ThisMonthCard } from "@/components/dashboard/this-month-card";
+import { StatTilesRow } from "@/components/dashboard/stat-tiles-row";
 import { PaydayReminderCard } from "@/components/dashboard/payday-reminder-card";
 import { MissingAccountReminder } from "@/components/dashboard/missing-account-reminder";
 import { DailyRecapCard } from "@/components/dashboard/daily-recap-card";
+import { SpendingByCategoryCard } from "@/components/dashboard/spending-by-category-card";
 import { AssetSection } from "@/components/dashboard/asset-section";
 import { LiabilitySection } from "@/components/dashboard/liability-section";
 import { GoalsPreview } from "@/components/dashboard/goals-preview";
@@ -42,23 +40,14 @@ import { TransactionsPreview } from "@/components/dashboard/transactions-preview
 import { UpcomingBillingCard } from "@/components/dashboard/upcoming-billing-card";
 import { UpcomingInvestmentIncomeCard } from "@/components/dashboard/upcoming-investment-income-card";
 import { GoalMaturityCard } from "@/components/dashboard/goal-maturity-card";
-import { FcfTrend } from "@/components/dashboard/fcf-trend";
-import { MarketNewsCard } from "@/components/dashboard/market-news-card";
-import { MarketInsightCard } from "@/components/dashboard/market-insight-card";
-import { ExpenseSplitCard } from "@/components/dashboard/expense-split-card";
-import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import { RecurringCashflowPreview } from "@/components/dashboard/recurring-cashflow-preview";
 import type { TxRow } from "@/components/app/transaction-list";
-import { getLang } from "@/lib/i18n/lang";
-import { getDictionary } from "@/lib/i18n/dictionaries";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
   const tz = await getVisitorTimezone();
   const data = await getDashboardData(tz);
-  const lang = await getLang();
-  const dict = getDictionary(lang);
   const today = todayIsoInTz(tz);
 
   const monthExpensesMapped = data.monthExpenses.map((e) => ({
@@ -132,18 +121,31 @@ export default async function DashboardPage() {
     monthExpTotal,
     trackedIncomeForCf + investIncomeMonthly,
   );
-  const dbr = computeDBR(cf, data.liabilities);
   const totalAssetsVal = totalAssets(data.profile.asset_categories, data.holdings);
   const totalLiabVal = totalLiabilities(data.liabilities);
   const netWorthVal = netWorth(data.profile.asset_categories, data.holdings, data.liabilities);
   const liquidAssetsVal = liquidAssets(data.holdings);
+  const illiquidAssetsVal = Math.max(0, totalAssetsVal - liquidAssetsVal);
   const dailyRecap = computeDailyRecap(monthExpensesMapped, monthIncomesMapped, today);
   const installments = upcomingInstallments(data.liabilities);
   const investIncomeItems = upcomingInvestmentIncome(data.holdings);
   const expenseSlices = expenseByCategory(monthExpensesMapped, null);
   const budgetItems = budgetProgress(monthExpensesMapped, data.budgets, null);
+  const totalMonthlyBudget = data.budgets.reduce((s, b) => s + (b.monthlyLimit > 0 ? b.monthlyLimit : 0), 0);
   const goalMaturities = upcomingGoalMaturities(data.holdings);
   const goalNameById = new Map(data.goals.map((g) => [g.id, g.name] as const));
+
+  // Net worth ~30 days ago — the closest snapshot at or before that date —
+  // used for the hero card's "vs last month" badge. `null` (badge hidden)
+  // when the account isn't old enough to have one yet, rather than faking a
+  // percentage off a missing baseline.
+  const oneMonthAgoIso = daysAgoIsoInTz(30, tz);
+  const baselineSnapshot = [...data.snapshots].reverse().find((s) => s.snapshot_date <= oneMonthAgoIso);
+  const baselineNetWorth = baselineSnapshot ? Number(baselineSnapshot.net_worth) : null;
+  const netWorthDeltaPct =
+    baselineNetWorth !== null && baselineNetWorth !== 0
+      ? ((netWorthVal - baselineNetWorth) / Math.abs(baselineNetWorth)) * 100
+      : null;
 
   // Deferred to run after the response is sent — this bookkeeping (net
   // worth / FCF / per-holding history) has no bearing on what's rendered,
@@ -170,7 +172,7 @@ export default async function DashboardPage() {
   const accountLabelById = new Map(
     data.holdings
       .filter((h) => h.category === "Cash")
-      .map((h) => [h.id, String(h.data.label || "Rekening")] as const),
+      .map((h) => [h.id, String(h.data.label || "Account")] as const),
   );
 
   const recentExpensesMapped: TxRow[] = data.recentExpenses.map((e) => ({
@@ -201,8 +203,8 @@ export default async function DashboardPage() {
     (r) => !r.accountHoldingId,
   ).length;
 
-  // "Ada sisa dana" reminder — karyawan: shown on their payday (this
-  // month's running FCF, since a fixed payday falls close to when that
+  // "You have leftover funds" reminder — karyawan: shown on their payday
+  // (this month's running FCF, since a fixed payday falls close to when that
   // cycle's income/expenses have mostly landed). Pengusaha: shown on the
   // 1st (a fresh month has ~nothing tracked yet, so it reports last
   // month's already-recorded snapshot instead of a near-zero live number).
@@ -212,26 +214,22 @@ export default async function DashboardPage() {
   const isMonthStart = data.profile.profile_type === "pengusaha" && todayDay === 1;
   let paydayReminder: { label: string; fcf: number; savingRate: number } | null = null;
   if (isPayday) {
-    paydayReminder = { label: "Gajian hari ini!", fcf: cf.fcf, savingRate: cf.savingRate };
+    paydayReminder = { label: "Payday today!", fcf: cf.fcf, savingRate: cf.savingRate };
   } else if (isMonthStart) {
     const prevMonthIso = monthsAgoFirstOfMonthIsoInTz(1, tz);
     const prevSnapshot = data.fcfSnapshots.find((s) => s.snapshot_month === prevMonthIso);
     if (prevSnapshot) {
       paydayReminder = {
-        label: "Bulan baru dimulai!",
+        label: "A new month has started!",
         fcf: Number(prevSnapshot.fcf),
         savingRate: Number(prevSnapshot.saving_rate),
       };
     }
   }
 
-  // Still feeds MarketInsightCard's "you have idle cash to consider investing" copy.
-  const idleCash = idleCashSurplus(data.holdings, monthExpTotal, data.profile.profile_type);
-
   return (
     <div className="pt-1">
       <GreetingHeader name={data.profile.name} streak={data.streak.current} />
-      <LiquidAssetsCard total={liquidAssetsVal} todayNet={dailyRecap.net} />
       {paydayReminder && (
         <PaydayReminderCard
           label={paydayReminder.label}
@@ -240,60 +238,33 @@ export default async function DashboardPage() {
           name={data.profile.name}
         />
       )}
-      <HeroCard
+      <MissingAccountReminder count={missingAccountCount} />
+      <NetWorthHeroCard
         netWorthVal={netWorthVal}
-        totalAssetsVal={totalAssetsVal}
+        liquidAssetsVal={liquidAssetsVal}
+        illiquidAssetsVal={illiquidAssetsVal}
         totalLiabilitiesVal={totalLiabVal}
+        deltaPct={netWorthDeltaPct}
       />
-      <NetWorthTrend
-        points={data.snapshots.map((s) => ({ date: s.snapshot_date, netWorth: Number(s.net_worth) }))}
-        current={netWorthVal}
-        name={data.profile.name}
+      <ThisMonthCard
+        monthExpTotal={monthExpTotal}
+        prevMonthExpenseTotal={data.prevMonthExpenseTotal}
+        totalMonthlyBudget={totalMonthlyBudget}
       />
+      <StatTilesRow incomeTotal={monthIncTotal} fcf={cf.fcf} savingRate={cf.savingRate} />
+      <DailyRecapCard recap={dailyRecap} />
+      <SpendingByCategoryCard budgetItems={budgetItems} expenseSlices={expenseSlices} />
       <AssetSection
         assetCats={data.profile.asset_categories}
         holdings={data.holdings}
         snapshots={data.assetHoldingSnapshots}
       />
-      <DailyRecapCard recap={dailyRecap} />
-
-      <MissingAccountReminder count={missingAccountCount} />
+      <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
+      <GoalsPreview goals={data.goals} fcf={cf.fcf} />
       <RecurringCashflowPreview incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
-
-      <div className="grid grid-cols-2 gap-2.5 mx-5 mb-4">
-        <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">
-          <div className="text-xs text-text-dim mb-1">{dict.dashboard.fcfMonthly}</div>
-          <div className="serif text-[19px]">{fmtRp(cf.fcf)}</div>
-        </div>
-        <div className="bg-bg-raised border border-hairline rounded-2xl p-3.5 shadow-[var(--shadow-card)]">
-          <div className="text-xs text-text-dim mb-1">{dict.dashboard.savingRate}</div>
-          <div className="serif text-[19px]" style={{ color: cf.savingRate >= 0 ? "var(--good)" : "var(--critical)" }}>
-            {cf.savingRate >= 0 ? "+" : ""}
-            {Math.round(cf.savingRate * 100)}%
-          </div>
-        </div>
-      </div>
-      <FcfTrend
-        points={data.fcfSnapshots.map((s) => ({ month: s.snapshot_month, fcf: Number(s.fcf) }))}
-        current={cf.fcf}
-        name={data.profile.name}
-      />
-      <DbrCard dbr={dbr} hasFixedExpense={cf.fixedExpense > 0} />
       <UpcomingBillingCard installments={installments} />
       <UpcomingInvestmentIncomeCard items={investIncomeItems} />
       <GoalMaturityCard items={goalMaturities} goalNameById={goalNameById} />
-      {data.ihsgChangePct !== null && (
-        <MarketInsightCard
-          ihsgChangePct={data.ihsgChangePct}
-          idleCash={idleCash?.idleSurplus ?? 0}
-          name={data.profile.name}
-        />
-      )}
-      <MarketNewsCard news={data.marketNews} />
-      <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
-      <GoalsPreview goals={data.goals} fcf={cf.fcf} />
-      <ExpenseSplitCard slices={expenseSlices} total={monthExpTotal} />
-      <BudgetProgressCard items={budgetItems} />
       <TransactionsPreview
         transactions={recentTransactions}
         monthExpenseTotal={monthExpTotal}

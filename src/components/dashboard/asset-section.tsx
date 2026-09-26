@@ -38,7 +38,7 @@ export function AssetSection({
     .filter((h) => h.category === "Cash")
     .map((h) => ({
       id: h.id,
-      label: typeof h.data.label === "string" && h.data.label ? h.data.label : "Rekening",
+      label: typeof h.data.label === "string" && h.data.label ? h.data.label : "Account",
       value: holdingValue(h.category, h.data),
       movement: movementByHolding.get(h.id) ?? null,
     }))
@@ -47,19 +47,19 @@ export function AssetSection({
   return (
     <>
       <SectionCard
-        title="📁 Rincian Aset"
+        title="📁 Asset Details"
         action={
           <button
             className="text-xs text-brand-strong bg-brand/10 rounded-full px-3 py-1.5 font-medium shrink-0"
             onClick={() => setModalOpen(true)}
           >
-            + Tambah kategori
+            + Add category
           </button>
         }
       >
         <AllocationBar slices={slices} total={total} />
         {assetCats.length === 0 ? (
-          <div className="text-sm text-text-dim py-2 pb-4">Belum ada kategori aset.</div>
+          <div className="text-sm text-text-dim py-2 pb-4">No asset categories yet.</div>
         ) : (
           assetCats.map((c) => {
             const val = catValue(c, holdings);
@@ -97,7 +97,7 @@ export function AssetSection({
                 </Link>
                 {c === "Saham" && (
                   <div className="text-[10px] text-text-muted pl-[44px] pb-2.5 -mt-1">
-                    Harga penutupan kemarin, bukan real-time
+                    Yesterday&apos;s closing price, not real-time
                   </div>
                 )}
                 {isCash && cashAccounts.length > 0 && (

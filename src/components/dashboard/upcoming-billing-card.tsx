@@ -4,11 +4,11 @@ import { fmtRp } from "@/lib/finance/format";
 import type { UpcomingInstallment } from "@/lib/finance/calculations";
 
 function dueLabel(daysUntil: number): { text: string; tone: string } {
-  if (daysUntil === 0) return { text: "Hari ini", tone: "var(--critical)" };
-  if (daysUntil === 1) return { text: "Besok", tone: "var(--critical)" };
-  if (daysUntil <= 3) return { text: `${daysUntil} hari lagi`, tone: "var(--critical)" };
-  if (daysUntil <= 7) return { text: `${daysUntil} hari lagi`, tone: "var(--warning)" };
-  return { text: `${daysUntil} hari lagi`, tone: "var(--text-dim)" };
+  if (daysUntil === 0) return { text: "Today", tone: "var(--critical)" };
+  if (daysUntil === 1) return { text: "Tomorrow", tone: "var(--critical)" };
+  if (daysUntil <= 3) return { text: `in ${daysUntil} days`, tone: "var(--critical)" };
+  if (daysUntil <= 7) return { text: `in ${daysUntil} days`, tone: "var(--warning)" };
+  return { text: `in ${daysUntil} days`, tone: "var(--text-dim)" };
 }
 
 export function UpcomingBillingCard({ installments }: { installments: UpcomingInstallment[] }) {
@@ -17,7 +17,7 @@ export function UpcomingBillingCard({ installments }: { installments: UpcomingIn
   const upcoming = installments.slice(0, 5);
 
   return (
-    <SectionCard title="📅 Jatuh Tempo Angsuran">
+    <SectionCard title="📅 Upcoming Installments">
       <div className="pb-2">
         {upcoming.map((item) => {
           const due = dueLabel(item.daysUntil);
@@ -26,8 +26,8 @@ export function UpcomingBillingCard({ installments }: { installments: UpcomingIn
               <div className="min-w-0">
                 <div className="text-sm font-medium truncate">{item.label}</div>
                 <div className="text-xs text-text-dim">
-                  {item.category} · tgl {item.billingDay}
-                  {item.monthlyPayment > 0 ? ` · ${fmtRp(item.monthlyPayment)}/bln` : ""}
+                  {item.category} · day {item.billingDay}
+                  {item.monthlyPayment > 0 ? ` · ${fmtRp(item.monthlyPayment)}/mo` : ""}
                 </div>
               </div>
               <div className="text-right shrink-0">

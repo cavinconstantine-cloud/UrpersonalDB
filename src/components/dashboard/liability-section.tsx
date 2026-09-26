@@ -15,18 +15,18 @@ export function LiabilitySection({ liabCats, liabilities }: { liabCats: string[]
   return (
     <>
       <SectionCard
-        title="📌 Rincian Utang"
+        title="📌 Liability Details"
         action={
           <button
             className="text-xs text-brand-strong bg-brand/10 rounded-full px-3 py-1.5 font-medium shrink-0"
             onClick={() => setModalOpen(true)}
           >
-            + Tambah kategori
+            + Add category
           </button>
         }
       >
         {liabCats.length === 0 ? (
-          <div className="text-sm text-text-dim py-2 pb-4">Belum ada utang tercatat.</div>
+          <div className="text-sm text-text-dim py-2 pb-4">No liabilities recorded yet.</div>
         ) : (
           liabCats.map((c) => {
             const rows = liabilities.filter((l) => l.category === c);
@@ -34,10 +34,10 @@ export function LiabilitySection({ liabCats, liabilities }: { liabCats: string[]
             const monthly = liabCatMonthlyPayment(c, liabilities);
             const note =
               rows.length === 0
-                ? "Belum ada data"
+                ? "No data yet"
                 : rows.length === 1
                   ? String(rows[0].data.label || "")
-                  : `${rows.length} entri${monthly ? ` · cicilan ${fmtRp(monthly)}/bln` : ""}`;
+                  : `${rows.length} entries${monthly ? ` · ${fmtRp(monthly)}/mo` : ""}`;
             return (
               <Link
                 key={c}
