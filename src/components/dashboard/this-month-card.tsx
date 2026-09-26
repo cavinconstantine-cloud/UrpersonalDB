@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { fmtRpCompact } from "@/lib/finance/format";
 
 export function ThisMonthCard({
@@ -44,8 +45,16 @@ export function ThisMonthCard({
           <div className="h-[5px] rounded-full bg-hairline overflow-hidden mt-2.5">
             <div className="h-full rounded-full" style={{ width: `${barPct}%`, background: barColor }} />
           </div>
-          <div className="text-[11px] text-text-muted text-right mt-1">
-            {remaining >= 0 ? `${fmtRpCompact(remaining)} remaining` : `${fmtRpCompact(-remaining)} over budget`}
+          <div className="flex items-center justify-between gap-2 mt-1">
+            <div className="text-[11px] text-text-muted">
+              {remaining >= 0 ? `${fmtRpCompact(remaining)} remaining` : `${fmtRpCompact(-remaining)} over budget`}
+            </div>
+            <Link
+              href="/app/cashflow#budget"
+              className="text-[11px] font-medium text-brand-strong hover:underline shrink-0"
+            >
+              View budget details ›
+            </Link>
           </div>
         </>
       )}

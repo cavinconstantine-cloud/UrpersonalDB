@@ -49,7 +49,7 @@ export function BudgetManager({ rows }: { rows: CategoryBudgetRow[] }) {
   }
 
   return (
-    <div className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)]">
+    <div id="budget" className="bg-bg-raised border border-hairline rounded-2xl p-4 mb-4 shadow-[var(--shadow-card)] scroll-mt-6">
       <div className="flex justify-between items-baseline mb-1">
         <div className="serif text-[15px]">{dict.budget.title}</div>
         <div className="text-sm text-text-dim">
