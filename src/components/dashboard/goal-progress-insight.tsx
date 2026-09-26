@@ -25,7 +25,18 @@ export async function GoalProgressInsight({
   const name = userName || "You";
   const result = await generateGoalProgressInsight(goals, fcf, monthlyIncome, name);
 
-  if (!result.ok) return null;
+  if (!result.ok) {
+    if (result.error) {
+      return (
+        <SectionCard title="🎯 Goal Progress & Insight">
+          <div className="rounded-lg border border-warning/20 bg-warning-wash p-4 text-warning text-sm">
+            {result.error}
+          </div>
+        </SectionCard>
+      );
+    }
+    return null;
+  }
 
   return (
     <SectionCard title="🎯 Goal Progress & Insight">

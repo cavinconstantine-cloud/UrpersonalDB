@@ -86,11 +86,29 @@ Contoh: "Untuk mencapai semua goals tepat waktu, ${userName} perlu menabung Rp X
       .join("\n")
       .trim();
 
-    if (!text) return { ok: false };
+    if (!text) return { ok: false, error: "AI tidak menghasilkan jawaban. Coba lagi." };
     return { ok: true, text };
   } catch (err) {
     console.error("generateGoalProgressInsight: Anthropic call failed:", err);
-    return { ok: false };
+    if (err instanceof Anthropic.AuthenticationError) {
+      return { ok: false, error: "ANTHROPIC_API_KEY tidak valid — cek kembali key-nya di Vercel." };
+    }
+    if (err instanceof Anthropic.PermissionDeniedError) {
+      return {
+        ok: false,
+        error: "Akun Anthropic belum punya akses ke model ini, atau billing/credit belum aktif di console.anthropic.com.",
+      };
+    }
+    if (err instanceof Anthropic.RateLimitError) {
+      return { ok: false, error: "Terlalu banyak request ke AI sekaligus. Tunggu sebentar lalu coba lagi." };
+    }
+    if (err instanceof Anthropic.BadRequestError) {
+      return { ok: false, error: `Ditolak Claude API: ${err.message}` };
+    }
+    if (err instanceof Error) {
+      return { ok: false, error: `Terjadi kendala saat menganalisa: ${err.message}` };
+    }
+    return { ok: false, error: "Terjadi kendala saat menganalisa. Coba lagi sebentar lagi." };
   }
 }
 
