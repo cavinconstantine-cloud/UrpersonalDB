@@ -31,10 +31,10 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
   const [{ data }, { data: snapshotData }, { data: goalsData }, stockPricesRes, { data: profile }] = await Promise.all([
     supabase
       .from("asset_holdings")
-      .select("id, data, goal_id, sort_order")
+      .select("id, data, goal_id")
       .eq("user_id", user.id)
       .eq("category", category)
-      .order("sort_order", { ascending: true, nullsFirst: false })
+      .order("sort_order")
       .order("created_at"),
     supabase
       .from("asset_holding_snapshots")
