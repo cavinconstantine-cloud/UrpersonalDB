@@ -36,6 +36,7 @@ import { SpendingByCategoryCard } from "@/components/dashboard/spending-by-categ
 import { AssetSection } from "@/components/dashboard/asset-section";
 import { LiabilitySection } from "@/components/dashboard/liability-section";
 import { GoalsPreview } from "@/components/dashboard/goals-preview";
+import { GoalProgressInsight } from "@/components/dashboard/goal-progress-insight";
 import { TransactionsPreview } from "@/components/dashboard/transactions-preview";
 import { UpcomingBillingCard } from "@/components/dashboard/upcoming-billing-card";
 import { UpcomingInvestmentIncomeCard } from "@/components/dashboard/upcoming-investment-income-card";
@@ -261,6 +262,7 @@ export default async function DashboardPage() {
       />
       <LiabilitySection liabCats={data.profile.liability_categories} liabilities={data.liabilities} />
       <GoalsPreview goals={data.goals} fcf={cf.fcf} />
+      <GoalProgressInsight goals={data.goals} fcf={cf.fcf} monthlyIncome={monthIncTotal} />
       <RecurringCashflowPreview incomeItems={data.recurringIncomes} expenseItems={data.recurringExpenses} />
       <UpcomingBillingCard installments={installments} />
       <UpcomingInvestmentIncomeCard items={investIncomeItems} />

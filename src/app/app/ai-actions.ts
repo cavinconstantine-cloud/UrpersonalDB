@@ -27,39 +27,49 @@ export async function isAiInsightAvailable() {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
-export async function generateGoalAiInsight(): Promise<AiInsightResult> {
+export async function generateGoalProgressInsight(
+  goals: Array<{ id: string; name: string; target: number; current: number; targetDate: string }>,
+  fcf: number,
+  monthlyIncome: number,
+): Promise<AiInsightResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return { ok: false, error: "Fitur AI belum dikonfigurasi. Tambahkan ANTHROPIC_API_KEY di environment." };
+    return { ok: false, error: "Fitur AI belum dikonfigurasi." };
   }
 
-  const tz = await getVisitorTimezone();
-  const data = await getFinancialSnapshotData(tz);
-
-  if (!data.goals || data.goals.length === 0) {
+  if (!goals || goals.length === 0) {
     return { ok: false, error: "Belum ada goal yang dibuat." };
   }
 
-  const goalsText = data.goals
-    .map((g) => `- ${g.name}: Rp ${Number(g.target).toLocaleString("id-ID")} (sudah terkumpul Rp ${Number(g.current).toLocaleString("id-ID")}, target ${g.targetDate})`)
+  const goalsText = goals
+    .map((g) => {
+      const remaining = g.target - g.current;
+      const pct = g.target > 0 ? Math.round((g.current / g.target) * 100) : 0;
+      return `- ${g.name}: Rp ${Number(g.target).toLocaleString("id-ID")} (${pct}% terkumpul, sisa Rp ${remaining.toLocaleString("id-ID")}, target ${g.targetDate})`;
+    })
     .join("\n");
 
   try {
     const anthropic = new Anthropic({ apiKey });
     const message = await anthropic.messages.create({
       model: "claude-sonnet-5",
-      max_tokens: 600,
+      max_tokens: 500,
       messages: [
         {
           role: "user",
-          content: `Anda adalah asisten keuangan pribadi. Berikut goals finansial pengguna:
+          content: `Anda adalah asisten keuangan pribadi. Analisa progress goals berdasarkan FCF & income pengguna:
 
+Goals:
 ${goalsText}
 
-Tulis dalam Bahasa Indonesia, singkat dan langsung ke inti:
-1. Analisis kemajuan goals saat ini (2-3 kalimat) — mana yang sedang on-track, mana yang tertinggal.
-2. 2-3 saran spesifik untuk mempercepat atau mencapai goals (berbasis timeline dan progress saat ini).
-Fokus pada actionable insights, bukan motivasi generik.`,
+Kondisi Finansial:
+- Free Cash Flow: Rp ${fcf.toLocaleString("id-ID")}/bulan
+- Monthly Income: Rp ${monthlyIncome.toLocaleString("id-ID")}/bulan
+
+Tulis dalam Bahasa Indonesia, singkat (2-3 kalimat max):
+1. Highlight: Mana goal yang feasible atau tidak dengan FCF current.
+2. 1 rekomendasi konkret: berapa/bulan perlu dialokasikan atau apa yang perlu diubah.
+Jangan panjang, langsung ke inti.`,
         },
       ],
     });
@@ -70,29 +80,17 @@ Fokus pada actionable insights, bukan motivasi generik.`,
       .join("\n")
       .trim();
 
-    if (!text) return { ok: false, error: "AI tidak menghasilkan jawaban. Coba lagi." };
+    if (!text) return { ok: false, error: "AI tidak menghasilkan jawaban." };
     return { ok: true, text };
   } catch (err) {
-    console.error("generateGoalAiInsight: Anthropic call failed:", err);
+    console.error("generateGoalProgressInsight: Anthropic call failed:", err);
     if (err instanceof Anthropic.AuthenticationError) {
-      return { ok: false, error: "ANTHROPIC_API_KEY tidak valid — cek kembali key-nya di Vercel." };
-    }
-    if (err instanceof Anthropic.PermissionDeniedError) {
-      return {
-        ok: false,
-        error: "Akun Anthropic belum punya akses ke model ini, atau billing/credit belum aktif di console.anthropic.com.",
-      };
-    }
-    if (err instanceof Anthropic.RateLimitError) {
-      return { ok: false, error: "Terlalu banyak request ke AI sekaligus. Tunggu sebentar lalu coba lagi." };
-    }
-    if (err instanceof Anthropic.BadRequestError) {
-      return { ok: false, error: `Ditolak Claude API: ${err.message}` };
+      return { ok: false, error: "ANTHROPIC_API_KEY tidak valid." };
     }
     if (err instanceof Error) {
-      return { ok: false, error: `Terjadi kendala saat menganalisa: ${err.message}` };
+      return { ok: false, error: `Terjadi kendala: ${err.message}` };
     }
-    return { ok: false, error: "Terjadi kendala saat menganalisa. Coba lagi sebentar lagi." };
+    return { ok: false };
   }
 }
 
