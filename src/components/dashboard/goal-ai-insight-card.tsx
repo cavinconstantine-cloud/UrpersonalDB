@@ -5,7 +5,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { Spinner } from "@/components/ui/spinner";
 import { generateGoalAiInsight } from "@/app/app/ai-actions";
 
-const AI_INSIGHT_ENABLED = false;
+const AI_INSIGHT_ENABLED = true;
 
 export function GoalAiInsightCard({ available }: { available: boolean }) {
   const [isPending, startTransition] = useTransition();

@@ -5,8 +5,8 @@ import { SectionCard } from "@/components/ui/section-card";
 import { Spinner } from "@/components/ui/spinner";
 import { generateAiInsight } from "@/app/app/ai-actions";
 
-/** Relaunched — Anthropic credit topped up (see the Split Bill "Kartu ditolak / credit" thread). */
-const AI_INSIGHT_ENABLED = true;
+/** Disabled — showing goal-specific insight instead. */
+const AI_INSIGHT_ENABLED = false;
 
 export function AiInsightCard({ available }: { available: boolean }) {
   const [isPending, startTransition] = useTransition();
