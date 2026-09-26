@@ -12,7 +12,7 @@ import { ASSET_SCHEMAS } from "@/lib/finance/schemas";
 import { GOAL_LINKABLE_CATS } from "@/lib/finance/constants";
 import { fmtRp } from "@/lib/finance/format";
 import { addHolding, updateHolding, deleteHolding, removeAssetCategory } from "@/app/app/assets/actions";
-import { categoryDailyMovement, dailyMovementByHolding, type AssetSnapshotRow } from "@/lib/finance/calculations";
+import { categoryMonthlyMovement, monthlyMovementByHolding, type AssetSnapshotRow } from "@/lib/finance/calculations";
 import type { HoldingData } from "@/lib/finance/types";
 
 interface Holding {
@@ -49,8 +49,8 @@ export function AssetCategoryManager({
   const gain = buyTotal !== null ? total - buyTotal : null;
 
   const holdingsWithCategory = holdings.map((h) => ({ id: h.id, category, data: h.data }));
-  const totalMovement = categoryDailyMovement(category, snapshots, holdingsWithCategory);
-  const movementByHolding = dailyMovementByHolding(snapshots, holdingsWithCategory);
+  const totalMovement = categoryMonthlyMovement(category, snapshots, holdingsWithCategory);
+  const movementByHolding = monthlyMovementByHolding(snapshots, holdingsWithCategory);
 
   async function save(data: HoldingData, goalId: string | null) {
     if (modal.holding) await updateHolding(modal.holding.id, data, goalId);

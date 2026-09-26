@@ -40,7 +40,9 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       .select("snapshot_date, holding_id, category, label, value")
       .eq("user_id", user.id)
       .eq("category", category)
-      .gte("snapshot_date", daysAgoIso(4)),
+      // 35 days back, not 4 — movement badges now compare against ~a month
+      // ago (see monthlyMovementByHolding), not day-over-day.
+      .gte("snapshot_date", daysAgoIso(35)),
     supabase.from("goals").select("id, name").eq("user_id", user.id).order("created_at"),
     category === "Saham" ? supabase.from("stock_prices").select("*") : Promise.resolve({ data: null }),
     getProfile(user.id),

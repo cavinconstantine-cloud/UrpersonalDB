@@ -1,9 +1,9 @@
-import type { DailyMovement } from "@/lib/finance/calculations";
+import type { HoldingMovement } from "@/lib/finance/calculations";
 
-/** Small pill showing day-over-day movement — ▲/▼ % colored, "Stabil" when flat, "Baru" when there's no baseline from before today to compare against yet. */
-export function MovementBadge({ movement }: { movement: DailyMovement | null | undefined }) {
+/** Small pill showing movement vs. ~a month ago — ▲/▼ % colored, "Stabil" when flat, nothing when there's no baseline old enough yet to compare against. */
+export function MovementBadge({ movement }: { movement: HoldingMovement | null | undefined }) {
   if (!movement || movement.pctChange === null) {
-    return <span className="text-[10px] text-text-dim shrink-0">Baru</span>;
+    return null;
   }
   const pct = movement.pctChange;
   if (Math.abs(pct) < 0.05) {

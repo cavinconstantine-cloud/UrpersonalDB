@@ -122,7 +122,9 @@ export async function getDashboardData(tz: string) {
       .from("asset_holding_snapshots")
       .select("snapshot_date, holding_id, category, label, value")
       .eq("user_id", user.id)
-      .gte("snapshot_date", daysAgoIsoInTz(4, tz)),
+      // 35 days back, not 4 — movement badges now compare against ~a month
+      // ago (see monthlyMovementByHolding), not day-over-day.
+      .gte("snapshot_date", daysAgoIsoInTz(35, tz)),
     supabase.from("stock_prices").select("change_pct").eq("ticker", "^JKSE").maybeSingle(),
     supabase
       .from("logging_streaks")

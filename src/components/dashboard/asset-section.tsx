@@ -10,8 +10,8 @@ import { ASSET_CATS, catColorVar, catIcon } from "@/lib/finance/constants";
 import {
   catBuyValue,
   catValue,
-  categoryDailyMovement,
-  dailyMovementByHolding,
+  categoryMonthlyMovement,
+  monthlyMovementByHolding,
   holdingValue,
   totalAssets,
   type AssetSnapshotRow,
@@ -33,7 +33,7 @@ export function AssetSection({
   const total = totalAssets(assetCats, holdings);
   const slices = assetCats.map((c) => ({ category: c, value: Math.max(0, catValue(c, holdings)) }));
 
-  const movementByHolding = dailyMovementByHolding(snapshots, holdings);
+  const movementByHolding = monthlyMovementByHolding(snapshots, holdings);
   const cashAccounts = holdings
     .filter((h) => h.category === "Cash")
     .map((h) => ({
@@ -65,7 +65,7 @@ export function AssetSection({
             const val = catValue(c, holdings);
             const bv = catBuyValue(c, holdings);
             const gain = bv !== null ? val - bv : null;
-            const movement = categoryDailyMovement(c, snapshots, holdings);
+            const movement = categoryMonthlyMovement(c, snapshots, holdings);
             const isCash = c === "Cash";
             return (
               <div key={c} className="border-b border-hairline last:border-b-0">
