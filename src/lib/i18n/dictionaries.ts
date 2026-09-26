@@ -11,12 +11,8 @@ const id = {
     settings: "Pengaturan",
   },
   shell: {
-    addIncomeAria: "Catat pemasukan",
-    addIncome: "Catat Pemasukan",
-    addExpenseAria: "Catat pengeluaran",
-    addExpense: "Catat Pengeluaran",
-    splitBillAria: "Split bill",
-    splitBill: "Split Bill",
+    addTransaction: "Tambah",
+    addTransactionAria: "Catat transaksi baru",
   },
   theme: {
     title: "Tampilan",
@@ -60,12 +56,8 @@ const en: typeof id = {
     settings: "Settings",
   },
   shell: {
-    addIncomeAria: "Add income",
-    addIncome: "Log Income",
-    addExpenseAria: "Add expense",
-    addExpense: "Log Expense",
-    splitBillAria: "Split bill",
-    splitBill: "Split Bill",
+    addTransaction: "Add",
+    addTransactionAria: "Log a new transaction",
   },
   theme: {
     title: "Appearance",

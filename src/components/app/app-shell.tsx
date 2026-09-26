@@ -2,10 +2,8 @@
 
 import { useState, type ReactNode } from "react";
 import { BottomNav } from "./bottom-nav";
-import { CatatToggle } from "./catat-toggle";
 import { TransactionModal, type CashAccount, type TransactionType } from "./transaction-modal";
 import { WhatsNewSlideshow } from "./whats-new-slideshow";
-import { useLanguage } from "./language-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { TimezoneSync } from "./timezone-sync";
 
@@ -28,7 +26,6 @@ export function AppShell({
   userName,
   children,
 }: AppShellProps) {
-  const { dict } = useLanguage();
   const [modal, setModal] = useState<{ open: boolean; type: TransactionType; split: boolean }>({
     open: false,
     type: "expense",
@@ -58,18 +55,7 @@ export function AppShell({
           {children}
         </div>
 
-        <CatatToggle
-          onOpen={(type) => setModal({ open: true, type, split: false })}
-          onOpenSplit={() => setModal({ open: true, type: "expense", split: true })}
-          expenseLabel={dict.shell.addExpense}
-          incomeLabel={dict.shell.addIncome}
-          expenseAria={dict.shell.addExpenseAria}
-          incomeAria={dict.shell.addIncomeAria}
-          splitLabel={dict.shell.splitBill}
-          splitAria={dict.shell.splitBillAria}
-        />
-
-        <BottomNav />
+        <BottomNav onAddClick={() => setModal({ open: true, type: "expense", split: false })} />
         <WhatsNewSlideshow userId={userId} hasProfileType={hasProfileType} />
         <TransactionModal
           key={`${modal.type}-${modal.split}`}
