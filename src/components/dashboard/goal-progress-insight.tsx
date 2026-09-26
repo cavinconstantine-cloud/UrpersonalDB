@@ -1,5 +1,6 @@
 import { SectionCard } from "@/components/ui/section-card";
-import { generateGoalProgressInsight } from "@/app/app/ai-actions";
+import { goalProgressInsight } from "@/lib/finance/calculations";
+import { fmtRp } from "@/lib/finance/format";
 
 interface Goal {
   id: string;
@@ -9,10 +10,9 @@ interface Goal {
   targetDate: string;
 }
 
-export async function GoalProgressInsight({
+export function GoalProgressInsight({
   goals,
   fcf,
-  monthlyIncome,
   userName,
 }: {
   goals: Goal[];
@@ -22,26 +22,17 @@ export async function GoalProgressInsight({
 }) {
   if (!goals || goals.length === 0) return null;
 
-  const name = userName || "You";
-  const result = await generateGoalProgressInsight(goals, fcf, monthlyIncome, name);
+  const name = userName || "Kamu";
+  const { totalMonthlyNeed, gap, feasible } = goalProgressInsight(goals, fcf);
 
-  if (!result.ok) {
-    if (result.error) {
-      return (
-        <SectionCard title="🎯 Goal Progress & Insight">
-          <div className="rounded-lg border border-warning/20 bg-warning-wash p-4 text-warning text-sm">
-            {result.error}
-          </div>
-        </SectionCard>
-      );
-    }
-    return null;
-  }
+  const text = feasible
+    ? `Untuk mencapai semua goals tepat waktu, ${name} perlu menabung ${fmtRp(totalMonthlyNeed)}/bulan, dan FCF saat ini ${fmtRp(fcf)}/bulan sudah cukup — surplus ${fmtRp(fcf - totalMonthlyNeed)}/bulan. Goals kamu on track, pertimbangkan alokasikan surplus ini ke goal lain atau investasi.`
+    : `Untuk mencapai semua goals tepat waktu, ${name} perlu menabung ${fmtRp(totalMonthlyNeed)}/bulan, tapi FCF saat ini hanya ${fmtRp(fcf)}/bulan — kurang ${fmtRp(gap)}/bulan. Dengan kondisi saat ini goals belum bisa tercapai tepat waktu, harus ada yang dilakukan: tambah income sekitar ${fmtRp(gap)}/bulan, kurangi expense sebesar itu, atau perpanjang target date beberapa goal.`;
 
   return (
     <SectionCard title="🎯 Goal Progress & Insight">
       <div className="rounded-lg border border-brand/20 bg-brand/5 p-4 mb-4">
-        <p className="text-sm leading-relaxed text-text">{result.text}</p>
+        <p className="text-sm leading-relaxed text-text">{text}</p>
       </div>
     </SectionCard>
   );

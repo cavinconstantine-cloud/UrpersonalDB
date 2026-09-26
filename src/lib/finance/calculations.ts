@@ -463,6 +463,25 @@ export function goalMonthlyNeed(g: Pick<Goal, "target" | "current" | "targetDate
   return goalMonthlySavingsPlan(g, monthlyRate).monthlyNeed;
 }
 
+export interface GoalProgressInsight {
+  /** Sum of every goal's monthlyNeed (see goalMonthlySavingsPlan) — total manual savings required per month to hit every target date. */
+  totalMonthlyNeed: number;
+  fcf: number;
+  /** totalMonthlyNeed - fcf, floored at 0 — the monthly shortfall still uncovered. */
+  gap: number;
+  feasible: boolean;
+}
+
+/** Whether current FCF covers what all goals need per month — plain arithmetic, no AI call. */
+export function goalProgressInsight(
+  goals: Array<Pick<Goal, "target" | "current" | "targetDate">>,
+  fcf: number,
+): GoalProgressInsight {
+  const totalMonthlyNeed = goals.reduce((sum, g) => sum + goalMonthlyNeed(g), 0);
+  const gap = Math.max(0, totalMonthlyNeed - fcf);
+  return { totalMonthlyNeed, fcf, gap, feasible: gap <= 0 };
+}
+
 export interface IdleCashInsight {
   cashBalance: number;
   emergencyFundTarget: number;
