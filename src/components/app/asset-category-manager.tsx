@@ -11,7 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { ASSET_SCHEMAS } from "@/lib/finance/schemas";
 import { GOAL_LINKABLE_CATS } from "@/lib/finance/constants";
 import { fmtRp } from "@/lib/finance/format";
-import { addHolding, updateHolding, deleteHolding, removeAssetCategory } from "@/app/app/assets/actions";
+import { addHolding, updateHolding, deleteHolding, removeAssetCategory, reorderHoldings } from "@/app/app/assets/actions";
 import { categoryMonthlyMovement, monthlyMovementByHolding, type AssetSnapshotRow } from "@/lib/finance/calculations";
 import type { HoldingData } from "@/lib/finance/types";
 
@@ -39,7 +39,15 @@ export function AssetCategoryManager({
   const router = useRouter();
   const toast = useToast();
   const [isPending, startTransition] = useTransition();
+  const [isReordering, startReorderTransition] = useTransition();
   const [modal, setModal] = useState<{ open: boolean; holding?: Holding }>({ open: false });
+  const [orderMode, setOrderMode] = useState(false);
+  const [localHoldings, setLocalHoldings] = useState(holdings);
+  const [synced, setSynced] = useState(holdings);
+  if (holdings !== synced) {
+    setSynced(holdings);
+    setLocalHoldings(holdings);
+  }
   const schema = ASSET_SCHEMAS[category];
   const linkable = (GOAL_LINKABLE_CATS as readonly string[]).includes(category);
   const goalById = new Map(goals.map((g) => [g.id, g.name] as const));
@@ -63,6 +71,26 @@ export function AssetCategoryManager({
     await deleteHolding(id, category);
     router.refresh();
     toast.success("Aset dihapus");
+  }
+
+  function move(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= localHoldings.length) return;
+    const next = [...localHoldings];
+    [next[index], next[target]] = [next[target], next[index]];
+    setLocalHoldings(next);
+    startReorderTransition(async () => {
+      try {
+        await reorderHoldings(
+          category,
+          next.map((h) => h.id),
+        );
+        router.refresh();
+      } catch (err) {
+        setLocalHoldings(holdings);
+        toast.error(err instanceof Error ? err.message : "Gagal menyimpan urutan — coba lagi.");
+      }
+    });
   }
 
   function removeCategory() {
@@ -100,29 +128,43 @@ export function AssetCategoryManager({
 
       <div className="flex justify-between items-baseline mb-2.5">
         <div className="serif text-[15px]">Rincian</div>
-        <button
-          className="text-xs text-brand-strong bg-brand/10 rounded-full px-3 py-1.5 font-medium"
-          onClick={() => setModal({ open: true })}
-        >
-          + Tambah
-        </button>
+        <div className="flex items-center gap-2">
+          {holdings.length > 1 && (
+            <button
+              className="text-xs text-text-dim border border-hairline rounded-full px-3 py-1.5 font-medium"
+              onClick={() => setOrderMode((v) => !v)}
+            >
+              {orderMode ? "Selesai" : "↕ Urutkan"}
+            </button>
+          )}
+          {!orderMode && (
+            <button
+              className="text-xs text-brand-strong bg-brand/10 rounded-full px-3 py-1.5 font-medium"
+              onClick={() => setModal({ open: true })}
+            >
+              + Tambah
+            </button>
+          )}
+        </div>
       </div>
+
+      {orderMode && (
+        <div className="text-xs text-text-dim mb-2.5 -mt-1">
+          Pakai ▲ / ▼ buat pindahin urutan — mis. jadiin rekening utamamu yang nomor 1.
+        </div>
+      )}
 
       {holdings.length === 0 ? (
         <div className="text-sm text-text-dim py-2 mb-6">Belum ada data ditambahkan.</div>
       ) : (
         <div className="mb-6">
-          {holdings.map((h) => {
+          {localHoldings.map((h, idx) => {
             const v = schema.value(h.data);
             const bv = schema.buyValue ? schema.buyValue(h.data) : null;
             const g = bv !== null ? v - bv : null;
             const noteVal = schema.note ? schema.note(h.data) : "";
-            return (
-              <button
-                key={h.id}
-                onClick={() => setModal({ open: true, holding: h })}
-                className="w-full flex items-start justify-between gap-3 py-3 border-b border-hairline text-sm text-left last:border-b-0"
-              >
+            const info = (
+              <>
                 <div>
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {String(h.data.label || category)}
@@ -142,6 +184,42 @@ export function AssetCategoryManager({
                   {noteVal && <div className="text-xs text-text-dim">{noteVal}</div>}
                 </div>
                 <div>{fmtRp(v)}</div>
+              </>
+            );
+            return orderMode ? (
+              <div
+                key={h.id}
+                className="w-full flex items-center justify-between gap-3 py-3 border-b border-hairline text-sm last:border-b-0"
+              >
+                <div className="flex items-start justify-between gap-3 flex-1 min-w-0">{info}</div>
+                <div className="flex flex-col gap-1 shrink-0">
+                  <button
+                    type="button"
+                    aria-label="Naikkan urutan"
+                    disabled={idx === 0 || isReordering}
+                    onClick={() => move(idx, -1)}
+                    className="w-7 h-7 flex items-center justify-center rounded-md border border-hairline text-text-dim disabled:opacity-30"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Turunkan urutan"
+                    disabled={idx === localHoldings.length - 1 || isReordering}
+                    onClick={() => move(idx, 1)}
+                    className="w-7 h-7 flex items-center justify-center rounded-md border border-hairline text-text-dim disabled:opacity-30"
+                  >
+                    ▼
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                key={h.id}
+                onClick={() => setModal({ open: true, holding: h })}
+                className="w-full flex items-start justify-between gap-3 py-3 border-b border-hairline text-sm text-left last:border-b-0"
+              >
+                {info}
               </button>
             );
           })}

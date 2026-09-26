@@ -34,6 +34,7 @@ export default async function AssetCategoryPage({ params }: { params: Promise<{ 
       .select("id, data, goal_id")
       .eq("user_id", user.id)
       .eq("category", category)
+      .order("sort_order")
       .order("created_at"),
     supabase
       .from("asset_holding_snapshots")
